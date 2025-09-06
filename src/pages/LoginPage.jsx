@@ -1,7 +1,7 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import InputFloatingComponent from "../components/inputs/InputFloatingComponent";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/AuthContext";
 import logoappsfly from "../../public/logoappsfly.png";
 import "./LoginPage.css";
 
