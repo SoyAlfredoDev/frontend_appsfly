@@ -1,0 +1,53 @@
+.containerNewSale {
+    display: grid;
+    grid-template-rows: 56px 70px auto 35px 90px;
+    height: 100vh;
+    width: 100vv;
+    margin: 0px;
+    padding: 0px;
+}
+
+.navBarRow {
+    background-color: #0055ff;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+}
+
+.customerRow {
+    display: flex;
+    align-items: center;
+    color: rgb(0, 0, 0);
+    width: 100%;
+}
+
+.tableDetalle {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.footerRow {
+    width: 100%;
+    display: flex;
+    color: white;
+}
+
+.inputSaleDetail {
+    border: none;
+}
+
+.inputSaleDetail .total {
+    border: none;
+    color: #b50d0d;
+    font-size: 200px;
+}
+
+.actiones {
+    height: 100%;
+    margin: 0px;
+    padding: 0px;
+}
