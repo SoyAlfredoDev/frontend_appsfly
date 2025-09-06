@@ -1,7 +1,7 @@
 import NavBarComponent from "../../components/NavBarComponent";
 import { getCustomers } from "../../api/customers.js"
 import { getProductsAndServices } from "../../libs/productsAndServices.js"
-import { useAuth } from "../../context/AuthContext.jsx";
+import { useAuth } from "../../context/authContext.jsx";
 import { useEffect, useState } from "react";
 import "./NewSalePage.css"
 import CardRegisterPayments from "../../components/paymennts/CardRegisterPayments.jsx";
