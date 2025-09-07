@@ -14,6 +14,7 @@ import ViewSalePage from './pages/Sales/ViewSalePage.jsx';
 import RegisterBusinessPage from './pages/business/RegisterBusinessPage.jsx';
 import UsersPage from './pages/users/UsersPage.jsx';
 import UserGuestPage from './pages/users/UserGuestPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path='/sale/:id' element={<ViewSalePage />} />
             <Route path='/sales/register' element={<NewSalePage />} />
             <Route path='/users' element={<UsersPage />} />
+            <Route path='/profile' element={<ProfilePage />} />
             <Route path='/users/userGuest' element={<UserGuestPage />} />
             {/**si el usuario esta autentificado debe redirigir dashboard */}
             {/** admin */}
