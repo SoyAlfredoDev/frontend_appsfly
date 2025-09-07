@@ -1,10 +1,20 @@
 import { useAuth } from "../../context/authContext.jsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createUserBusinessRequest } from '../../api/userBusiness.js';
 import { userGuestUpdateAcceptRequest } from '../../api/userGuest.js';
+import { useNavigate } from "react-router-dom";
+
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
 
 export default function UserGuestPendient() {
     const { userGuestExists, user } = useAuth();
+    const navigate = useNavigate();
+    useEffect(() => {
+        console.log(userGuestExists);
+    }, [userGuestExists]);
 
     const [dataFrom, setDataFrom] = useState({
         userBusinessUserId: user.userId,
@@ -12,25 +22,23 @@ export default function UserGuestPendient() {
         userBusinessRole: '',
         userGuestId: ''
     });
-
     const handleSubmit = (businessId, userGuestRole, userGuestId) => {
         const newData = { ...dataFrom, userBusinessBusinessId: businessId, userBusinessRole: userGuestRole, userGuestId: userGuestId };
-        console.log(newData);
         setDataFrom(newData);
         createUserBusiness(newData);
 
     };
-
     const createUserBusiness = async (data) => {
         try {
             const response = await createUserBusinessRequest(data);
             if (response.status === 201) {
-                alert("Has aceptado la invitación, recarga la página para ver los cambios")
+                showAlert("invitación aceptada correctamente", "debes ingresar nuevamente al sistema", "success");
                 const update = await userGuestUpdateAcceptRequest(data.userGuestId);
                 if (update.status === 200) {
-                    alert("se actualizó el estado de la invitación");
+                    navigate('/logout');
+
                 } else {
-                    alert("Error al actualizar el estado de la invitación");
+                    showAlert("Error", "Error al actualizar el estado de la invitación", "error");
                 }
             } else if (response.status === 500) {
                 alert("Error al aceptar la invitación")
@@ -39,6 +47,15 @@ export default function UserGuestPendient() {
             console.error(error);
         }
     };
+
+    const showAlert = (message, text, icon) => {
+        MySwal.fire({
+            title: <p>{message}</p>,
+            text: text,
+            icon: icon,
+            confirmButtonText: "OK"
+        })
+    }
 
     return (
         <>

@@ -22,9 +22,10 @@ export const AuthProvider = ({ children }) => {
 
 
     // Check if user guest exists
-    const searchUserGuestExists = async () => {
+    const searchUserGuestExists = async (email) => {
         try {
-            const res = await userGuestExistsRequest(user ? user.userEmail : null);
+            const res = await userGuestExistsRequest(email);
+            console.log("res userGuestExistsRequest:", res, email);
             if (res.data.length > 0) {
                 setUserGuestExists(res.data);
             }
@@ -34,9 +35,9 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Check if user has business associated
-    const searchBusinessByUserId = async () => {
+    const searchBusinessByUserId = async (userId) => {
         try {
-            const userBusiness = await getUserBusinessById(user ? user.userId : null);
+            const userBusiness = await getUserBusinessById(userId);
             const result = userBusiness.data.length > 0;
             setHasBusiness(result);
             setBusinessSelected(userBusiness.data[0]);
@@ -67,8 +68,8 @@ export const AuthProvider = ({ children }) => {
             const data = res.data.user
             setUser(data);
             setIsAuthenticated(true);
-            await searchUserGuestExists()
-            await searchBusinessByUserId()
+            await searchUserGuestExists(data.userEmail)
+            await searchBusinessByUserId(data.userId)
             return data
         } catch (error) {
             console.log("Error en singin AuthContext.jsx:", error);
