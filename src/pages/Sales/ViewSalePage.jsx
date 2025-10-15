@@ -18,12 +18,15 @@ export default function ViewSalePage() {
     const [paymentId, setPaymentId] = useState(uuidv4());
     const [method, setMethod] = useState("");
     const [payment, setPayment] = useState(0);
+    const [btnModal, setBtnModal] = useState(false);
     useEffect(() => {
         searchSaleById();
-        console.log('Sale', sale)
-        //setPayment()
+        setPayment(sale.salePendingAmount);
     }, []);
     const handleAmountChange = (e) => {
+        if (e.target.value > sale.salePendingAmount) {
+            alert('El monto del abono no puede ser mayor al monto pendiente de la venta.')
+        }
         setPayment(Number(e.target.value))
     };
     const searchSaleById = async () => {
@@ -34,7 +37,6 @@ export default function ViewSalePage() {
             setSale(data.data);
             setTableProductAndService(saleDetailData.data);
             setTablaPayment(payments.data)
-            console.log(payments.data)
         } catch (error) {
             console.log(error);
         }
@@ -48,14 +50,41 @@ export default function ViewSalePage() {
     ];
 
     const handleClickModal = () => {
+        setBtnModal(true);
+        if (method === "") {
+            alert('Debe seleccionar un método de pago.')
+            setBtnModal(false);
+            return;
+        }
+
+        if (payment <= 0) {
+            alert('El monto del abono debe ser mayor a 0.')
+            setBtnModal(false);
+            return;
+        }
+
         const data = {
             paymentId: paymentId,
             paymentMethod: method,
             paymentAmount: payment,
             saleId: sale.saleId
         }
+
+        if (data.paymentAmount > sale.salePendingAmount) {
+            alert('El monto del abono no puede ser mayor al monto pendiente de la venta.')
+            return;
+        }
         createPayment(data)
         setPaymentId(uuidv4())
+
+        //close modal
+        const modal = document.getElementById('addPaymentModal');
+        const modalInstance = window.bootstrap.Modal.getInstance(modal);
+        modalInstance.hide();
+        //reset form
+        setMethod("");
+        setPayment(0);
+        setBtnModal(false);
 
     };
 
@@ -198,13 +227,7 @@ export default function ViewSalePage() {
 
                     </div>
                 </div>
-                <hr />
                 <div className="row ">
-
-                    <button type="button" className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPaymentModal" onClick={handleClickModalOpen}>
-                        Agregar
-                    </button>
-
                     <IconComponent
                         ico='printer'
                         title='Imprimir'
@@ -212,12 +235,15 @@ export default function ViewSalePage() {
                         size='sm'
                     />
 
-                    <IconComponent
-                        ico='money'
-                        title='Abonar'
-                        type='btn'
-                        size='sm'
-                    />
+                    <button
+                        type="button"
+                        className={`btn btn-success btn-sm m-1 ${sale.salePendingAmount === 0 ? 'disabled btn-secondary' : ''} text-center `}
+                        data-bs-toggle="modal"
+                        data-bs-target="#addPaymentModal"
+                        onClick={handleClickModalOpen}
+                        style={{ maxWidth: '200px' }}>
+                        <i className="bi bi-plus-lg me-1"></i> Abonar
+                    </button>
 
                     <IconComponent
                         ico='back'
@@ -229,7 +255,6 @@ export default function ViewSalePage() {
             </div >
 
             <> {/*modal*/}
-
                 <div className="modal fade" id="addPaymentModal" tabIndex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
                     <div className="modal-dialog">
                         <div className="modal-content">
@@ -261,8 +286,8 @@ export default function ViewSalePage() {
                             </div>
 
                             <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal" style={{ width: '120px' }}>Cerrar</button>
-                                <button type="button" className="btn btn-success" onClick={handleClickModal} style={{ width: '120px' }}>Agregar</button>
+                                <button type="button" className="btn btn-secondary" disabled={btnModal} data-bs-dismiss="modal" style={{ width: '120px' }}>Cerrar</button>
+                                <button type="button" className="btn btn-success" disabled={btnModal} onClick={handleClickModal} style={{ width: '120px' }}>Agregar</button>
                             </div>
                         </div>
                     </div>

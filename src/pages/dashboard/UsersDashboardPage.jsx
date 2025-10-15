@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { getMonthlySales, getDaySales } from '../../api/sale.js'
+import { getMonthlySalesNow, getDaySales } from '../../api/sale.js'
 import { useEffect, useState } from 'react';
 
 export default function UsersDashboardPage() {
@@ -10,22 +10,24 @@ export default function UsersDashboardPage() {
 
     useEffect(() => {
         searchMonthlySales();
+
     }, []);
 
     const searchMonthlySales = async () => {
-        setLoading(true);
-        const month = new Date().getMonth() + 1;
-        const year = new Date().getFullYear();
-        const res = await getMonthlySales(month, year);
-
-        setMonthlySales(res.data.saleTotal);
-        setSalePendingAmount(res.data.salePendingAmount);
-
-        const day = new Date().getDate();
-        const resDay = await getDaySales(day, month, year);
-        setDaySales(resDay.data);
-
-        setLoading(false);
+        try {
+            setLoading(true);
+            const month = new Date().getMonth() + 1;
+            const year = new Date().getFullYear();
+            const res = await getMonthlySalesNow()
+            setMonthlySales(res.data.saleTotal);
+            setSalePendingAmount(res.data.salePendingAmount);
+            const day = new Date().getDate();
+            const resDay = await getDaySales(day, month, year);
+            setDaySales(resDay.data);
+            setLoading(false);
+        } catch (error) {
+            console.error("(UsersDashboardPage.jsx): Error fetching sales data:", error);
+        }
     }
 
     // Función para mostrar datos o loader
@@ -54,6 +56,12 @@ export default function UsersDashboardPage() {
                 </div>
                 <div className="col-md-4">
                     <div className="card shadow-sm border-0 p-3 text-center">
+                        <h6 className="text-muted">Ingresos del Día</h6>
+                        <span className="h4 text-success fw-bold">{renderValue(daySales, 'success')}</span>
+                    </div>
+                </div>
+                <div className="col-md-4">
+                    <div className="card shadow-sm border-0 p-3 text-center">
                         <h6 className="text-muted">Ventas del Mes</h6>
                         <span className="h4 text-success fw-bold">{renderValue(monthlySales, 'success')}</span>
                     </div>
@@ -64,6 +72,19 @@ export default function UsersDashboardPage() {
                         <span className="h4 text-warning fw-bold">{renderValue(salePendingAmount, 'warning')}</span>
                     </div>
                 </div>
+
+                <div className="col-md-4">
+                    <div className="card shadow-sm border-0 p-3 text-center">
+                        <h6 className="text-muted">Gastos Mes </h6>
+                        <span className="h4 text-success fw-bold">{renderValue(0, 'success')}</span>
+                    </div>
+                </div>
+                <div className="col-md-4">
+                    <div className="card shadow-sm border-0 p-3 text-center">
+                        <h6 className="text-muted">Efectivo Disponible</h6>
+                        <span className="h4 text-warning fw-bold">{renderValue(0, 'warning')}</span>
+                    </div>
+                </div>
             </div>
 
             <hr />
@@ -71,7 +92,8 @@ export default function UsersDashboardPage() {
             {/* Accesos rápidos */}
             <h5 className="mb-3">⚡ Accesos Rápidos</h5>
             <div className="d-flex gap-2 flex-wrap">
-                <Link className="btn btn-success" to="/sales/register">➕ Nueva Venta</Link>
+                <Link className="btn btn-success mt-2" to="/sales/register">➕ Venta</Link>
+
             </div>
         </div>
     );
