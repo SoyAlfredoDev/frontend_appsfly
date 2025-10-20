@@ -18,7 +18,7 @@ const instance = axios.create({
 */
 
 const instance = axios.create({
-    baseURL: 'http://64.176.14.37:3000/api',
+    baseURL: 'https://api.appsfly.app/api',
     withCredentials: true
 
 })
