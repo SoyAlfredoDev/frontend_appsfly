@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import NavBarComponent from "../components/NavBarComponent";
-import AddDailySaleModal from "../components/modals/addDailySaleModal";
+import AddDailySaleModal from "../components/modals/AddDailySaleModal";
 import { getDailySales } from "../api/dailySales.js";
 
 export default function PageDailySales() {
