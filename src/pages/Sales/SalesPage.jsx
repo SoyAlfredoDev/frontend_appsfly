@@ -53,7 +53,7 @@ export default function SalesPage() {
                 </div>
                 <div className="row">
                     <div className="table-responsive">
-                        <table className="table">
+                        <table className="table table-striped table-hover">
                             <thead>
                                 <tr className="text-center">
                                     <th>Fecha </th>

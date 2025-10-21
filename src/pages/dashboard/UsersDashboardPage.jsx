@@ -93,6 +93,7 @@ export default function UsersDashboardPage() {
             <h5 className="mb-3">⚡ Accesos Rápidos</h5>
             <div className="d-flex gap-2 flex-wrap">
                 <Link className="btn btn-success mt-2" to="/sales/register">➕ Venta</Link>
+                <Link className="btn btn-info mt-2" to="/sales/dailySales">📅 Cierre Diario</Link>
 
             </div>
         </div>

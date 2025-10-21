@@ -254,45 +254,45 @@ export default function ViewSalePage() {
                 </div>
             </div >
 
-            <> {/*modal*/}
-                <div className="modal fade" id="addPaymentModal" tabIndex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
-                    <div className="modal-dialog">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title" id="addPaymentModalLabel">Agregar Abono</h5>
-                                <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
+            {/*modal*/}
+            <div className="modal fade" id="addPaymentModal" tabIndex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h5 className="modal-title" id="addPaymentModalLabel">Agregar Abono</h5>
+                            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
 
-                            <div className="modal-body input-group">
-                                <select
-                                    className="form-select form-select-sm w-50 py-0"
-                                    value={method}
-                                    onChange={(e) => setMethod(e.target.value)}
-                                >
-                                    <option value="">Seleccionar método de pago</option>
-                                    {methods.map((m) => (
-                                        <option key={m.methodId} value={m.methodId}>{m.methodName}</option>
-                                    ))}
-                                </select>
+                        <div className="modal-body input-group">
+                            <select
+                                className="form-select form-select-sm w-50 py-0"
+                                value={method}
+                                onChange={(e) => setMethod(e.target.value)}
+                            >
+                                <option value="">Seleccionar método de pago</option>
+                                {methods.map((m) => (
+                                    <option key={m.methodId} value={m.methodId}>{m.methodName}</option>
+                                ))}
+                            </select>
 
-                                <input
-                                    type="number"
-                                    step={1}
-                                    value={payment}
-                                    onChange={handleAmountChange}
-                                    className="form-control form-control-sm text-center"
-                                    style={{ width: "40%" }}
-                                />
-                            </div>
+                            <input
+                                type="number"
+                                step={1}
+                                value={payment}
+                                onChange={handleAmountChange}
+                                className="form-control form-control-sm text-center"
+                                style={{ width: "40%" }}
+                            />
+                        </div>
 
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" disabled={btnModal} data-bs-dismiss="modal" style={{ width: '120px' }}>Cerrar</button>
-                                <button type="button" className="btn btn-success" disabled={btnModal} onClick={handleClickModal} style={{ width: '120px' }}>Agregar</button>
-                            </div>
+                        <div className="modal-footer">
+                            <button type="button" className="btn btn-secondary" disabled={btnModal} data-bs-dismiss="modal" style={{ width: '120px' }}>Cerrar</button>
+                            <button type="button" className="btn btn-success" disabled={btnModal} onClick={handleClickModal} style={{ width: '120px' }}>Agregar</button>
                         </div>
                     </div>
                 </div>
-            </>
+            </div>
+
         </>
     )
 };

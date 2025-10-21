@@ -10,6 +10,7 @@ import ProductsServicesPage from './pages/ProductsServicesPage.jsx';
 import SalesPage from './pages/Sales/SalesPage.jsx';
 import NewSalePage from './pages/Sales/NewSalePage.jsx';
 import CustomerViewPage from './pages/CustomerViewPage.jsx';
+import PageDailySales from './pages/PageDailySales.jsx';
 import ViewSalePage from './pages/Sales/ViewSalePage.jsx';
 import RegisterBusinessPage from './pages/business/RegisterBusinessPage.jsx';
 import UsersPage from './pages/users/UsersPage.jsx';
@@ -35,6 +36,7 @@ function App() {
             <Route path='/users' element={<UsersPage />} />
             <Route path='/profile' element={<ProfilePage />} />
             <Route path='/users/userGuest' element={<UserGuestPage />} />
+            <Route path='/sales/dailySales' element={<PageDailySales />} />
             {/**si el usuario esta autentificado debe redirigir dashboard */}
             {/** admin */}
             <Route path='/admin/dashboard' element={<DashboardAdminPage />} />
