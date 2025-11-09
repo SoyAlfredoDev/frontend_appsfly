@@ -25,5 +25,5 @@ dist-ssr
 
 .env.development
 .env.production
-src/api/axios.js
+
 
