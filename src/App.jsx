@@ -16,6 +16,9 @@ import RegisterBusinessPage from './pages/business/RegisterBusinessPage.jsx';
 import UsersPage from './pages/users/UsersPage.jsx';
 import UserGuestPage from './pages/users/UserGuestPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
+import TransactionsPage from './pages/TransactionsPage.jsx';
+import ExpensesPage from './pages/ExpensesPage.jsx';
+import FinancePage from './pages/FinancePage.jsx';
 
 function App() {
   return (
@@ -31,12 +34,15 @@ function App() {
             <Route path='/login' element={<LoginPage />} />
             <Route path='/products_services' element={<ProductsServicesPage />} />
             <Route path='/sales' element={<SalesPage />} />
-            <Route path='/sale/:id' element={<ViewSalePage />} />
+            <Route path='/sales/view/:id' element={<ViewSalePage />} />
             <Route path='/sales/register' element={<NewSalePage />} />
             <Route path='/users' element={<UsersPage />} />
             <Route path='/profile' element={<ProfilePage />} />
             <Route path='/users/userGuest' element={<UserGuestPage />} />
             <Route path='/sales/dailySales' element={<PageDailySales />} />
+            <Route path='/transactions' element={<TransactionsPage />} />
+            <Route path='/finance' element={<FinancePage />} />
+            <Route path='/expenses' element={<ExpensesPage />} />
             {/**si el usuario esta autentificado debe redirigir dashboard */}
             {/** admin */}
             <Route path='/admin/dashboard' element={<DashboardAdminPage />} />

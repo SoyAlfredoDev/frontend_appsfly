@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-export default function IconComponent({
+export function IconComponent({
     ico,
     type = 'btn',
     title = null,
@@ -46,4 +46,28 @@ export default function IconComponent({
             {content}
         </Link>
     );
+}
+
+export function IconEye({ color }) {
+    return (
+        <i className={`bi bi-eye-fill text-${color}`}></i>
+    )
+}
+
+export function IconPlus({ color = 'white' }) {
+    return (
+        <i className={`bi bi-plus-lg text-${color}`}></i>
+    )
+}
+
+export function IconTrash({ color = 'white' }) {
+    return (
+        <i className={`bi bi-trash-fill text-${color}`}></i>
+    )
+}
+
+export function IconPrinter({ color = 'white' }) {
+    return (
+        <i className={`bi bi-printer-fill text-${color}`}></i>
+    )
 }

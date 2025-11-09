@@ -25,7 +25,6 @@ export const AuthProvider = ({ children }) => {
     const searchUserGuestExists = async (email) => {
         try {
             const res = await userGuestExistsRequest(email);
-            console.log("res userGuestExistsRequest:", res, email);
             if (res.data.length > 0) {
                 setUserGuestExists(res.data);
             }

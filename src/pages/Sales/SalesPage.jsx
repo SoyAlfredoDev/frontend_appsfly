@@ -1,103 +1,202 @@
 import { useEffect, useState } from "react";
+import {
+    useReactTable,
+    getCoreRowModel,
+    getSortedRowModel,
+    getFilteredRowModel,
+    flexRender
+} from "@tanstack/react-table";
+import { getSales } from "../../api/sale.js";
 import NavBarComponent from "../../components/NavBarComponent";
-import { useNavigate, Link } from "react-router-dom";
-import { getSales } from '../../api/sale.js'
+import { useNavigate } from "react-router-dom";
+import { IconEye, IconPlus } from '../../components/IconComponent.jsx'
 
 export default function SalesPage() {
-    const [dataSale, seDataSale] = useState([])
-    const navigate = useNavigate()
-    const handleOnClick = () => {
-        navigate('/sales/register');
-    }
+    const [salesData, setSalesData] = useState([]);
+    const [sorting, setSorting] = useState([]);
+    const [globalFilter, setGlobalFilter] = useState(""); // Estado para el input de búsqueda
+    const navigate = useNavigate();
 
-    //get sale
-    useEffect(() => {
-        searchSales()
-    }, [])
+    const handleAddSale = () => {
+        navigate("/sales/register");
+    };
+    const [isLoading, setIsLoading] = useState(true);
 
-    const searchSales = async () => {
-        try {
-            const data = await getSales()
-            const sales = data.data
-            seDataSale(sales)
-            return sales
-
-        } catch (error) {
-            console.log(error)
+    const columns = [
+        { header: "Fecha", accessorFn: row => row.saleDate ?? "" },
+        { header: "Nro", accessorFn: row => row.saleNumber ?? "" },
+        { header: "Cliente", accessorFn: row => `${row.customer?.customerFirstName ?? ""} ${row.customer?.customerLastName ?? ""}` },
+        {
+            header: "Total", accessorFn: row => row.saleTotal ?? "", cell: ({ getValue }) => {
+                const value = getValue();
+                if (typeof value === 'number') {
+                    return value.toLocaleString('es-CL', {
+                        style: 'currency',
+                        currency: 'CLP'
+                    });
+                }
+                return value;
+            },
+        },
+        {
+            header: "Pendiente", accessorFn: row => row.salePendingAmount ?? "", cell: ({ getValue }) => {
+                const value = getValue();
+                if (typeof value === 'number') {
+                    return value.toLocaleString('es-CL', {
+                        style: 'currency',
+                        currency: 'CLP'
+                    });
+                }
+                return value;
+            },
+        },
+        {
+            header: "Vendedor", accessorFn: row => `${row.user?.userFirstName ?? ""} ${row.user?.userLastName ?? ""}`
+        },
+        { header: "Comentario", accessorFn: row => row.saleComment ?? "" },
+        {
+            header: "Acciones", id: "actions", cell: ({ row }) => (
+                <>
+                    <button
+                        className="btn"
+                        onClick={() => handleEditSale(row.original.saleId)}
+                    >
+                        <IconEye color="success" />
+                    </button>
+                </>
+            )
         }
+    ];
+
+    const handleEditSale = (saleId) => {
+        navigate(`/sales/view/${saleId}`);
     }
+
+    const table = useReactTable({
+        // 1. **Datos completos:** Pasamos todos los datos sin filtrar.
+        data: salesData,
+        columns,
+        state: {
+            sorting,
+            globalFilter, // 2. **Estado de Filtro:** Ahora TanStack Table gestiona este estado.
+        },
+        onSortingChange: setSorting,
+        onGlobalFilterChange: setGlobalFilter, // 3. **Manejador de Filtro:** Para actualizar el estado.
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        // 4. **Modelo de Filtro:** Instruye a la tabla para aplicar el filtro global.
+        getFilteredRowModel: getFilteredRowModel(),
+        // Opcional: puedes definir 'fuzzy' o 'includesString' como globalFilterFn 
+        // para un filtrado más inteligente si lo necesitas.
+    });
+
+    useEffect(() => {
+        fetchSales();
+    }, []);
+
+    const fetchSales = async () => {
+        try {
+            const response = await getSales();
+            setSalesData(response.data || []);
+        } catch (error) {
+            console.error("Error fetching sales:", error);
+        } finally {
+            setIsLoading(false); // Finaliza la carga, haya sido exitosa o no
+        }
+    };
+
+
 
     return (
         <>
             <NavBarComponent />
-            <div className="container-fluid">
-                <div className="row" style={{ marginTop: '70px' }}>
-                    <div className="col-9 col-md-4">
-                        <h1 className="page-title">Ventas</h1>
+            <div className="container-fluid" style={{ marginTop: "80px" }}>
+                <div className="row px-3  align-items-center">
+                    <div className="col-md-4">
+                        <h1>Ventas</h1>
                     </div>
-                    <div className="col-3 col-md-2 text-center">
-                        <button className="btn btn-success" onClick={handleOnClick}>
-                            AGREGAR
+                    <div className="col-md-2 text-center">
+                        <button className="btn btn-success" onClick={handleAddSale}>
+                            <IconPlus />
+                            <span className="ms-2 d-none d-sm-inline">Agregar</span>
                         </button>
-
                     </div>
                     <div className="col-md-6">
-                        <div className="search-container">
-                            <input
-                                type="text"
-                                className="form-control search-input"
-                                placeholder="🔍 Buscar producto o servicio por nombre o sku"
-                            />
-                        </div>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="🔍 Search by any field"
+                            value={globalFilter}
+                            // Usamos setGlobalFilter para actualizar el estado, 
+                            // que a su vez refresca la tabla a través de useReactTable.
+                            onChange={e => setGlobalFilter(e.target.value)}
+                        />
                     </div>
                 </div>
+
                 <div className="row">
                     <div className="table-responsive">
                         <table className="table table-striped table-hover">
                             <thead>
-                                <tr className="text-center">
-                                    <th>Fecha </th>
-                                    <th>Nro Venta</th>
-                                    <th>Cliente</th>
-                                    <th>Total</th>
-                                    <th>Por Cobrar</th>
-                                    <th>Vendedor</th>
-                                    <th>Comentario</th>
-                                    <th>acciones</th>
-                                </tr>
+                                {table.getHeaderGroups().map(headerGroup => (
+
+                                    <tr key={headerGroup.id}>
+                                        {headerGroup.headers.map(header => (
+                                            <th
+                                                key={header.id}
+                                                className="p-2 bg-success text-white border-bottom"
+                                                style={{ cursor: "pointer" }}
+                                                onClick={header.column.getToggleSortingHandler()}
+                                            >
+                                                {flexRender(header.column.columnDef.header, header.getContext())}
+                                                {header.column.getIsSorted() === "asc"
+                                                    ? " 🔼"
+                                                    : header.column.getIsSorted() === "desc"
+                                                        ? " 🔽"
+                                                        : null}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                ))}
                             </thead>
                             <tbody>
-                                {
-                                    dataSale.map((sale) => (
-                                        <tr key={sale.saleId}>
-                                            <td className="text-center">
-                                                {new Date(sale.createdAt).toLocaleDateString('es-CL')}
-                                            </td>
-                                            <td></td>
-                                            <td>{sale.customer.customerFirstName} {sale.customer.customerLastName}</td>
-                                            <td className="text-end text-success">
-                                                <b>
-                                                    {sale.saleTotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
-                                                </b>
-                                            </td>
-                                            <td className={'text-danger text-end'}>
-                                                {sale.salePendingAmount.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
-                                            </td>
-                                            <td className="text-center">{sale.user.userFirstName} {sale.user.userLastName}</td>
-                                            <td className="text-start">{sale?.saleComment}</td>
-                                            <td>
-                                                <Link className="btn btn-sm text-success " to={`/sale/${sale.saleId}`}>
-                                                    <i className="bi bi-eye-fill"></i>
-                                                </Link>
-                                            </td>
+                                {isLoading ? (
+                                    // 1. ESCENARIO DE CARGA
+                                    <tr>
+                                        <td colSpan={columns.length} className="text-center p-4">
+                                            <div className="d-flex align-items-center px-2">
+                                                <strong className="text-secondary"> Cargando datos... Por favor, espere.</strong>
+                                                <div className="spinner-grow text-success ms-auto" role="status">
+                                                    <span className="visually-hidden">Loading...</span>
+                                                </div>
+                                            </div>
+
+                                        </td>
+                                    </tr>
+                                ) : table.getRowModel().rows.length === 0 ? (
+                                    // 2. ESCENARIO SIN DATOS (o sin resultados de filtro)
+                                    <tr>
+                                        <td colSpan={columns.length} className="text-center p-4">
+                                            **No hay ventas registradas o no se encontraron resultados para su búsqueda.**
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    // 3. ESCENARIO CON DATOS
+                                    table.getRowModel().rows.map(row => (
+                                        <tr key={row.id}>
+                                            {row.getVisibleCells().map(cell => (
+                                                <td key={cell.id} className="p-2 border-bottom">
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </td>
+                                            ))}
                                         </tr>
                                     ))
-                                }
+                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </>
-    )
+    );
 }

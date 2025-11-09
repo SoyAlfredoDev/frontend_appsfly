@@ -3,15 +3,9 @@ import UserNewDashboardPage from './dashboard/UserNewDashboardPage'
 import UserGuestPendient from "./users/UserGuestPendient.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import UsersDashboardPage from "./dashboard/UsersDashboardPage.jsx";
-import { useEffect } from "react";
 
 export default function DashboardAdminPage() {
-    const { hasBusiness, userGuestExists } = useAuth();
-    useEffect(() => {
-        console.log('hasBusiness');
-        console.log(userGuestExists);
-    }, [userGuestExists]);
-
+    const { hasBusiness } = useAuth();
     return (
         <>
             <NavBarComponent />

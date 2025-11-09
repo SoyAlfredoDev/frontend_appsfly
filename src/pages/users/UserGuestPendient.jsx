@@ -12,10 +12,6 @@ const MySwal = withReactContent(Swal);
 export default function UserGuestPendient() {
     const { userGuestExists, user } = useAuth();
     const navigate = useNavigate();
-    useEffect(() => {
-        console.log(userGuestExists);
-    }, [userGuestExists]);
-
     const [dataFrom, setDataFrom] = useState({
         userBusinessUserId: user.userId,
         userBusinessBusinessId: '',

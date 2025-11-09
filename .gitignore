@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-.env
+.env.development
+.env.production
 src/api/axios.js
 
