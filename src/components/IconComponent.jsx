@@ -71,3 +71,15 @@ export function IconPrinter({ color = 'white' }) {
         <i className={`bi bi-printer-fill text-${color}`}></i>
     )
 }
+
+export function IconDelete({ color = 'white' }) {
+    return (
+        <i className={`bi bi-x-circle-fill text-${color}`}></i>
+    )
+}
+
+export function IconEdit({ color = 'white' }) {
+    return (
+        <i className={`bi bi-pencil-fill text-${color}`}></i>
+    )
+}

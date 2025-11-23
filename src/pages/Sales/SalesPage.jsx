@@ -1,3 +1,5 @@
+import NavBarComponent from "../../components/NavBarComponent";
+import ProtectedView from "../../components/ProtectedView";
 import { useEffect, useState } from "react";
 import {
     useReactTable,
@@ -7,7 +9,7 @@ import {
     flexRender
 } from "@tanstack/react-table";
 import { getSales } from "../../api/sale.js";
-import NavBarComponent from "../../components/NavBarComponent";
+
 import { useNavigate } from "react-router-dom";
 import { IconEye, IconPlus } from '../../components/IconComponent.jsx'
 
@@ -16,12 +18,10 @@ export default function SalesPage() {
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState(""); // Estado para el input de búsqueda
     const navigate = useNavigate();
-
     const handleAddSale = () => {
         navigate("/sales/register");
     };
     const [isLoading, setIsLoading] = useState(true);
-
     const columns = [
         { header: "Fecha", accessorFn: row => row.saleDate ?? "" },
         { header: "Nro", accessorFn: row => row.saleNumber ?? "" },
@@ -58,7 +58,7 @@ export default function SalesPage() {
             header: "Acciones", id: "actions", cell: ({ row }) => (
                 <>
                     <button
-                        className="btn"
+                        className="btn m-0 p-0"
                         onClick={() => handleEditSale(row.original.saleId)}
                     >
                         <IconEye color="success" />
@@ -67,11 +67,9 @@ export default function SalesPage() {
             )
         }
     ];
-
     const handleEditSale = (saleId) => {
         navigate(`/sales/view/${saleId}`);
     }
-
     const table = useReactTable({
         // 1. **Datos completos:** Pasamos todos los datos sin filtrar.
         data: salesData,
@@ -89,11 +87,9 @@ export default function SalesPage() {
         // Opcional: puedes definir 'fuzzy' o 'includesString' como globalFilterFn 
         // para un filtrado más inteligente si lo necesitas.
     });
-
     useEffect(() => {
         fetchSales();
     }, []);
-
     const fetchSales = async () => {
         try {
             const response = await getSales();
@@ -104,11 +100,8 @@ export default function SalesPage() {
             setIsLoading(false); // Finaliza la carga, haya sido exitosa o no
         }
     };
-
-
-
     return (
-        <>
+        <ProtectedView>
             <NavBarComponent />
             <div className="container-fluid" style={{ marginTop: "80px" }}>
                 <div className="row px-3  align-items-center">
@@ -125,7 +118,7 @@ export default function SalesPage() {
                         <input
                             type="text"
                             className="form-control"
-                            placeholder="🔍 Search by any field"
+                            placeholder="🔍Buscar venta por cualquier campo..."
                             value={globalFilter}
                             // Usamos setGlobalFilter para actualizar el estado, 
                             // que a su vez refresca la tabla a través de useReactTable.
@@ -139,7 +132,6 @@ export default function SalesPage() {
                         <table className="table table-striped table-hover">
                             <thead>
                                 {table.getHeaderGroups().map(headerGroup => (
-
                                     <tr key={headerGroup.id}>
                                         {headerGroup.headers.map(header => (
                                             <th
@@ -163,14 +155,13 @@ export default function SalesPage() {
                                 {isLoading ? (
                                     // 1. ESCENARIO DE CARGA
                                     <tr>
-                                        <td colSpan={columns.length} className="text-center p-4">
-                                            <div className="d-flex align-items-center px-2">
+                                        <td colSpan={columns.length} className="text-center p-1">
+                                            <div className="d-flex align-items-center px-3">
                                                 <strong className="text-secondary"> Cargando datos... Por favor, espere.</strong>
-                                                <div className="spinner-grow text-success ms-auto" role="status">
+                                                <div className="spinner-grow text-success spinner-grow-sm ms-auto" role="status">
                                                     <span className="visually-hidden">Loading...</span>
                                                 </div>
                                             </div>
-
                                         </td>
                                     </tr>
                                 ) : table.getRowModel().rows.length === 0 ? (
@@ -197,6 +188,6 @@ export default function SalesPage() {
                     </div>
                 </div>
             </div>
-        </>
+        </ProtectedView>
     );
 }

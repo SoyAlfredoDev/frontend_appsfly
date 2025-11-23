@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import NavBarComponent from "../components/NavBarComponent";
+import ProtectedView from "../components/ProtectedView";
 import AddTransactionModal from "../components/modals/AddTransactionModal.jsx";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,7 +21,7 @@ export default function TransactionsPage() {
         }])
     }, []);
     return (
-        <>
+        <ProtectedView>
             <NavBarComponent />
             <div className="container-fluid">
                 <div className="row" style={{ marginTop: '80px' }}>
@@ -77,6 +78,6 @@ export default function TransactionsPage() {
                     </table>
                 </div>
             </div>
-        </>
+        </ProtectedView>
     );
 }

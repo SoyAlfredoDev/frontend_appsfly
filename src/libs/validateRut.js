@@ -1,38 +1,35 @@
 export default function validateRut(rut) {
     if (!rut || typeof rut !== 'string') return false;
 
-    const rutFormatted = rut.toLowerCase().replace(/[^0-9k]/g, '');
-    let rutSpelling = [];
+    // Limpiar RUT (quitar puntos, guiones, espacios)
+    const clean = rut.toLowerCase().replace(/[^0-9k]/g, '');
 
-    for (let i = 0; i < rutFormatted.length; i++) {
-        const char = rutFormatted[i];
-        if (i === rutFormatted.length - 1 && char === 'k') {
-            rutSpelling.push('k');
-        } else if (!isNaN(char)) {
-            rutSpelling.push(parseInt(char));
-        }
-    }
+    // Al menos debe tener base + DV
+    if (clean.length < 2) return false;
 
-    const givenDV = rutSpelling.pop();
-    const reversedRut = [...rutSpelling].reverse();
+    const body = clean.slice(0, -1);
+    const dv = clean.slice(-1);
 
+    // Validar que la base sea numérica
+    if (!/^\d+$/.test(body)) return false;
+
+    // Calcular DV esperado
     let sum = 0;
     let multiplier = 2;
 
-    for (const digit of reversedRut) {
-        sum += digit * multiplier;
+    for (let i = body.length - 1; i >= 0; i--) {
+        sum += parseInt(body[i]) * multiplier;
         multiplier = (multiplier === 7) ? 2 : multiplier + 1;
     }
 
     let expectedDV = 11 - (sum % 11);
-    if (expectedDV === 11) expectedDV = '0';
-    else if (expectedDV === 10) expectedDV = 'k';
-    else expectedDV = expectedDV.toString();
+    expectedDV = expectedDV === 11 ? '0'
+        : expectedDV === 10 ? 'k'
+            : expectedDV.toString();
 
-    if (expectedDV === givenDV.toString()) {
-        const rutBaseString = rutSpelling.join('');
-        return `${rutBaseString}-${expectedDV}`;
-    } else {
-        return false;
-    }
+    // Comparar DV
+    if (dv !== expectedDV) return false;
+
+    // Retornar RUT formateado estándar: 12345678-k
+    return `${body}-${expectedDV}`;
 }

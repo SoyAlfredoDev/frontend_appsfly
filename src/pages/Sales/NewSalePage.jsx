@@ -1,4 +1,5 @@
 import NavBarComponent from "../../components/NavBarComponent";
+import ProtectedView from "../../components/ProtectedView";
 import { getCustomers } from "../../api/customers.js"
 import { getProductsAndServices } from "../../libs/productsAndServices.js"
 import { useAuth } from "../../context/authContext.jsx";
@@ -13,6 +14,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 
 const MySwal = withReactContent(Swal);
+
 
 export default function NewSalePage() {
     const [saleId, setSaleId] = useState(uuidv4());
@@ -251,212 +253,214 @@ export default function NewSalePage() {
     };
 
     return (
-        < div className="containerNewSale">
-            <div className="row m-0 p-0 navBarRow">
-                <NavBarComponent />
-            </div>
-            <div className="row p-2 m-0 customerRow">
-                <div className="col-md-5">
-                    <div className="input-group input-group-sm">
-                        <span className="input-group-text" >Cliente: </span>
-                        <select
-                            id="saleCustomer"
-                            name="saleCustomer"
-                            value={dataSale.saleCustomerId || ''}
-                            className="form-select form-select-sm"
-                            onChange={(e) => { handleChangeCustomerSelect(e.target.value) }}>
-                            <option value={null}>seleccionar cliente</option>
-                            {
-                                customers.map((c) => (
-                                    <option key={c.customerId} value={c.customerId}>
-                                        {c.customerFirstName}  {c.customerLastName}
-                                    </option>
-                                ))
-                            }
-                        </select>
-                        <NewCustomerModal nameBottom={<i className="bi bi-plus-lg"></i>} title={'Registrar Cliente'} idModal="newCustomer" onCreated={handleCreated} />
-                        <a
-                            href={`/customers/${dataSale.saleCustomerId}`}
-                            className="btn btn-warning w-10"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            <i className="bi bi-eye"></i>
-                        </a>
+        <ProtectedView>
+            < div className="containerNewSale">
+                <div className="row m-0 p-0 navBarRow">
+                    <NavBarComponent />
+                </div>
+                <div className="row p-2 m-0 customerRow">
+                    <div className="col-md-5">
+                        <div className="input-group input-group-sm">
+                            <span className="input-group-text" >Cliente: </span>
+                            <select
+                                id="saleCustomer"
+                                name="saleCustomer"
+                                value={dataSale.saleCustomerId || ''}
+                                className="form-select form-select-sm"
+                                onChange={(e) => { handleChangeCustomerSelect(e.target.value) }}>
+                                <option value={null}>seleccionar cliente</option>
+                                {
+                                    customers.map((c) => (
+                                        <option key={c.customerId} value={c.customerId}>
+                                            {c.customerFirstName}  {c.customerLastName}
+                                        </option>
+                                    ))
+                                }
+                            </select>
+                            <NewCustomerModal nameBottom={<i className="bi bi-plus-lg"></i>} title={'Registrar Cliente'} idModal="newCustomer" onCreated={handleCreated} />
+                            <a
+                                href={`/customers/${dataSale.saleCustomerId}`}
+                                className="btn btn-warning w-10"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <i className="bi bi-eye"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div className="col-md-4">
+                        <div>
+                            Fecha: {new Date().toLocaleDateString('es-ES', {
+                                day: 'numeric',
+                                month: 'long',
+                                weekday: 'long',
+                                year: 'numeric'
+                            })}
+                        </div>
+                        <div>
+                            Vendedor: {formatName(user?.userFirstName) + ' ' + formatName(user?.userLastName)}
+                        </div>
+                    </div>
+                    <div className="col-md-3">
                     </div>
                 </div>
-                <div className="col-md-4">
-                    <div>
-                        Fecha: {new Date().toLocaleDateString('es-ES', {
-                            day: 'numeric',
-                            month: 'long',
-                            weekday: 'long',
-                            year: 'numeric'
-                        })}
-                    </div>
-                    <div>
-                        Vendedor: {formatName(user.userFirstName) + ' ' + formatName(user.userLastName)}
-                    </div>
-                </div>
-                <div className="col-md-3">
-                </div>
-            </div>
-            <div className="row tableDetalle m-0 p-0 pt-2">
-                <div className="table-responsibe">
-                    <table className="table table-striped table-hover table-sm">
-                        <colgroup>
-                            <col style={{ width: "5%" }} />
-                            <col style={{ width: "5%", minWidth: "100px" }} />
-                            <col style={{ width: "10%", minWidth: "100px" }} />
-                            <col style={{ width: "35%", minWidth: "200px" }} />
-                            <col style={{ width: "5%" }} />
-                            <col style={{ width: "10%", minWidth: "100px" }} />
-                            <col style={{ width: "10%", minWidth: "100px" }} />
-                            <col style={{ width: "5%" }} />
-                        </colgroup>
-                        <thead>
-                            <tr className="table-success text-center">
-                                <th>Nro</th>
-                                <th>Tipo</th>
-                                <th>SKU</th>
-                                <th>Nombre</th>
-                                <th>Cantidad</th>
-                                <th>Precio</th>
-                                <th>Total</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {dataTable.map((d, index) => (
-                                <tr key={d.saleDetailId}>
-                                    <th scope="row" className="text-center"> {index + 1}</th>
-                                    <td>
-                                        <>
-                                            {d.saleDetailType === 'PRODUCT' && (
-                                                <span className="badge bg-success">Producto</span>
-                                            )}
-                                            {d.saleDetailType === 'SERVICE' && (
-                                                <span className="badge bg-primary">Servicio</span>
-                                            )}
-                                        </>
-
-                                    </td>
-                                    <td className="text-center"> {d.saleDetailSKU}</td>
-                                    <td>
-                                        <select className="form-select inputSaleDetail p-0 ps-3" onChange={() => handleChangeSelect(event, index)}>
-                                            <option className="p-0" value={null}>selecionar producto o servicio</option>
-                                            {
-                                                productsServices.map((p) => (
-
-                                                    <option className="p-0" key={p.productId || p.serviceId} value={p.productId || p.serviceId}>
-                                                        {p.productName || p.serviceName}
-                                                    </option>
-                                                ))
-                                            }
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <input
-                                            type="number"
-                                            className="form-control inputSaleDetail text-center p-0"
-                                            required
-                                            value={d.saleDetailAmount || 1}
-                                            onInput={(e) => handleOnInput(index, 'saleDetailAmount', e.target.value)}
-                                        />
-                                    </td>
-                                    <td className="text-end pe-3">
-                                        <input
-                                            type="number"
-                                            className="form-control inputSaleDetail text-end p-0"
-                                            required
-                                            value={d.saleDetailPrice || 0}
-                                            onInput={(e) => handleOnInput(index, 'saleDetailPrice', e.target.value)}
-                                            disabled={!!d.saleDetailPriceFixed} />
-                                    </td>
-                                    <td className="text-end pe-3">
-                                        <b>
-                                            {d.saleDetailTotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
-                                        </b>
-                                    </td>
-                                    <td className="text-center">
-                                        <div className="row m-0 p-0 text-center px-2">
-                                            <div className="col-6 p-0 text-center">
-                                                <button
-                                                    className="btn text-success text-center p-0"
-                                                    title="descuento">
-                                                    <i className="bi bi-pencil"></i>
-                                                </button>
-                                            </div>
-                                            <div className="col-6 p-0 text-center">
-                                                <button
-                                                    className="btn text-danger text-center p-0"
-                                                    title="eliminar"
-                                                    onClick={() => handleDeleteRow(d.saleDetailId)}>
-                                                    <i className="bi bi-trash3"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                    </td>
+                <div className="row tableDetalle m-0 p-0 pt-2">
+                    <div className="table-responsibe">
+                        <table className="table table-striped table-hover table-sm">
+                            <colgroup>
+                                <col style={{ width: "5%" }} />
+                                <col style={{ width: "5%", minWidth: "100px" }} />
+                                <col style={{ width: "10%", minWidth: "100px" }} />
+                                <col style={{ width: "35%", minWidth: "200px" }} />
+                                <col style={{ width: "5%" }} />
+                                <col style={{ width: "10%", minWidth: "100px" }} />
+                                <col style={{ width: "10%", minWidth: "100px" }} />
+                                <col style={{ width: "5%" }} />
+                            </colgroup>
+                            <thead>
+                                <tr className="table-success text-center">
+                                    <th>Nro</th>
+                                    <th>Tipo</th>
+                                    <th>SKU</th>
+                                    <th>Nombre</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio</th>
+                                    <th>Total</th>
+                                    <th>Acciones</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <button className="btn btn-sm btn-success w-100" onClick={newRow}>
-                        agregar
-                    </button>
+                            </thead>
+                            <tbody>
+                                {dataTable.map((d, index) => (
+                                    <tr key={d.saleDetailId}>
+                                        <th scope="row" className="text-center"> {index + 1}</th>
+                                        <td>
+                                            <>
+                                                {d.saleDetailType === 'PRODUCT' && (
+                                                    <span className="badge bg-success">Producto</span>
+                                                )}
+                                                {d.saleDetailType === 'SERVICE' && (
+                                                    <span className="badge bg-primary">Servicio</span>
+                                                )}
+                                            </>
+
+                                        </td>
+                                        <td className="text-center"> {d.saleDetailSKU}</td>
+                                        <td>
+                                            <select className="form-select inputSaleDetail p-0 ps-3" onChange={() => handleChangeSelect(event, index)}>
+                                                <option className="p-0" value={null}>selecionar producto o servicio</option>
+                                                {
+                                                    productsServices.map((p) => (
+
+                                                        <option className="p-0" key={p.productId || p.serviceId} value={p.productId || p.serviceId}>
+                                                            {p.productName || p.serviceName}
+                                                        </option>
+                                                    ))
+                                                }
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="number"
+                                                className="form-control inputSaleDetail text-center p-0"
+                                                required
+                                                value={d.saleDetailAmount || 1}
+                                                onInput={(e) => handleOnInput(index, 'saleDetailAmount', e.target.value)}
+                                            />
+                                        </td>
+                                        <td className="text-end pe-3">
+                                            <input
+                                                type="number"
+                                                className="form-control inputSaleDetail text-end p-0"
+                                                required
+                                                value={d.saleDetailPrice || 0}
+                                                onInput={(e) => handleOnInput(index, 'saleDetailPrice', e.target.value)}
+                                                disabled={!!d.saleDetailPriceFixed} />
+                                        </td>
+                                        <td className="text-end pe-3">
+                                            <b>
+                                                {d.saleDetailTotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                            </b>
+                                        </td>
+                                        <td className="text-center">
+                                            <div className="row m-0 p-0 text-center px-2">
+                                                <div className="col-6 p-0 text-center">
+                                                    <button
+                                                        className="btn text-success text-center p-0"
+                                                        title="descuento">
+                                                        <i className="bi bi-pencil"></i>
+                                                    </button>
+                                                </div>
+                                                <div className="col-6 p-0 text-center">
+                                                    <button
+                                                        className="btn text-danger text-center p-0"
+                                                        title="eliminar"
+                                                        onClick={() => handleDeleteRow(d.saleDetailId)}>
+                                                        <i className="bi bi-trash3"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <button className="btn btn-sm btn-success w-100" onClick={newRow}>
+                            agregar
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div className="row m-p p-0 actiones">
-                <div className="ps-4">
-                    <button className="btn btn-sm btn-success me-2" style={{ width: '120px' }} onClick={handleSubmit}>Generar</button>
-                    <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Limpiar</button>
-                    <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Buscar</button>
-                    <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Guardar</button>
+                <div className="row m-p p-0 actiones">
+                    <div className="ps-4">
+                        <button className="btn btn-sm btn-success me-2" style={{ width: '120px' }} onClick={handleSubmit}>Generar</button>
+                        <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Limpiar</button>
+                        <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Buscar</button>
+                        <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Guardar</button>
+                    </div>
                 </div>
-            </div>
-            <div className="row bg-secondary m-0 p-0 footerRow">
-                <div className="col-4 m-0 p-1 h-100">
-                    <textarea
-                        name="saleComment"
-                        className="form-control"
-                        placeholder="Comentarios"
-                        value={dataSale.saleComment || ''}
-                        onChange={(e) => setDataSale({ ...dataSale, saleComment: e.target.value })}
-                    />
-                </div>
-                <div className="col-5 p-1">
-                    <CardRegisterPayments sendPayments={handlePayments} />
-                </div>
-                <div className="col-3 p-1">
-                    <div className="row">
-                        <div className="w-100">
-                            <div className="row">
-                                <div className="col-6 text-end">Total</div>
-                                <div className="col-6 text-end text-warning">
-                                    <b>{total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</b>
+                <div className="row bg-secondary m-0 p-0 footerRow">
+                    <div className="col-4 m-0 p-1 h-100">
+                        <textarea
+                            name="saleComment"
+                            className="form-control"
+                            placeholder="Comentarios"
+                            value={dataSale.saleComment || ''}
+                            onChange={(e) => setDataSale({ ...dataSale, saleComment: e.target.value })}
+                        />
+                    </div>
+                    <div className="col-5 p-1">
+                        <CardRegisterPayments sendPayments={handlePayments} />
+                    </div>
+                    <div className="col-3 p-1">
+                        <div className="row">
+                            <div className="w-100">
+                                <div className="row">
+                                    <div className="col-6 text-end">Total</div>
+                                    <div className="col-6 text-end text-warning">
+                                        <b>{total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</b>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="row">
-                                <div className="col-6 text-end">
-                                    Abonado
+                                <div className="row">
+                                    <div className="col-6 text-end">
+                                        Abonado
+                                    </div>
+                                    <div className="col-6 text-end">
+                                        <b>{totalPayments.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</b>
+                                    </div>
                                 </div>
-                                <div className="col-6 text-end">
-                                    <b>{totalPayments.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</b>
-                                </div>
-                            </div>
-                            <div className="row">
-                                <div className="col-6 text-end">
-                                    Por Cobrar
-                                </div>
-                                <div className="col-6 text-end text-danger">
-                                    {amountDue.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                <div className="row">
+                                    <div className="col-6 text-end">
+                                        Por Cobrar
+                                    </div>
+                                    <div className="col-6 text-end text-danger">
+                                        {amountDue.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </ProtectedView>
     )
 }

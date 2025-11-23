@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { v4 as uuidv4 } from 'uuid';
 import { createTransaction } from "../../api/transaction";
-import "./StaticModals.css";
 import InputFloatingComponent from "../inputs/InputFloatingComponent.jsx";
 
 export default function AddTransactionModal() {

@@ -1,108 +1,124 @@
+// src/pages/dashboard/UsersDashboardPage.jsx
 import { Link } from 'react-router-dom';
-import { getMonthlySalesNow, getDaySales } from '../../api/sale.js'
-import { calculateTotalAvailableByPaymentMethod } from '../../utils/financeUtils.js';
 import { useEffect, useState } from 'react';
 
+import { getMonthlySalesNow, getDaySales } from '../../api/sale.js';
+import { calculateTotalAvailableByPaymentMethod } from '../../utils/financeUtils.js';
+
+import KpiComponent from '../../components/KpiComponent.jsx';
+
+// 🎨 ICONOS A COLOR (flat icons)
+import {
+    FcSalesPerformance,
+    FcLineChart,
+    FcDebt,
+    FcMoneyTransfer,
+    FcTimeline
+} from "react-icons/fc";
+
 export default function UsersDashboardPage() {
-    const [monthlySales, setMonthlySales] = useState(null); // null para saber si aún no se cargó
+
+    const [monthlySales, setMonthlySales] = useState(null);
     const [salePendingAmount, setSalePendingAmount] = useState(null);
     const [daySales, setDaySales] = useState(null);
-    const [loading, setLoading] = useState(true); // estado de carga
     const [cashAvailable, setCashAvailable] = useState(null);
 
-    useEffect(() => {
-        searchMonthlySales();
-        fetchTotalAvailable();
+    const [loading, setLoading] = useState(true);
 
+    useEffect(() => {
+        loadDashboard();
     }, []);
 
-    const fetchTotalAvailable = async () => {
-        const total = await calculateTotalAvailableByPaymentMethod(2);
-        setCashAvailable(total);
-    };
-
-    const searchMonthlySales = async () => {
+    const loadDashboard = async () => {
         try {
             setLoading(true);
+
             const month = new Date().getMonth() + 1;
             const year = new Date().getFullYear();
-            const res = await getMonthlySalesNow()
-            setMonthlySales(res.data.saleTotal);
-            setSalePendingAmount(res.data.salePendingAmount);
             const day = new Date().getDate();
+
+            const resMonth = await getMonthlySalesNow();
+            setMonthlySales(resMonth.data.saleTotal);
+            setSalePendingAmount(resMonth.data.salePendingAmount);
+
             const resDay = await getDaySales(day, month, year);
             setDaySales(resDay.data);
+
+            const totalCash = await calculateTotalAvailableByPaymentMethod(2);
+            setCashAvailable(totalCash);
+
+        } catch (err) {
+            console.error("Dashboard error:", err);
+        } finally {
             setLoading(false);
-        } catch (error) {
-            console.error("(UsersDashboardPage.jsx): Error fetching sales data:", error);
         }
     };
-
-    // Función para mostrar datos o loader
-    const renderValue = (value, color = 'success') => {
-        if (loading || value === null) {
-            return <span className={`text-${color}`}>⏳ Cargando...</span>;
-        }
-        return value.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' });
-    }
 
     return (
         <div>
-            <div className="row align-items-center mb-0">
-                <div className="col-md-8">
-                    <h2 className="mb-4 fw-bold text-dark">📊 Dashboard Administrador</h2>
-                </div>
-            </div>
+            <h2 className="mb-4 fw-bold text-dark">Dashboard Administrador</h2>
+            <div className="row g-3 mt-1 mb-4 center">
+                {/* VENTAS DEL DÍA */}
+                <KpiComponent
+                    title="Ventas del Día"
+                    icon={<FcSalesPerformance />}
+                    value={daySales}
+                    footer="Ventas realizadas hoy"
+                    loading={loading}
+                />
 
-            {/* Tarjetas resumen */}
-            <div className="row g-3 mt-1 mb-4">
-                <div className="col-md-4">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                        <h6 className="text-muted">Ventas del Día</h6>
-                        <span className="h4 text-success fw-bold">{renderValue(daySales, 'success')}</span>
-                    </div>
-                </div>
-                <div className="col-md-4">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                        <h6 className="text-muted">Ingresos del Día</h6>
-                        <span className="h4 text-success fw-bold">{renderValue(daySales, 'success')}</span>
-                    </div>
-                </div>
-                <div className="col-md-4">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                        <h6 className="text-muted">Ventas del Mes</h6>
-                        <span className="h4 text-success fw-bold">{renderValue(monthlySales, 'success')}</span>
-                    </div>
-                </div>
-                <div className="col-md-4">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                        <h6 className="text-muted">Por Cobrar</h6>
-                        <span className="h4 text-warning fw-bold">{renderValue(salePendingAmount, 'warning')}</span>
-                    </div>
-                </div>
+                <KpiComponent
+                    title="Ingresos del Día"
+                    icon={<FcTimeline size={38} />}
+                    value={daySales}
+                    footer="Ventas realizadas hoy"
+                    loading={loading}
+                />
 
-                <div className="col-md-4">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                        <h6 className="text-muted">Gastos Mes </h6>
-                        <span className="h4 text-success fw-bold">{renderValue(0, 'success')}</span>
-                    </div>
-                </div>
-                <div className="col-md-4">
-                    <div className="card shadow-sm border-0 p-3 text-center">
-                        <h6 className="text-muted">Efectivo Disponible</h6>
-                        <span className="h4 text-warning fw-bold">{renderValue(cashAvailable, 'warning')}</span>
-                    </div>
-                </div>
+                {/* VENTAS DEL MES */}
+                <KpiComponent
+                    title="Ventas del Mes"
+                    icon={<FcLineChart />}
+                    value={monthlySales}
+                    footer="Acumulado mensual"
+                    loading={loading}
+                />
+
+                {/* POR COBRAR */}
+                <KpiComponent
+                    title="Por Cobrar"
+                    icon={<FcDebt />}
+                    value={salePendingAmount}
+                    footer="Pendientes de pago"
+                    loading={loading}
+                />
+
+
+                {/* EFECTIVO DISPONIBLE */}
+                <KpiComponent
+                    title="Efectivo Disponible"
+                    icon={<FcMoneyTransfer />}
+                    value={cashAvailable}
+                    footer="Caja disponible"
+                    loading={loading}
+                />
+
+                {/* CANTIDAD DE VENTAS  */}
+                <KpiComponent
+                    title="Nº de Ventas"
+                    icon={<FcMoneyTransfer />}
+                    value={'100'}
+                    footer="10 % mas que el mes pasado"
+                    loading={loading}
+                />
             </div>
-            <hr />
-            {/* Accesos rápidos */}
+            <hr className='mt-5' />
             <h5 className="mb-3">⚡ Accesos Rápidos</h5>
-            <div className="d-flex gap-2 flex-wrap">
-                <Link className="btn btn-success mt-2" style={{ 'width': '200px' }} to="/sales/register">➕ Venta</Link>
-                <Link className="btn btn-info mt-2" style={{ 'width': '200px' }} to="/sales/dailySales">📅 Cierre Diario</Link>
-                <Link className="btn btn-primary mt-2" style={{ 'width': '200px' }} to="/transactions">💳 Transacciones</Link>
-                <Link className="btn btn-secondary mt-2" style={{ 'width': '200px' }} to="/finance">💰 Finanzas</Link>
-                <Link className="btn btn-warning mt-2" style={{ 'width': '200px' }} to="/expenses">🧾 Gastos</Link>
+            <div className="d-flex gap-2 flex-wrap pb-5">
+                <Link className="btn btn-sm btn-success" style={{ width: "200px" }} to="/sales/register">➕ Venta</Link>
+                <Link className="btn btn-sm btn-info" style={{ width: "200px" }} to="/sales/dailySales">📅 Cierre Diario</Link>
+                <Link className="btn btn-sm btn-primary" style={{ width: "200px" }} to="/transactions">💳 Transacciones</Link>
+                <Link className="btn btn-sm btn-warning" style={{ width: "200px" }} to="/expenses">🧾 Gastos</Link>
             </div>
         </div>
     );

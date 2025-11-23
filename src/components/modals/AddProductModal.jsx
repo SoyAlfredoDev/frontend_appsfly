@@ -7,6 +7,7 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { getCategories } from "../../api/category.js";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+import { FaPlus } from "react-icons/fa";
 
 const MySwal = withReactContent(Swal);
 
@@ -109,11 +110,11 @@ export default function AddProductModal() {
         <>
             <button
                 type="button"
-                className="btn btn-sm btn-success"
+                className="btn btn-success"
                 data-bs-toggle="modal"
                 data-bs-target="#modalAddProduct"
             >
-                <i className="bi bi-plus-lg "></i> <span className="d-none d-md-inline-block fs-4"> agregar</span>
+                <FaPlus /><span className='ms-2 d-none d-md-inline'>Agregar</span>
             </button>
             <div
                 className="modal fade"

@@ -1,9 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 import "./NavBarComponent.css";
+import formatName from '../utils/formatName.js';
 
 export default function NavBarComponent() {
-    const { user, logout } = useAuth();
+    const { user, logout, subscriptions } = useAuth();
     const location = useLocation();
 
     const getLinkClass = (...paths) => {
@@ -34,26 +35,26 @@ export default function NavBarComponent() {
                         {user && (
                             <li className="nav-item me-3">
                                 <span className="nav-link user-greeting">
-                                    Hola, <b>{user.userFirstName} {user.userLastName}</b>
+                                    Hola, <b>{formatName(user?.userFirstName)} {formatName(user?.userLastName)}</b>
                                 </span>
                             </li>
                         )}
-                        <li className="nav-item">
+                        <li className={`nav-item ${subscriptions.length === 0 ? 'd-none' : ''}`} >
                             <Link to="/dashboard" className={getLinkClass('/dashboard')}>Dashboard</Link>
                         </li>
-                        <li className="nav-item">
+                        <li className={`nav-item ${subscriptions.length === 0 ? 'd-none' : ''} `}>
                             <Link to="/customers" className={getLinkClass('/customers')}>Clientes</Link>
                         </li>
-                        <li className="nav-item">
+                        <li className={`nav-item ${subscriptions.length === 0 ? 'd-none' : ''}`}>
                             <Link to="/products_services" className={getLinkClass('/products_services')}>Productos</Link>
                         </li>
-                        <li className="nav-item">
+                        <li className={`nav-item ${subscriptions.length === 0 ? 'd-none' : ''}`}>
                             <Link to="/sales" className={getLinkClass('/sales', '/sales/register')}>Ventas</Link>
                         </li>
-                        <li className="nav-item">
+                        <li className={`nav-item ${subscriptions.length === 0 ? 'd-none' : ''}`}>
                             <Link to="/users" className={getLinkClass('/users')}>Usuarios</Link>
                         </li>
-                        <li className="nav-item">
+                        <li className={`nav-item ${subscriptions.length === 0 ? 'd-none' : ''}`}>
                             <Link to="/profile" className={getLinkClass('/profile')}>Perfil</Link>
                         </li>
                         <li className="nav-item">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import NavBarComponent from '../components/NavBarComponent.jsx';
+import ProtectedView from "../components/ProtectedView";
 import { calculateTotalAvailableByPaymentMethod } from '../utils/financeUtils.js';
 import { getFinancialMovements } from '../libs/getFinancialMovements.js'
 
@@ -23,7 +24,7 @@ export default function FinancePage() {
         }
     };
     return (
-        <>
+        <ProtectedView>
             <NavBarComponent />
             <div className="container-fluid">
                 <div className="row" style={{ marginTop: '80px' }}>
@@ -55,7 +56,7 @@ export default function FinancePage() {
                 <hr />
                 <div className="m-2">
                     <div className="table-responsive">
-                     <h5> Tabla movimientos </h5>
+                        <h5> Tabla movimientos </h5>
 
                         <table className="table table-striped">
                             <thead>
@@ -95,6 +96,6 @@ export default function FinancePage() {
                     </div>
                 </div>
             </div>
-        </>
+        </ProtectedView>
     );
 }

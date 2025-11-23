@@ -20,6 +20,9 @@ import TransactionsPage from './pages/TransactionsPage.jsx';
 import ExpensesPage from './pages/ExpensesPage.jsx';
 import FinancePage from './pages/FinancePage.jsx';
 
+
+import IndexPage from './pages/web/IndexPage.jsx';
+
 function App() {
   return (
     <>
@@ -47,6 +50,9 @@ function App() {
             {/** admin */}
             <Route path='/admin/dashboard' element={<DashboardAdminPage />} />
             <Route path='/business/register' element={<RegisterBusinessPage />} />
+
+            {/** Web Pages */}
+            <Route path='/' element={<IndexPage />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

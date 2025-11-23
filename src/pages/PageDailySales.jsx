@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import NavBarComponent from "../components/NavBarComponent";
+import ProtectedView from "../components/ProtectedView";
 import AddDailySaleModal from "../components/modals/AddDailySaleModal";
 import { getDailySales } from "../api/dailySales.js";
 
@@ -26,7 +27,7 @@ export default function PageDailySales() {
         { methodId: 3, methodName: 'Transferencia Bancaria' },
     ];
     return (
-        <>
+        <ProtectedView>
             <NavBarComponent />
             <div className="container-fluid">
                 <div className="row" style={{ marginTop: '70px' }}>
@@ -85,6 +86,6 @@ export default function PageDailySales() {
                     </table>
                 </div>
             </div>
-        </>
+        </ProtectedView>
     );
 }

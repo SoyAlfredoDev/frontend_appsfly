@@ -2,8 +2,8 @@ import { Link } from "react-router-dom";
 
 export default function UserNewDashboardPage() {
     return (
-        <div className="container d-flex justify-content-center align-items-center">
-            <div className="shadow-sm mb-3 rounded-3 border-0" style={{ maxWidth: "600px" }}>
+        <div className="container d-flex justify-content-center align-items-center mt-5">
+            <div className="shadow-sm mb-3 rounded-3 border-0 p-2" style={{ maxWidth: "600px" }}>
                 <div className="card-body text-center">
                     <h1 className="card-title mb-3 text-primary fw-bold">
                         Bienvenido a <span className="text-success">AppsFly</span>

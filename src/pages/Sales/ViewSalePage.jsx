@@ -1,4 +1,5 @@
 import NavBarComponent from "../../components/NavBarComponent"
+import ProtectedView from "../../components/ProtectedView";
 import { v4 as uuidv4 } from 'uuid';
 import { getSaleById } from '../../api/sale.js'
 import { getSaleDetailById } from '../../api/saleDetail.js'
@@ -117,7 +118,7 @@ export default function ViewSalePage() {
     };
 
     return (
-        <>
+        <ProtectedView>
             <NavBarComponent />
             <div className="container" style={{ marginTop: '80px' }}>
                 <div className="card shadow-sm p-3 mb-4 rounded-3">
@@ -335,6 +336,6 @@ export default function ViewSalePage() {
                     </div>
                 </div>
             </div>
-        </>
+        </ProtectedView>
     )
 };

@@ -4,11 +4,10 @@ import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
 import IsRequiredComponent from '../IsRequiredComponent.jsx';
 import { createCustomer } from '../../api/customers.js';
 import { useAuth } from '../../context/authContext.jsx';
-import "./StaticModals.css"; // Estilos personalizados
 import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import { FaPlus } from "react-icons/fa";
 
 export default function AddCustomerModal({
-    nameBottom = "Agregar",
     idModal = "staticBackdrop",
     title,
     colorBtn = "success",
@@ -99,7 +98,6 @@ export default function AddCustomerModal({
             console.log(error);
         }
     };
-
     return (
         <>
             {/* Botón que abre el modal */}
@@ -109,7 +107,7 @@ export default function AddCustomerModal({
                 data-bs-toggle="modal"
                 data-bs-target={`#${idModal}`}
             >
-                {nameBottom}
+                <FaPlus /><span className='ms-2 d-none d-md-inline'>Agregar</span>
             </button>
 
             {/* Modal */}

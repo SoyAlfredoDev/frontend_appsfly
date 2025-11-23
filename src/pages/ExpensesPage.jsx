@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import NavBarComponent from "../components/NavBarComponent";
+import ProtectedView from "../components/ProtectedView";
 import { getExpenses, deleteExpense } from "../api/expense.js";
 import { getTotalFromColumn } from "../api/utils.js";
 
@@ -85,7 +86,7 @@ export default function ExpensesPage() {
     };
 
     return (
-        <>
+        <ProtectedView>
             <NavBarComponent />
             <div className="container-fluid">
                 <div className="row" style={{ marginTop: '80px' }}>
@@ -179,6 +180,6 @@ export default function ExpensesPage() {
                     </div>
                 </div>
             </div >
-        </>
+        </ProtectedView>
     );
 }

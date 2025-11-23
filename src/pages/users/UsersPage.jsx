@@ -1,7 +1,9 @@
-import NavBarComponent from '../../components/NavBarComponent.jsx'
+import NavBarComponent from '../../components/NavBarComponent.jsx';
+import ProtectedView from "../../components/ProtectedView";
 import { Link } from 'react-router-dom';
 import { getUsersBusinessDB } from "../../api/user.js"
 import { getUserGuestsRequest } from "../../api/userGuest.js"
+import { IconDelete } from '../../components/IconComponent.jsx'
 
 import { useEffect, useState } from 'react';
 
@@ -22,7 +24,7 @@ export default function UsersPage() {
         searchData();
     }, []);
     return (
-        <>
+        <ProtectedView>
             <NavBarComponent />
             <div className="container" style={{ marginTop: '80px' }}>
                 <h1>Usuarios</h1>
@@ -46,12 +48,12 @@ export default function UsersPage() {
                                         {user?.userRole == "ADMIN" && 'Administrador'}
                                         {user?.userRole == "USER" && 'Usuario'}
                                     </td>
-                                    <td>
+                                    <td className='text-center'>
                                         <span className={`badge bg-success`}> Activo</span>
 
                                     </td>
 
-                                    <td>
+                                    <td className='text-center'>
                                         <Link to={`/users/${user?.userId}`} className="btn btn-sm btn-primary py-0">Ver</Link>
                                     </td>
                                 </tr>
@@ -65,13 +67,42 @@ export default function UsersPage() {
                                             {userG?.userGuestRole == "ADMIN" && 'Administrador'}
                                             {userG?.userGuestRole == "USER" && 'Usuario'}
                                         </td>
-                                        <td>
-                                            <span className={`badge bg-warning`}>
-                                                Pendiente
-                                            </span>
+                                        <td className='text-center'>
+                                            {
+                                                userG?.userGuestStatus === "PENDIENT" &&
+                                                (<span className={`badge bg-warning`}>Pendiente</span>)
+                                            }
+                                            {
+                                                userG?.userGuestStatus === "ACCEPTED" &&
+                                                (<span className={`badge bg-success`}>Aceptado</span>)
+                                            }
+                                            {
+                                                userG?.userGuestStatus === "REJECTED" &&
+                                                (<span className={`badge bg-danger`}>Rechazado</span>)
+                                            }
+
                                         </td>
-                                        <td>
-                                            <Link to={`/users/userGuest/${userG?.userGuestId}`} className="btn btn-sm btn-primary py-0">Ver</Link>
+                                        <td className='text-center'>
+                                            {
+                                                userG?.userGuestStatus === "PENDINT" &&
+                                                <Link
+                                                    to={`/users/guest/${userG?.userGuestId}`}
+                                                    className="btn p-0 m-0"
+                                                    title='Eliminar'
+                                                >
+                                                    <IconDelete color="danger" />
+                                                </Link>
+                                            }
+                                            {
+                                                userG?.userGuestStatus === "REJECTED" &&
+                                                <Link
+                                                    to={`/users/guest/${userG?.userGuestId}`}
+                                                    className="btn p-0 m-0"
+                                                    title='Reenviar'
+                                                >
+                                                    <IconDelete color="warning" />
+                                                </Link>
+                                            }
                                         </td>
                                     </tr>
                                 ))
@@ -83,6 +114,6 @@ export default function UsersPage() {
                     <Link to="/users/userGuest" className="btn btn-success" style={{ minWidth: '200px' }}>Invitar Usuario</Link>
                 </div>
             </div>
-        </>
+        </ProtectedView>
     );
 }

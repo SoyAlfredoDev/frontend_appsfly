@@ -4,8 +4,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../../context/authContext.jsx';
-import { createBusiness } from '../../api/business.js'
-//import { createUserBusinessRequest } from '../../api/userBusiness.js'
+import { createBusiness } from '../../api/business.js';
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
 
 
 
@@ -29,6 +32,16 @@ export default function RegisterBusinessPage() {
         businessCountry: 0,
         businessStatus: 'PENDING'
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const showAlert = (message, text, icon) => {
+        MySwal.fire({
+            title: <p>{message}</p>,
+            text: text,
+            icon: icon,
+            confirmButtonText: "OK"
+        });
+    };
 
     /*
     const userBusiness = {
@@ -122,6 +135,7 @@ export default function RegisterBusinessPage() {
             setError("Por favor, corrige los campos inválidos.");
             return;
         }
+        setIsSubmitting(true);
         createNewBusiness();
     };
     const handleChangeSelectBusinessCountry = (e) => {
@@ -135,11 +149,26 @@ export default function RegisterBusinessPage() {
             //const userBusinesscreated = await createUserBusinessRequest(userBusiness)
             if (businessCreated.status == 201) {
                 setHasBusiness(true);
+                showAlert("Negocio creado con éxito", "El negocio ha sido registrado correctamente.", "success");
                 navigate('/dashboard');
             }
-
+            if (businessCreated.status === 202) {
+                setHasBusiness(true);
+                showAlert(
+                    "Negocio creado",
+                    "Tu negocio se ha registrado correctamente, aunque hubo algunos detalles pendientes en la configuración. Nuestro equipo los revisará y te avisará cuando el proceso esté completamente listo. Esto tomará solo unas horas.",
+                    "success"
+                );
+                navigate('/logout');
+            }
+            if (businessCreated.status === 500) {
+                showAlert("Error al crear el negocio", businessCreated.data.message, "error");
+                setIsSubmitting(false);
+            }
         } catch (error) {
             console.error('Error creating business:', error);
+            showAlert("Error al crear el negocio", "Hubo un problema al registrar tu negocio. Por favor, intenta nuevamente más tarde.", "error");
+            setIsSubmitting(false);
         }
     }
 
@@ -349,8 +378,10 @@ export default function RegisterBusinessPage() {
                     <hr className="border border-1 text-primary opacity-75 mt-2 mb-3" />
 
                     <div className="d-grid gap-2 d-md-block text-center">
-                        <Link to="/dashboard" className="btn btn-secondary mx-1" style={{ minWidth: '200px' }}>Volver</Link>
-                        <button type="submit" className="btn btn-success mx-1" style={{ minWidth: '200px' }}>Registrar negocio</button>
+                        <Link to={isSubmitting ? "#" : "/dashboard"} className="btn btn-secondary mx-1" disabled={isSubmitting} style={{ minWidth: '200px' }}>Volver</Link>
+                        <button type="submit" className="btn btn-success mx-1" disabled={isSubmitting} style={{ minWidth: '200px' }}>
+                            {isSubmitting ? 'Registrando...' : 'Registrar negocio'}
+                        </button>
                     </div>
                 </form >
             </div >

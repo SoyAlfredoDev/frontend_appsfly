@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { v4 as uuidv4 } from 'uuid';
 import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
-import "./StaticModals.css";
 import { createExpense } from '../../api/expense.js'
 import { Modal } from "bootstrap"
 
