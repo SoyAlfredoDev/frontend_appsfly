@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/authContext.jsx";
 
 export default function ProtectedView({ children }) {
     const { loadingAuth, isAuthenticated } = useAuth();
