@@ -1,5 +1,6 @@
 import CategoryModal from "../components/modals/CategoryModal.jsx";
 import NavBarComponent from "../components/NavBarComponent";
+import ProtectedView from "../components/ProtectedView";
 import { getCategories } from "../api/category";
 import { getProductsAndServices } from "../libs/productsAndServices";
 import { useEffect, useState } from "react";
@@ -19,12 +20,10 @@ export default function ProductsServicesPage() {
     const [globalFilter, setGlobalFilter] = useState("");
     const [sorting, setSorting] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-
     // ➡️ ESTADOS PRINCIPALES DE DATOS
     const [allProducts, setAllProducts] = useState([]); // Fuente de verdad (datos originales de la API)
     const [displayedProducts, setDisplayedProducts] = useState([]); // Datos que se muestran en la tabla
     const [categories, setCategories] = useState([]);
-
     // Estados para filtros
     const [showProducts, setShowProducts] = useState(true);
     const [showServices, setShowServices] = useState(true);
@@ -35,7 +34,6 @@ export default function ProductsServicesPage() {
         try {
             const resProductsAndServices = await getProductsAndServices();
             const loadedProducts = resProductsAndServices ?? [];
-
             setAllProducts(loadedProducts); // Guardar la lista completa
             setDisplayedProducts(loadedProducts); // Mostrarla inicialmente
 
@@ -57,13 +55,11 @@ export default function ProductsServicesPage() {
                 acc[c.categoryId] = true;
                 return acc;
             }, {});
-
             setActiveCategories(initialCategoriesState);
         } catch (error) {
             console.log(error);
         }
     };
-
     // Ejecutar solo una vez al montar
     useEffect(() => {
         fetchProducts();
@@ -96,7 +92,6 @@ export default function ProductsServicesPage() {
         setDisplayedProducts(filtered); // Actualizar la lista que ve el usuario
 
     }, [showProducts, showServices, activeCategories, allProducts]);
-
 
     const columns = [
         {
@@ -170,7 +165,7 @@ export default function ProductsServicesPage() {
     });
 
     return (
-        <>
+        <ProtectedView>
             <NavBarComponent />
             <SectionHeader
                 title="Productos y Servicios"
@@ -331,6 +326,6 @@ export default function ProductsServicesPage() {
 
                 </div>
             </div>
-        </>
+        </ProtectedView>
     );
 }
