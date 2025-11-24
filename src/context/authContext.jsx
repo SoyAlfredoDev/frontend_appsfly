@@ -69,22 +69,17 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await registerRequest(userForm);
             const data = res.data.user;
-
+            localStorage.setItem('token', res.data.token);
             setUser(data);
             setIsAuthenticated(true);
-
             await searchUserGuestExists(data.userEmail);
-
             // Get the business linked to the new user
             const business = await searchBusinessByUserId(data.userId);
-
             // Use the business directly (not businessSelected)
             if (business) {
                 await getSubscriptionsByBusinessId(business.businessId);
             }
-
             return data;
-
         } catch (error) {
             console.log("Error in signup:", error);
         }
@@ -95,20 +90,15 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await loginRequest(userForm);
             const data = res.data.user;
-
+            localStorage.setItem('token', res.data.token);
             setUser(data);
             setIsAuthenticated(true);
-
             await searchUserGuestExists(data.userEmail);
-
             const business = await searchBusinessByUserId(data.userId);
-
             if (business) {
                 await getSubscriptionsByBusinessId(business.userBusinessBusinessId);
             }
-
             return data;
-
         } catch (error) {
             console.log("Error in signin:", error);
         }
@@ -117,6 +107,7 @@ export const AuthProvider = ({ children }) => {
     // Logout process
     const logout = async () => {
         await logoutRequest();
+        localStorage.removeItem('token');
         setUser(null);
         setIsAuthenticated(false);
         setUserGuestExists(false);
@@ -125,40 +116,61 @@ export const AuthProvider = ({ children }) => {
         setBusinessSelected(null);
     };
 
-    // Restore session automatically using HttpOnly cookie
+    // Restore session automatically using Bearer Token
     useEffect(() => {
         const checkLogin = async () => {
+            const token = localStorage.getItem("token");
+
+            // ❌ No hay token → no hay sesión
+            if (!token) {
+                setIsAuthenticated(false);
+                setUser(null);
+                setLoadingAuth(false);
+                return;
+            }
+
             try {
-                const res = await authVerifyRequest();
+                // 1) Validar token en backend
+                const res = await authVerifyRequest(); // Este ya envía el Bearer por el interceptor
+
                 const userId = res?.data.id;
 
-                // Get full user data
+                // 2) Obtener datos completos del usuario
                 const userFound = await getUserByIdRequest(userId);
                 const userData = userFound.data;
 
                 setUser(userData);
                 setIsAuthenticated(true);
 
+                // 3) Verificar invitado (guest)
                 await searchUserGuestExists(userData.userEmail);
 
+                // 4) Buscar negocio asociado
                 const business = await searchBusinessByUserId(userData.userId);
 
                 if (business) {
-                    const subscriptions = await getSubscriptionsByBusinessId(business.businessId);
-                    console.log("Restored subscriptions:", subscriptions);
+                    const subscriptions = await getSubscriptionsByBusinessId(
+                        business.businessId
+                    );
                     setSubscriptions([subscriptions]);
                 }
 
             } catch (error) {
-                setIsAuthenticated(false);
+                // ❌ Token expiró o inválido → limpiar
+                console.log("Auth restore error:", error);
+
+                localStorage.removeItem("token");
                 setUser(null);
+                setIsAuthenticated(false);
             } finally {
+                // Cerrar loading del auth
                 setLoadingAuth(false);
             }
         };
 
         checkLogin();
     }, []);
+
 
     return (
         <AuthContext.Provider

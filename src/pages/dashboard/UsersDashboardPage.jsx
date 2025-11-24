@@ -13,7 +13,8 @@ import {
     FcLineChart,
     FcDebt,
     FcMoneyTransfer,
-    FcTimeline
+    FcTimeline,
+    FcRatings
 } from "react-icons/fc";
 
 export default function UsersDashboardPage() {
@@ -106,9 +107,9 @@ export default function UsersDashboardPage() {
                 {/* CANTIDAD DE VENTAS  */}
                 <KpiComponent
                     title="Nº de Ventas"
-                    icon={<FcMoneyTransfer />}
-                    value={'100'}
-                    footer="10 % mas que el mes pasado"
+                    icon={<FcRatings />}
+                    value={'-'}
+                    footer="0 % mas que el mes pasado"
                     loading={loading}
                 />
             </div>
