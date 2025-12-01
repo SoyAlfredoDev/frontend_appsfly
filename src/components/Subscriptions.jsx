@@ -54,6 +54,7 @@ export default function Subscription() {
         }
     };
 
+
     return (
         <div className="container py-4">
             <div className="row justify-content-center">

@@ -19,6 +19,7 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import TransactionsPage from './pages/TransactionsPage.jsx';
 import ExpensesPage from './pages/ExpensesPage.jsx';
 import FinancePage from './pages/FinancePage.jsx';
+import SupportPage from './pages/support/SupportPage.jsx';
 
 
 import IndexPage from './pages/web/IndexPage.jsx';
@@ -46,6 +47,7 @@ function App() {
             <Route path='/transactions' element={<TransactionsPage />} />
             <Route path='/finance' element={<FinancePage />} />
             <Route path='/expenses' element={<ExpensesPage />} />
+            <Route path='/support' element={<SupportPage />} />
             {/**si el usuario esta autentificado debe redirigir dashboard */}
             {/** admin */}
             <Route path='/admin/dashboard' element={<DashboardAdminPage />} />

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { getMonthlySalesNow, getDaySales } from '../../api/sale.js';
 import { calculateTotalAvailableByPaymentMethod } from '../../utils/financeUtils.js';
+import { useAuth } from '../../context/authContext.jsx';
 
 import KpiComponent from '../../components/KpiComponent.jsx';
 
@@ -18,6 +19,8 @@ import {
 } from "react-icons/fc";
 
 export default function UsersDashboardPage() {
+
+    const { isSuperAdmin } = useAuth();
 
     const [monthlySales, setMonthlySales] = useState(null);
     const [salePendingAmount, setSalePendingAmount] = useState(null);
@@ -56,7 +59,7 @@ export default function UsersDashboardPage() {
     };
 
     return (
-        <div>
+        <div className="container py-4">
             <h2 className="mb-4 fw-bold text-dark">Dashboard Administrador</h2>
             <div className="row g-3 mt-1 mb-4 center">
                 {/* VENTAS DEL DÍA */}
@@ -120,7 +123,18 @@ export default function UsersDashboardPage() {
                 <Link className="btn btn-sm btn-info" style={{ width: "200px" }} to="/sales/dailySales">📅 Cierre Diario</Link>
                 <Link className="btn btn-sm btn-primary" style={{ width: "200px" }} to="/transactions">💳 Transacciones</Link>
                 <Link className="btn btn-sm btn-warning" style={{ width: "200px" }} to="/expenses">🧾 Gastos</Link>
+                <Link className="btn btn-sm btn-dark" style={{ width: "200px" }} to="/support"> Soporte Técnico</Link>
             </div>
+
+            {
+                isSuperAdmin && (
+                    <>
+                        <hr className='mt-5' />
+                        <h5 className="mb-3">👑 Accesos Super Admin</h5>
+                        <Link className="btn btn-sm btn-success" style={{ width: "200px" }} to="/admin">Administración</Link>
+                    </>
+                )
+            }
         </div>
     );
 }

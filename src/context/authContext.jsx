@@ -2,7 +2,7 @@ import { useContext, useState, createContext, useEffect } from "react";
 import { registerRequest, loginRequest, logoutRequest, authVerifyRequest } from "../api/auth.js";
 import { userGuestExistsRequest } from "../api/userGuest.js";
 import { getUserBusinessById } from '../api/userBusiness.js';
-import { getUserByIdRequest } from "../api/user.js";
+import { getUserByIdRequest, userIsSuperAdminRequest } from "../api/user.js";
 import { getSubscriptionsByBusinessIdRequest } from "../api/subscription.js";
 
 export const AuthContext = createContext();
@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }) => {
     const [subscriptions, setSubscriptions] = useState([]);
     const [businessSelected, setBusinessSelected] = useState(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
     // Check if the user has pending guest invitations
     const searchUserGuestExists = async (email) => {
@@ -31,6 +32,15 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.log("Error in searchUserGuestExists:", error);
+        }
+    };
+
+    const checkIfUserIsSuperAdmin = async () => {
+        try {
+            const res = await userIsSuperAdminRequest();
+            setIsSuperAdmin(res.data.isSuperAdmin);
+        } catch (error) {
+            console.log("Error in checkIfUserIsSuperAdmin:", error);
         }
     };
 
@@ -68,6 +78,10 @@ export const AuthProvider = ({ children }) => {
     const signup = async (userForm) => {
         try {
             const res = await registerRequest(userForm);
+            console.log(res)
+            if (res.status == 400) {
+                return { error: res.data.error }
+            }
             const data = res.data.user;
             localStorage.setItem('token', res.data.token);
             setUser(data);
@@ -81,7 +95,7 @@ export const AuthProvider = ({ children }) => {
             }
             return data;
         } catch (error) {
-            console.log("Error in signup:", error);
+            return { error: error.response.data.error }
         }
     };
 
@@ -91,6 +105,7 @@ export const AuthProvider = ({ children }) => {
             const res = await loginRequest(userForm);
             const data = res.data.user;
             localStorage.setItem('token', res.data.token);
+            await checkIfUserIsSuperAdmin();
             setUser(data);
             setIsAuthenticated(true);
             await searchUserGuestExists(data.userEmail);
@@ -189,6 +204,9 @@ export const AuthProvider = ({ children }) => {
                 businessSelected,
                 subscriptions,
                 setSubscriptions,
+                searchUserGuestExists,
+                isSuperAdmin
+
             }}
         >
             {children}

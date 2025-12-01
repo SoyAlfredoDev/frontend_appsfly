@@ -103,7 +103,7 @@ export default function PendingUserGuest() {
         });
     };
     return (
-        <>
+        <div style={{ paddingTop: "90px" }}>
             {userGuestExists &&
                 userGuestExists.map((guest, index) => (
                     <div
@@ -156,6 +156,6 @@ export default function PendingUserGuest() {
                         </div>
                     </div>
                 ))}
-        </>
+        </div>
     );
 }

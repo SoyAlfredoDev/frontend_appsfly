@@ -37,9 +37,7 @@ export default function DashboardAdminPage() {
                             }
                         </div>
                         <div className={hasBusiness ? "d-none" : "col-12 col-md-5 col-lg-3"}>
-                            <div className="p-3">
-                                <UserGuestPendient />
-                            </div>
+                            <UserGuestPendient />
                         </div>
                     </div>
                 </div>

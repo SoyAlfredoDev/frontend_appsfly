@@ -15,7 +15,7 @@ export default function InputFloatingComponent({
         <div className={`form-floating mb-2 ${className}`}>
             <input
                 type={type}
-                className={`form-control form-control-sm ps-2${isValid === true ? 'is-valid' : isValid === false ? 'is-invalid' : ''
+                className={`form-control form-control-sm ps-2 ${isValid === true ? 'is-valid' : isValid === false ? 'is-invalid' : ''
                     }`}
                 id={name}
                 name={name}

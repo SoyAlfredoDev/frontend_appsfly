@@ -6,7 +6,6 @@ import validateRut from '../libs/validateRut.js';
 import { useAuth } from '../context/authContext.jsx';
 import { v4 as uuidv4 } from 'uuid';
 
-
 const validateForm = (data) => ({
     userFirstName: data.userFirstName.trim() !== "",
     userLastName: data.userLastName.trim() !== "",
@@ -22,6 +21,7 @@ const validateForm = (data) => ({
 export default function RegisterPage() {
     const { signup } = useAuth();
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         userId: uuidv4(),
         userFirstName: '',
@@ -77,38 +77,56 @@ export default function RegisterPage() {
     // Validar y enviar
     const handleOnSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true)
         const newValidation = validateForm(formData);
         setValidations(newValidation);
-        if (Object.values(newValidation).some(v => v === false)) {
-            setError("Por favor, corrige los campos inválidos.");
-            return;
-        }
-        setError(null);
+
         const rutFormated = validateRut(formData.userDocumentNumber);
         const passwordValidated = validatePassword(formData.userPassword);
         if (rutFormated === false && formData.userDocumentType === "rut") {
             setValidations((prev) => ({ ...prev, userDocumentNumber: false }));
             setError("Por favor, ingrese un rut válido ej:(12345678-K)");
+            setIsLoading(false);
             return;
         };
 
         if (!passwordValidated) {
             setValidations((prev) => ({ ...prev, userPassword: false, userPasswordConfirmation: false }));
             setError("La contraseña debe tener al menos 8 caracteres, incluir al menos una letra mayúscula y al menos un número.");
+            setIsLoading(false);
             return;
         };
-
+        if (Object.values(newValidation).some(v => v === false)) {
+            console.log(newValidation)
+            setError("Por favor, corrige los campos inválidos.");
+            setIsLoading(false);
+            return;
+        }
+        setError(null);
         try {
             const res = await signup(formData);
+            if (res.error === 1) {
+                setValidations((prev) => ({ ...prev, userEmail: false }));
+                setError("El correo electrónico ya está en uso.");
+                setIsLoading(false);
+                return;
+            } else if (res?.error === 2) {
+                setValidations((prev) => ({ ...prev, userPassword: false, userPasswordConfirmation: false }));
+                setError("Las contraseñas no coinciden.");
+                setIsLoading(false);
+                return;
+            }
             if (res.userId) {
-                navigate('/dashboard');
+                alert('Su registro se completó exitosamente; debe iniciar sesión nuevamente.')
+                navigate('/logout');
             } else {
+                setIsLoading(false);
                 setError(res?.data?.message || "Hubo un error al registrarse.");
             }
-
         } catch (err) {
             console.log(err);
             setError("Hubo un error al registrarse.");
+            setIsLoading(false);
         }
     };
 
@@ -272,12 +290,12 @@ export default function RegisterPage() {
 
                     <div className="row mt-3">
                         <div className="col-12 col-md-6 mb-2">
-                            <button type="submit" className="btn btn-success w-100">
+                            <button type="submit" className="btn btn-success w-100 " disabled={isLoading}>
                                 Regístrarme
                             </button>
                         </div>
                         <div className="col-12 col-md-6 mb-2">
-                            <Link to="/" className="btn btn-secondary w-100">
+                            <Link to="/" className="btn btn-secondary w-100" disabled={isLoading}>
                                 Volver
                             </Link>
                         </div>
