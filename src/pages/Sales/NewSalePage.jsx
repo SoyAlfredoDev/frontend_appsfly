@@ -4,7 +4,6 @@ import { getCustomers } from "../../api/customers.js"
 import { getProductsAndServices } from "../../libs/productsAndServices.js"
 import { useAuth } from "../../context/authContext.jsx";
 import { useEffect, useState } from "react";
-import "./NewSalePage.css"
 import CardRegisterPayments from "../../components/paymennts/CardRegisterPayments.jsx";
 import NewCustomerModal from "../../components/modals/AddCustomerModal.jsx";
 import formatName from "../../utils/formatName.js";
@@ -12,9 +11,10 @@ import { createSaleGeneral } from "../../utils/createSale.js";
 import { v4 as uuidv4 } from 'uuid';
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+import { motion as Motion, AnimatePresence } from "framer-motion";
+import { FaPlus, FaTrash, FaUserPlus, FaCalendarAlt, FaUserTie, FaSave, FaSearch } from "react-icons/fa";
 
 const MySwal = withReactContent(Swal);
-
 
 export default function NewSalePage() {
     const [saleId, setSaleId] = useState(uuidv4());
@@ -42,6 +42,13 @@ export default function NewSalePage() {
         saleTotal: total,
         saleTotalPayments: totalPayments
     });
+    const [isLoading, setIsLoading] = useState(false);
+    
+    // Derived state for formatted date
+    const todayDate = new Date().toLocaleDateString('es-ES', {
+        day: 'numeric', month: 'long', year: 'numeric'
+    });
+
     const searchCustomers = async () => {
         try {
             const res = await getCustomers();
@@ -70,7 +77,7 @@ export default function NewSalePage() {
             saleDetailPrice: 0,
             saleDetailAmount: 1,
             saleDetailTotal: 0,
-            saleDetailType: null, // 'PRODUCT' or 'SERVICE'
+            saleDetailType: null, 
             saleDetailPriceFixed: true,
         };
         setDataTable([...dataTable, itemSaleDetail]);
@@ -78,16 +85,12 @@ export default function NewSalePage() {
     const handleDeleteRow = (idToRemove) => {
         setDataTable(prev => {
             const newDatatable = prev.filter(item => item.saleDetailId !== idToRemove);
-
-            // Recalcular el total después de eliminar la fila
             const totalGeneral = newDatatable.reduce((sum, item) => sum + item.saleDetailTotal, 0);
-
             setTotal(totalGeneral);
             setDataSale({
                 ...dataSale,
                 saleTotal: totalGeneral
             });
-
             return newDatatable;
         });
     };
@@ -95,17 +98,14 @@ export default function NewSalePage() {
         const rows = [...dataTable]
         rows[index][field] = value;
         const total = rows[index].saleDetailPrice * rows[index].saleDetailAmount
-        // actualizar total de la fila
         rows[index].saleDetailTotal = Number(total);
         setDataTable(rows)
-        // recalcular total general
         const totalGeneral = rows.reduce((sum, item) => sum + item.saleDetailTotal, 0);
         setTotal(totalGeneral);
     };
     const handleChangeSelect = (e, index) => {
         const value = e.target.value;
         const selectedProductService = productsServices.find(p => p.productId === value || p.serviceId === value);
-        console.log('productFound', selectedProductService)
         if (selectedProductService) {
             const updatedDataTable = [...dataTable];
             updatedDataTable[index].saleDetailSKU = selectedProductService.productSKU || selectedProductService.serviceSKU || '';
@@ -115,17 +115,10 @@ export default function NewSalePage() {
             updatedDataTable[index].saleDetailType = selectedProductService.productId ? 'PRODUCT' : 'SERVICE';
             updatedDataTable[index].saleDetailPriceFixed = selectedProductService.productPriceFixed || selectedProductService.servicePriceFixed;
             setDataTable(updatedDataTable);
-            console.log('Updated Data Table:', updatedDataTable);
-
-            // Recalcular el total general
             const totalGeneral = updatedDataTable.reduce((sum, item) => sum + item.saleDetailTotal, 0);
-
             setTotal(totalGeneral);
         }
         handleOnInput(index, 'saleDetailProductServiceId', value);
-
-
-
     };
     const handleChangeCustomerSelect = (value) => {
         setDataSale({
@@ -134,10 +127,8 @@ export default function NewSalePage() {
         });
     };
     const handleCreated = async (customerCreatedId) => {
-        // Actualizar la lista de clientes después de crear uno nuevo
         const updatedCustomers = await searchCustomers();
         setCustomers(updatedCustomers);
-        // Dar tiempo a que React renderice la nueva lista antes de seleccionar
         setTimeout(() => {
             handleChangeCustomerSelect(customerCreatedId);
         }, 150);
@@ -158,10 +149,14 @@ export default function NewSalePage() {
     }
     const showAlert = (message, text, icon) => {
         MySwal.fire({
-            title: <p>{message}</p>,
+            title: <p className="text-lg font-bold">{message}</p>,
             text: text,
             icon: icon,
-            confirmButtonText: "OK"
+            confirmButtonText: "Entendido",
+            customClass: {
+                confirmButton: 'bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700'
+            },
+            buttonsStyling: false
         });
     };
     useEffect(() => {
@@ -179,287 +174,302 @@ export default function NewSalePage() {
     }, [totalPayments, total]);
 
     const handleSubmit = async () => {
+        setIsLoading(true)
         const res = await createSale()
         if (res) {
-            showAlert('Venta nro 001', 'Venta registrada con exito', 'success');
-            // se formatea el cliente
+            showAlert(`Nro de Venta ${res.dataSale.saleNumber}`, 'La venta se ha registrado correctamente.', 'success');
+            // Reset states
             setDataSale({
-                ...dataSale,
                 saleId: uuidv4(),
-                saleCustomerId: '',
-                saleTotal: total,
-                saleTotalPayments: totalPayments
+                saleComment: '',
+                saleCustomerId: null,
+                saleTotal: 0,
+                saleTotalPayments: 0
             });
-
             setSaleId(uuidv4());
-
-            // e formatea la tabla de productos 
-            setDataTable(
-                [{
-                    saleDetailId: uuidv4(),
-                    saleDetailSKU: '',
-                    saleDetailProductServiceId: undefined,
-                    saleDetailPrice: 0,
-                    saleDetailAmount: 1,
-                    saleDetailTotal: 0,
-                    saleDetailType: null,
-                }]
-            )
+            setDataTable([{
+                saleDetailId: uuidv4(),
+                saleDetailSKU: '',
+                saleDetailProductServiceId: undefined,
+                saleDetailPrice: 0,
+                saleDetailAmount: 1,
+                saleDetailTotal: 0,
+                saleDetailType: null,
+                saleDetailPriceFixed: true,
+            }]);
+            setTotal(0);
+            setTotalPayments(0);
+            setAmountDue(0);
+            setDataSalePayments([]);
+            setIsLoading(false)
         }
     };
     const createSale = async () => {
-        //Validaciones previas
-
-        // validar que exista un usuario seleccionado 
         if (!dataSale.saleCustomerId) {
-            const res = false;
-            showAlert('Importante:', 'Es necesario seleccionar un cliente', 'error')
-            return res;
+            showAlert('Cliente Requerido', 'Por favor selecciona un cliente para continuar.', 'error')
+            setIsLoading(false)
+            return false;
         }
-
-        // validad que exista un producto selecionado
-        // validar que hayan productos 
 
         if (dataTable.length < 1) {
-            const res = false;
-            showAlert('Importante:', 'Es necesario seleccionar un producto', 'error')
-            return res;
-
+            showAlert('Sin Productos', 'Debes agregar al menos un producto o servicio.', 'error')
+            setIsLoading(false)
+            return false;
         }
+
         for (const data of dataTable) {
             if (!data.saleDetailProductServiceId && data.saleDetailAmount > 0) {
-                const res = false;
-                showAlert('Importante:', 'Es necesario seleccionar un producto', 'error')
-                return res;
+                showAlert('Producto Incompleto', 'Hay filas sin producto seleccionado.', 'error')
+                setIsLoading(false)
+                return false;
             }
             if (data.saleDetailProductServiceId && data.saleDetailAmount < 1) {
-                const res = false;
-                showAlert('Importante:', 'La cantidad de los productos no puede ser menor a 1', 'error')
-                return res;
-
+                showAlert('Cantidad Inválida', 'La cantidad debe ser al menos 1.', 'error')
+                setIsLoading(false)
+                return false;
             }
         };
 
         try {
-            // 🚀 Llamada al servicio/API
             const res = await createSaleGeneral(dataSale, dataTable, dataSalePayments);
             return res;
         } catch (error) {
             console.error('Error creating sale:', error);
-            showAlert('Ocurrió un error', 'Intenta nuevamente más tarde', 'error');
+            showAlert('Error', 'No se pudo registrar la venta. Inténtalo de nuevo.', 'error');
+            setIsLoading(false)
+            return false;
         };
-
-
     };
 
     return (
         <ProtectedView>
-            < div className="containerNewSale">
-                <div className="row m-0 p-0 navBarRow">
-                    <NavBarComponent />
-                </div>
-                <div className="row p-2 m-0 customerRow">
-                    <div className="col-md-5">
-                        <div className="input-group input-group-sm">
-                            <span className="input-group-text" >Cliente: </span>
-                            <select
-                                id="saleCustomer"
-                                name="saleCustomer"
-                                value={dataSale.saleCustomerId || ''}
-                                className="form-select form-select-sm"
-                                onChange={(e) => { handleChangeCustomerSelect(e.target.value) }}>
-                                <option value={null}>seleccionar cliente</option>
-                                {
-                                    customers.map((c) => (
+            <NavBarComponent />
+            <div className="flex flex-col h-screen bg-gray-100 overflow-hidden pt-[60px]"> {/* Main Layout Container */}
+                
+                {/* 1. Top Section: Customer & Info */}
+                <div className="bg-white px-4 py-3 border-b border-gray-200 shadow-sm flex-none z-10">
+                    <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        
+                        {/* Customer Selection */}
+                        <div className="flex-1 max-w-2xl bg-gray-50 p-1.5 rounded-lg border border-gray-200 flex items-center gap-2">
+                             <div className="flex-1 relative">
+                                <select
+                                    id="saleCustomer"
+                                    className="w-full bg-transparent border-none text-gray-700 text-sm font-medium focus:ring-0 cursor-pointer pl-2 py-1.5"
+                                    value={dataSale.saleCustomerId || ''}
+                                    onChange={(e) => handleChangeCustomerSelect(e.target.value)}
+                                >
+                                    <option value="">Seleccionar Cliente...</option>
+                                    {customers.map((c) => (
                                         <option key={c.customerId} value={c.customerId}>
-                                            {c.customerFirstName}  {c.customerLastName}
+                                            {c.customerFirstName} {c.customerLastName}
                                         </option>
-                                    ))
-                                }
-                            </select>
-                            <NewCustomerModal nameBottom={<i className="bi bi-plus-lg"></i>} title={'Registrar Cliente'} idModal="newCustomer" onCreated={handleCreated} />
-                            <a
-                                href={`/customers/${dataSale.saleCustomerId}`}
-                                className="btn btn-warning w-10"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <i className="bi bi-eye"></i>
-                            </a>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-1 border-l border-gray-300 pl-2">
+                                <NewCustomerModal 
+                                    trigger={
+                                        <button className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors" title="Registrar Cliente">
+                                            <FaUserPlus className="text-lg" />
+                                        </button>
+                                    }
+                                    title={'Registrar Cliente'} 
+                                    onCreated={handleCreated} 
+                                />
+                                {dataSale.saleCustomerId && (
+                                    <a
+                                        href={`/customers/${dataSale.saleCustomerId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                        title="Ver Ficha Cliente"
+                                    >
+                                        <FaSearch className="text-xs" />
+                                    </a>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                    <div className="col-md-4">
-                        <div>
-                            Fecha: {new Date().toLocaleDateString('es-ES', {
-                                day: 'numeric',
-                                month: 'long',
-                                weekday: 'long',
-                                year: 'numeric'
-                            })}
-                        </div>
-                        <div>
-                            Vendedor: {formatName(user?.userFirstName) + ' ' + formatName(user?.userLastName)}
-                        </div>
-                    </div>
-                    <div className="col-md-3">
-                    </div>
-                </div>
-                <div className="row tableDetalle m-0 p-0 pt-2">
-                    <div className="table-responsibe">
-                        <table className="table table-striped table-hover table-sm">
-                            <colgroup>
-                                <col style={{ width: "5%" }} />
-                                <col style={{ width: "5%", minWidth: "100px" }} />
-                                <col style={{ width: "10%", minWidth: "100px" }} />
-                                <col style={{ width: "35%", minWidth: "200px" }} />
-                                <col style={{ width: "5%" }} />
-                                <col style={{ width: "10%", minWidth: "100px" }} />
-                                <col style={{ width: "10%", minWidth: "100px" }} />
-                                <col style={{ width: "5%" }} />
-                            </colgroup>
-                            <thead>
-                                <tr className="table-success text-center">
-                                    <th>Nro</th>
-                                    <th>Tipo</th>
-                                    <th>SKU</th>
-                                    <th>Nombre</th>
-                                    <th>Cantidad</th>
-                                    <th>Precio</th>
-                                    <th>Total</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {dataTable.map((d, index) => (
-                                    <tr key={d.saleDetailId}>
-                                        <th scope="row" className="text-center"> {index + 1}</th>
-                                        <td>
-                                            <>
-                                                {d.saleDetailType === 'PRODUCT' && (
-                                                    <span className="badge bg-success">Producto</span>
-                                                )}
-                                                {d.saleDetailType === 'SERVICE' && (
-                                                    <span className="badge bg-primary">Servicio</span>
-                                                )}
-                                            </>
 
-                                        </td>
-                                        <td className="text-center"> {d.saleDetailSKU}</td>
-                                        <td>
-                                            <select className="form-select inputSaleDetail p-0 ps-3" onChange={() => handleChangeSelect(event, index)}>
-                                                <option className="p-0" value={null}>selecionar producto o servicio</option>
-                                                {
-                                                    productsServices.map((p) => (
-
-                                                        <option className="p-0" key={p.productId || p.serviceId} value={p.productId || p.serviceId}>
-                                                            {p.productName || p.serviceName}
-                                                        </option>
-                                                    ))
-                                                }
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <input
-                                                type="number"
-                                                className="form-control inputSaleDetail text-center p-0"
-                                                required
-                                                value={d.saleDetailAmount || 1}
-                                                onInput={(e) => handleOnInput(index, 'saleDetailAmount', e.target.value)}
-                                            />
-                                        </td>
-                                        <td className="text-end pe-3">
-                                            <input
-                                                type="number"
-                                                className="form-control inputSaleDetail text-end p-0"
-                                                required
-                                                value={d.saleDetailPrice || 0}
-                                                onInput={(e) => handleOnInput(index, 'saleDetailPrice', e.target.value)}
-                                                disabled={!!d.saleDetailPriceFixed} />
-                                        </td>
-                                        <td className="text-end pe-3">
-                                            <b>
-                                                {d.saleDetailTotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
-                                            </b>
-                                        </td>
-                                        <td className="text-center">
-                                            <div className="row m-0 p-0 text-center px-2">
-                                                <div className="col-6 p-0 text-center">
-                                                    <button
-                                                        className="btn text-success text-center p-0"
-                                                        title="descuento">
-                                                        <i className="bi bi-pencil"></i>
-                                                    </button>
-                                                </div>
-                                                <div className="col-6 p-0 text-center">
-                                                    <button
-                                                        className="btn text-danger text-center p-0"
-                                                        title="eliminar"
-                                                        onClick={() => handleDeleteRow(d.saleDetailId)}>
-                                                        <i className="bi bi-trash3"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <button className="btn btn-sm btn-success w-100" onClick={newRow}>
-                            agregar
-                        </button>
-                    </div>
-                </div>
-                <div className="row m-p p-0 actiones">
-                    <div className="ps-4">
-                        <button className="btn btn-sm btn-success me-2" style={{ width: '120px' }} onClick={handleSubmit}>Generar</button>
-                        <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Limpiar</button>
-                        <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Buscar</button>
-                        <button className="btn btn-sm btn-secondary me-2" style={{ width: '120px' }}>Guardar</button>
-                    </div>
-                </div>
-                <div className="row bg-secondary m-0 p-0 footerRow">
-                    <div className="col-4 m-0 p-1 h-100">
-                        <textarea
-                            name="saleComment"
-                            className="form-control"
-                            placeholder="Comentarios"
-                            value={dataSale.saleComment || ''}
-                            onChange={(e) => setDataSale({ ...dataSale, saleComment: e.target.value })}
-                        />
-                    </div>
-                    <div className="col-5 p-1">
-                        <CardRegisterPayments sendPayments={handlePayments} />
-                    </div>
-                    <div className="col-3 p-1">
-                        <div className="row">
-                            <div className="w-100">
-                                <div className="row">
-                                    <div className="col-6 text-end">Total</div>
-                                    <div className="col-6 text-end text-warning">
-                                        <b>{total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</b>
-                                    </div>
-                                </div>
-                                <div className="row">
-                                    <div className="col-6 text-end">
-                                        Abonado
-                                    </div>
-                                    <div className="col-6 text-end">
-                                        <b>{totalPayments.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</b>
-                                    </div>
-                                </div>
-                                <div className="row">
-                                    <div className="col-6 text-end">
-                                        Por Cobrar
-                                    </div>
-                                    <div className="col-6 text-end text-danger">
-                                        {amountDue.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
-                                    </div>
-                                </div>
+                        {/* Metadata Info */}
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-100 shadow-sm">
+                                <FaCalendarAlt className="text-emerald-500" />
+                                <span className="font-semibold text-gray-700">{todayDate}</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-gray-100 shadow-sm">
+                                <FaUserTie className="text-blue-500" />
+                                <span className="font-medium">{formatName(user?.userFirstName)} {formatName(user?.userLastName)}</span>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* 2. Middle Section: Dynamic Grid Table */}
+                <div className="flex-1 overflow-y-auto p-3 bg-gray-100/50">
+                    <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full min-h-[300px]">
+                        <div className="overflow-x-auto flex-1">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-emerald-50 text-emerald-800 text-[10px] uppercase font-bold sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th className="p-2 text-center w-10">#</th>
+                                        <th className="p-2 w-20 text-center">Tipo</th>
+                                        <th className="p-2 w-24">SKU</th>
+                                        <th className="p-2">Producto / Servicio</th>
+                                        <th className="p-2 w-20 text-center">Cant.</th>
+                                        <th className="p-2 w-28 text-end">Precio</th>
+                                        <th className="p-2 w-28 text-end">Total</th>
+                                        <th className="p-2 w-12 text-center"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    <AnimatePresence initial={false}>
+                                        {dataTable.map((d, index) => (
+                                            <Motion.tr 
+                                                key={d.saleDetailId}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, x: -20 }}
+                                                className="hover:bg-gray-50 transition-colors group"
+                                            >
+                                                <td className="p-2 text-center text-gray-400 font-mono text-[10px]">{index + 1}</td>
+                                                <td className="p-2 text-center">
+                                                    {d.saleDetailType === 'PRODUCT' && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 border border-blue-200">PROD</span>
+                                                    )}
+                                                    {d.saleDetailType === 'SERVICE' && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 border border-purple-200">SERV</span>
+                                                    )}
+                                                </td>
+                                                <td className="p-2">
+                                                    <input 
+                                                        type="text" 
+                                                        readOnly 
+                                                        value={d.saleDetailSKU} 
+                                                        className="w-full bg-transparent border-none focus:ring-0 text-[10px] font-mono text-gray-500 p-0"
+                                                        placeholder="N/A"
+                                                    />
+                                                </td>
+                                                <td className="p-2">
+                                                    <select 
+                                                        className="w-full text-xs border-gray-200 rounded focus:ring-emerald-500 focus:border-emerald-500 bg-white shadow-sm py-1"
+                                                        onChange={(e) => handleChangeSelect(e, index)}
+                                                        value={d.saleDetailProductServiceId || ''}
+                                                    >
+                                                        <option value="">Seleccionar Item...</option>
+                                                        {productsServices.map((p) => (
+                                                            <option key={p.productId || p.serviceId} value={p.productId || p.serviceId}>
+                                                                {p.productName || p.serviceName}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </td>
+                                                <td className="p-2">
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        className="w-full text-center border-gray-200 rounded focus:ring-emerald-500 focus:border-emerald-500 text-xs shadow-sm py-1"
+                                                        value={d.saleDetailAmount}
+                                                        onInput={(e) => handleOnInput(index, 'saleDetailAmount', e.target.value)}
+                                                    />
+                                                </td>
+                                                <td className="p-2">
+                                                    <input
+                                                        type="number"
+                                                        className={`w-full text-end border-gray-200 rounded focus:ring-emerald-500 focus:border-emerald-500 text-xs shadow-sm py-1 ${d.saleDetailPriceFixed ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`}
+                                                        value={d.saleDetailPrice}
+                                                        onInput={(e) => handleOnInput(index, 'saleDetailPrice', e.target.value)}
+                                                        disabled={d.saleDetailPriceFixed}
+                                                    />
+                                                </td>
+                                                <td className="p-2 text-end font-bold text-gray-800 text-xs">
+                                                    {d.saleDetailTotal.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
+                                                </td>
+                                                <td className="p-2 text-center">
+                                                    <button
+                                                        className="size-6 flex items-center justify-center rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                                                        onClick={() => handleDeleteRow(d.saleDetailId)}
+                                                        title="Eliminar fila"
+                                                    >
+                                                        <FaTrash className="text-xs" />
+                                                    </button>
+                                                </td>
+                                            </Motion.tr>
+                                        ))}
+                                    </AnimatePresence>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {/* Add Row Button */}
+                        <div className="p-1 border-t border-gray-200 bg-gray-50">
+                            <button 
+                                onClick={newRow}
+                                className="w-full py-1.5 border border-dashed border-gray-300 rounded text-gray-500 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 font-medium text-xs"
+                            >
+                                <FaPlus className="text-[10px]" /> Agregar Item
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Footer Section: Totals, Actions & Payments */}
+                <div className="bg-white border-t border-gray-200 shadow-lg flex-none z-20">
+                    <div className="max-w-7xl mx-auto flex flex-col lg:flex-row h-auto lg:h-40">
+                        
+                        {/* Left: Comments */}
+                        <div className="lg:w-1/4 p-3 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
+                            <label className="text-[10px] font-semibold text-gray-400 uppercase mb-1 block">Comentarios</label>
+                            <textarea
+                                className="w-full flex-1 bg-gray-50 border-gray-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-xs resize-none p-2"
+                                placeholder="Notas adicionales..."
+                                value={dataSale.saleComment || ''}
+                                onChange={(e) => setDataSale({ ...dataSale, saleComment: e.target.value })}
+                            />
+                        </div>
+
+                        {/* Middle: Payments Component */}
+                        <div className="flex-1 p-3 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col min-h-[120px]">
+                             <label className="text-[10px] font-semibold text-gray-400 uppercase mb-1 block">Pagos</label>
+                             <div className="flex-1 overflow-hidden">
+                                <CardRegisterPayments sendPayments={handlePayments} />
+                             </div>
+                        </div>
+
+                        {/* Right: Summary & Actions */}
+                        <div className="lg:w-1/4 p-3 bg-gray-50 flex flex-col justify-between gap-3">
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-gray-500 text-xs">Total</span>
+                                    <span className="text-lg font-bold text-gray-900">{total.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-emerald-600 font-medium">Abonado</span>
+                                    <span className="font-semibold text-emerald-600">{totalPayments.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1 mt-1">
+                                    <span className="text-red-500 font-medium">Pendiente</span>
+                                    <span className="font-bold text-red-500">{amountDue.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}</span>
+                                </div>
+                            </div>
+                            
+                            <button 
+                                onClick={handleSubmit}
+                                className="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition-transform active:scale-95 shadow-sm flex items-center justify-center gap-2 font-bold text-sm"
+                                disabled={isLoading}
+                            >
+                                <FaSave /> {
+                                    isLoading ? (
+                                        <span className="ml-2">Guardando...</span>
+                                    ) : (
+                                        <span className="ml-2">Finalizar Venta</span>
+                                    )
+                                }
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </ProtectedView>
     )

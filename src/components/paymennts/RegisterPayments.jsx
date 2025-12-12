@@ -1,18 +1,22 @@
-import "./RegisterPayments.css";
 import { useState } from "react";
+import { FaTimes } from "react-icons/fa";
 
 export default function RegisterPayments({ sendDetailPayment, paymentId, methodId, amount }) {
     const methods = [
-        { methodId: 0, methodName: 'Tarjeta de Débito' },
-        { methodId: 1, methodName: 'Tarjeta de Crédito' },
+        { methodId: 0, methodName: 'Débito' },
+        { methodId: 1, methodName: 'Crédito' },
         { methodId: 2, methodName: 'Efectivo' },
-        { methodId: 3, methodName: 'Transferencia Bancaria' },
+        { methodId: 3, methodName: 'Transferencia' },
     ];
+    
+    // Local state to manage inputs before propagation if needed, 
+    // though in this case we propagate immediately.
     const [payment, setPayment] = useState({
         paymentId: paymentId,
         methodId: methodId,
         amount: amount
     });
+
     const handleAmountChange = (e) => {
         let newAmount = Number(e.target.value);
         const newData = {
@@ -22,8 +26,8 @@ export default function RegisterPayments({ sendDetailPayment, paymentId, methodI
         }
         setPayment(newData);
         sendDetailPayment(newData);
-        ;
     };
+
     const handleMethodChange = (e) => {
         const newMethodId = Number(e.target.value);
         const newData = {
@@ -33,9 +37,8 @@ export default function RegisterPayments({ sendDetailPayment, paymentId, methodI
         };
         setPayment(newData);
         sendDetailPayment(newData);
-
-
     };
+
     const handleClickDelete = () => {
         const data = {
             paymentId,
@@ -43,16 +46,16 @@ export default function RegisterPayments({ sendDetailPayment, paymentId, methodI
         };
         sendDetailPayment(data);
         setPayment({ paymentId: undefined, methodId: undefined, amount: undefined });
-
     };
+
     return (
-        <div className="input-group m-0 p-0 mb-1">
+        <div className="flex gap-1 mb-1 items-center">
             <select
-                className="form-select form-select-sm w-50 py-0"
+                className="flex-1 bg-white border border-gray-200 text-gray-700 text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                 value={payment.methodId}
                 onChange={handleMethodChange}
             >
-                <option value="">Seleccionar método de pago</option>
+                <option value="">Método...</option>
                 {methods.map((m) => (
                     <option key={m.methodId} value={m.methodId}>
                         {m.methodName}
@@ -66,15 +69,15 @@ export default function RegisterPayments({ sendDetailPayment, paymentId, methodI
                 step={1}
                 value={payment.amount}
                 onChange={handleAmountChange}
-                className="form-control form-control-sm w-40"
+                className="w-24 bg-white border border-gray-200 text-gray-700 text-xs rounded px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
             />
 
             <button
                 type="button"
-                className="btn btn-sm btn-secondary w-10"
+                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                 onClick={handleClickDelete}
             >
-                x
+                <FaTimes className="text-xs" />
             </button>
         </div>
     );

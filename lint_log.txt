@@ -1,0 +1,9 @@
+
+C:\Users\Alfredo  Hurtado\Desktop\mis-apps\appsfly\frontend\src\components\modals\AddCustomerModal.jsx
+  8:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\Alfredo  Hurtado\Desktop\mis-apps\appsfly\frontend\src\pages\CustomerPage.jsx
+  17:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+✖ 2 problems (2 errors, 0 warnings)
+

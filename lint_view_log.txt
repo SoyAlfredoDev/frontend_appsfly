@@ -1,0 +1,6 @@
+
+C:\Users\Alfredo  Hurtado\Desktop\mis-apps\appsfly\frontend\src\pages\CustomerViewPage.jsx
+  45:8  warning  React Hook useEffect has a missing dependency: 'fetchCustomer'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 1 problem (0 errors, 1 warning)
+

@@ -1,8 +1,8 @@
 export default function IsRequiredComponent() {
     return (
-        <div className="row m-0 p-0 text-start">
-            <small>
-                <span className="text-danger">*</span> campos obligatorios
+        <div className="flex justify-start m-0 p-0">
+            <small className="text-gray-500">
+                <span className="text-red-500">*</span> campos obligatorios
             </small>
         </div>
     );

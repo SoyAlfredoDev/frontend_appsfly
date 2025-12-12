@@ -4,6 +4,7 @@ import { userGuestExistsRequest } from "../api/userGuest.js";
 import { getUserBusinessById } from '../api/userBusiness.js';
 import { getUserByIdRequest, userIsSuperAdminRequest } from "../api/user.js";
 import { getSubscriptionsByBusinessIdRequest } from "../api/subscription.js";
+import { getBusinessByIdRequest } from "../api/business.js";
 
 export const AuthContext = createContext();
 
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }) => {
     const [businessSelected, setBusinessSelected] = useState(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+    const [business, setBusiness] = useState(null);
 
     // Check if the user has pending guest invitations
     const searchUserGuestExists = async (email) => {
@@ -56,9 +58,19 @@ export const AuthProvider = ({ children }) => {
                 setBusinessSelected(userBusiness.data[0]);
             }
 
+
             // Always return the actual response so we can use it immediately
             return userBusiness.data[0] ?? null;
 
+        } catch (error) {
+            console.error("Error fetching user business:", error);
+        }
+    };
+
+    const searchBusinessByBusinessId = async (businessId) => {
+        try {
+            const businessFound = await getBusinessByIdRequest(businessId);
+            setBusiness(businessFound.data);
         } catch (error) {
             console.error("Error fetching user business:", error);
         }
@@ -109,10 +121,14 @@ export const AuthProvider = ({ children }) => {
             setUser(data);
             setIsAuthenticated(true);
             await searchUserGuestExists(data.userEmail);
+
             const business = await searchBusinessByUserId(data.userId);
             if (business) {
                 await getSubscriptionsByBusinessId(business.userBusinessBusinessId);
+                console.log('business', business);
+                await searchBusinessByBusinessId(business.userBusinessBusinessId);
             }
+            checkIfUserIsSuperAdmin();
             return data;
         } catch (error) {
             console.log("Error in signin:", error);
@@ -165,10 +181,15 @@ export const AuthProvider = ({ children }) => {
 
                 if (business) {
                     const subscriptions = await getSubscriptionsByBusinessId(
-                        business.businessId
+                        business.userBusinessBusinessId
+
                     );
-                    setSubscriptions([subscriptions]);
+                    console.log('business ---', business.userBusinessBusinessId);
+                    console.log('subscriptions ---', subscriptions);
+                    await searchBusinessByBusinessId(business.userBusinessBusinessId);
                 }
+                checkIfUserIsSuperAdmin()
+
 
             } catch (error) {
                 // ❌ Token expiró o inválido → limpiar
@@ -205,7 +226,8 @@ export const AuthProvider = ({ children }) => {
                 subscriptions,
                 setSubscriptions,
                 searchUserGuestExists,
-                isSuperAdmin
+                isSuperAdmin,
+                business
 
             }}
         >

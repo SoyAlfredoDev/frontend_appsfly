@@ -20,6 +20,10 @@ import TransactionsPage from './pages/TransactionsPage.jsx';
 import ExpensesPage from './pages/ExpensesPage.jsx';
 import FinancePage from './pages/FinancePage.jsx';
 import SupportPage from './pages/support/SupportPage.jsx';
+import ConfirmAccountPage from './pages/users/ConfirmAccountPage.jsx';
+import TicketsAdminPage from './pages/admin/TicketsAdminPage.jsx';
+import TicketDetailAdminPage from './pages/admin/TicketDetailAdminPage.jsx';
+
 
 
 import IndexPage from './pages/web/IndexPage.jsx';
@@ -48,13 +52,17 @@ function App() {
             <Route path='/finance' element={<FinancePage />} />
             <Route path='/expenses' element={<ExpensesPage />} />
             <Route path='/support' element={<SupportPage />} />
+            <Route path='/users/:id/confirm-email' element={<ConfirmAccountPage />} />
             {/**si el usuario esta autentificado debe redirigir dashboard */}
             {/** admin */}
             <Route path='/admin/dashboard' element={<DashboardAdminPage />} />
             <Route path='/business/register' element={<RegisterBusinessPage />} />
+            <Route path='/admin/tickets' element={<TicketsAdminPage />} />
+            <Route path='/admin/tickets/:id' element={<TicketDetailAdminPage />} />
+
 
             {/** Web Pages */}
-            <Route path='/' element={<IndexPage />} />
+            <Route path='/' element={<HomePage />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

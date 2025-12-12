@@ -1,8 +1,9 @@
 // src/pages/dashboard/UsersDashboardPage.jsx
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 
-import { getMonthlySalesNow, getDaySales } from '../../api/sale.js';
+import { getMonthlySalesNow, getDaySales, countSalesMonthRequest } from '../../api/sale.js';
 import { calculateTotalAvailableByPaymentMethod } from '../../utils/financeUtils.js';
 import { useAuth } from '../../context/authContext.jsx';
 
@@ -15,7 +16,13 @@ import {
     FcDebt,
     FcMoneyTransfer,
     FcTimeline,
-    FcRatings
+    FcRatings,
+    FcPlus,
+    FcCalendar,
+    FcCurrencyExchange,
+    FcBearish,
+    FcSupport,
+    FcKey
 } from "react-icons/fc";
 
 export default function UsersDashboardPage() {
@@ -26,6 +33,7 @@ export default function UsersDashboardPage() {
     const [salePendingAmount, setSalePendingAmount] = useState(null);
     const [daySales, setDaySales] = useState(null);
     const [cashAvailable, setCashAvailable] = useState(null);
+    const [countSalesMonth, setCountSalesMonth] = useState(null);
 
     const [loading, setLoading] = useState(true);
 
@@ -40,17 +48,31 @@ export default function UsersDashboardPage() {
             const month = new Date().getMonth() + 1;
             const year = new Date().getFullYear();
             const day = new Date().getDate();
-
-            const resMonth = await getMonthlySalesNow();
-            setMonthlySales(resMonth.data.saleTotal);
-            setSalePendingAmount(resMonth.data.salePendingAmount);
-
-            const resDay = await getDaySales(day, month, year);
-            setDaySales(resDay.data);
-
-            const totalCash = await calculateTotalAvailableByPaymentMethod(2);
-            setCashAvailable(totalCash);
-
+            try {
+                const resMonth = await getMonthlySalesNow();
+                setMonthlySales(resMonth.data.saleTotal);
+                setSalePendingAmount(resMonth.data.salePendingAmount);
+            } catch (error) {
+                console.error("Error al obtener las ventas mensuales:", error);
+            }
+            try {
+                const resDay = await getDaySales(day, month, year);
+                setDaySales(resDay.data);
+            } catch (error) {
+                console.error("Error al obtener las ventas del dia:", error);
+            }
+            try {
+                const totalCash = await calculateTotalAvailableByPaymentMethod(2);
+                setCashAvailable(totalCash);
+            } catch (error) {
+                console.error("Error al obtener el total de efectivo disponible:", error);
+            }
+            try {
+                const countSalesMonth = await countSalesMonthRequest(month, year);
+                setCountSalesMonth(countSalesMonth.data);
+            } catch (error) {
+                console.error("Error al obtener el conteo de ventas mensuales:", error);
+            }
         } catch (err) {
             console.error("Dashboard error:", err);
         } finally {
@@ -58,10 +80,33 @@ export default function UsersDashboardPage() {
         }
     };
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
+    };
+
     return (
-        <div className="container py-4">
-            <h2 className="mb-4 fw-bold text-dark">Dashboard Administrador</h2>
-            <div className="row g-3 mt-1 mb-4 center">
+        <motion.div
+            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-2 py-3font-montserrat"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
+            <motion.h2 variants={itemVariants} className="mb-8 text-2xl font-bold text-gray-800 border-l-4 border-green-600 pl-4">
+                Dashboard Administrador
+            </motion.h2>
+
+            <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6 mb-10">
                 {/* VENTAS DEL DÍA */}
                 <KpiComponent
                     title="Ventas del Día"
@@ -97,7 +142,6 @@ export default function UsersDashboardPage() {
                     loading={loading}
                 />
 
-
                 {/* EFECTIVO DISPONIBLE */}
                 <KpiComponent
                     title="Efectivo Disponible"
@@ -111,30 +155,55 @@ export default function UsersDashboardPage() {
                 <KpiComponent
                     title="Nº de Ventas"
                     icon={<FcRatings />}
-                    value={'-'}
+                    value={countSalesMonth}
                     footer="0 % mas que el mes pasado"
                     loading={loading}
+                    isCurrency={false}
                 />
-            </div>
-            <hr className='mt-5' />
-            <h5 className="mb-3">⚡ Accesos Rápidos</h5>
-            <div className="d-flex gap-2 flex-wrap pb-5">
-                <Link className="btn btn-sm btn-success" style={{ width: "200px" }} to="/sales/register">➕ Venta</Link>
-                <Link className="btn btn-sm btn-info" style={{ width: "200px" }} to="/sales/dailySales">📅 Cierre Diario</Link>
-                <Link className="btn btn-sm btn-primary" style={{ width: "200px" }} to="/transactions">💳 Transacciones</Link>
-                <Link className="btn btn-sm btn-warning" style={{ width: "200px" }} to="/expenses">🧾 Gastos</Link>
-                <Link className="btn btn-sm btn-dark" style={{ width: "200px" }} to="/support"> Soporte Técnico</Link>
-            </div>
+            </motion.div>
 
-            {
-                isSuperAdmin && (
-                    <>
-                        <hr className='mt-5' />
-                        <h5 className="mb-3">👑 Accesos Super Admin</h5>
-                        <Link className="btn btn-sm btn-success" style={{ width: "200px" }} to="/admin">Administración</Link>
-                    </>
-                )
-            }
-        </div>
+            <motion.hr variants={itemVariants} className="my-8 border-gray-200" />
+
+            <motion.h5 variants={itemVariants} className="mb-6 text-xl font-semibold text-gray-700 flex items-center gap-2">
+                ⚡ Accesos Rápidos
+            </motion.h5>
+
+            <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <QuickAccessLink to="/sales/register" label="Nueva Venta" colorClass="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200" icon={<FcPlus />} />
+                <QuickAccessLink to="/sales/dailySales" label="Cierre Diario" colorClass="bg-sky-50 text-sky-700 hover:bg-sky-100 border-sky-200" icon={<FcCalendar />} />
+                <QuickAccessLink to="/transactions" label="Transacciones" colorClass="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200" icon={<FcCurrencyExchange />} />
+                <QuickAccessLink to="/expenses" label="Gastos" colorClass="bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200" icon={<FcBearish />} />
+                <QuickAccessLink to="/support" label="Soporte Técnico" colorClass="bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200" icon={<FcSupport />} />
+            </motion.div>
+
+            {isSuperAdmin && (
+                <>
+                    <motion.hr variants={itemVariants} className="my-8 border-gray-200" />
+                    <motion.h5 variants={itemVariants} className="mb-6 text-xl font-semibold text-gray-700 flex items-center gap-2">
+                        👑 Accesos Super Admin
+                    </motion.h5>
+                    <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <QuickAccessLink to="/admin/dashboard" label="Administración" colorClass="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200" icon={<FcKey />} />
+                    </motion.div>
+                </>
+            )}
+        </motion.div>
+    );
+}
+
+function QuickAccessLink({ to, label, colorClass, icon }) {
+    return (
+        <Link to={to} className="no-underline">
+            <motion.div
+                className={`p-4 rounded-xl border transition-all duration-200 flex flex-col items-center justify-center gap-3 text-center h-full shadow-sm hover:shadow-md ${colorClass}`}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+            >
+                <div className="text-3xl filter drop-shadow-sm">
+                    {icon}
+                </div>
+                <span className="font-semibold text-sm">{label}</span>
+            </motion.div>
+        </Link>
     );
 }
