@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { FaPlus } from "react-icons/fa";
 import { Modal } from "bootstrap"; 
-import { useAuth } from "../../context/AuthContext.jsx";
+import { useAuth } from '../../context/authContext.jsx';
 import { createTicket} from '../../api/ticket.js'
 import {createTicketDetail}from '../../api/ticketDetail.js'
 
