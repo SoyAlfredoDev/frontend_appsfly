@@ -14,9 +14,12 @@ import withReactContent from "sweetalert2-react-content";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaPlus, FaTrash, FaUserPlus, FaCalendarAlt, FaUserTie, FaSave, FaSearch } from "react-icons/fa";
 
+import { getDailySales } from "../../api/dailySales.js";
+
 const MySwal = withReactContent(Swal);
 
 export default function NewSalePage() {
+    const [isDayClosed, setIsDayClosed] = useState(false);
     const [saleId, setSaleId] = useState(uuidv4());
     const { user } = useAuth();
     const [customers, setCustomers] = useState([]);
@@ -162,7 +165,34 @@ export default function NewSalePage() {
     useEffect(() => {
         searchCustomers();
         searchProductsServices();
+        checkIfDayClosed();
     }, []);
+
+    const checkIfDayClosed = async () => {
+        try {
+            const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+            const res = await getDailySales();
+            const closedDays = res.data || [];
+            
+            // Buscar si existe cierre con fecha de hoy
+            const isClosed = closedDays.find(d => d.dailySalesDay === today);
+            
+            if (isClosed) {
+                setIsDayClosed(true);
+                MySwal.fire({
+                    title: 'Día Cerrado',
+                    text: 'Ya se ha realizado el cierre de caja para el día de hoy. No es posible generar nuevas ventas.',
+                    icon: 'warning',
+                    confirmButtonText: 'Entendido',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                });
+            }
+        } catch (error) {
+            console.error("Error verificando cierre diario:", error);
+        }
+    };
+
     useEffect(() => {
         calculateAmountDue();
         setDataSale({
@@ -456,7 +486,7 @@ export default function NewSalePage() {
                             <button 
                                 onClick={handleSubmit}
                                 className="w-full bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition-transform active:scale-95 shadow-sm flex items-center justify-center gap-2 font-bold text-sm"
-                                disabled={isLoading}
+                                disabled={isLoading || isDayClosed}
                             >
                                 <FaSave /> {
                                     isLoading ? (

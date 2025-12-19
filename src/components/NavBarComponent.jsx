@@ -19,6 +19,8 @@ export default function NavBarComponent() {
         { name: 'Clientes', path: '/customers' },
         { name: 'Productos', path: '/products_services' },
         { name: 'Ventas', path: '/sales' },
+        { name: 'Compras', path: '/purchase' },
+        { name: 'Proveedores', path: '/providers' },
         { name: 'Usuarios', path: '/users' },
         { name: 'Perfil', path: '/profile' },
     ].filter(() => subscriptions.length > 0);

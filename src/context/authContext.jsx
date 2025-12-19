@@ -125,13 +125,13 @@ export const AuthProvider = ({ children }) => {
             const business = await searchBusinessByUserId(data.userId);
             if (business) {
                 await getSubscriptionsByBusinessId(business.userBusinessBusinessId);
-                console.log('business', business);
                 await searchBusinessByBusinessId(business.userBusinessBusinessId);
             }
             checkIfUserIsSuperAdmin();
             return data;
         } catch (error) {
-            console.log("Error in signin:", error);
+            console.log("Error in signin", error );
+
         }
     };
 
@@ -184,8 +184,6 @@ export const AuthProvider = ({ children }) => {
                         business.userBusinessBusinessId
 
                     );
-                    console.log('business ---', business.userBusinessBusinessId);
-                    console.log('subscriptions ---', subscriptions);
                     await searchBusinessByBusinessId(business.userBusinessBusinessId);
                 }
                 checkIfUserIsSuperAdmin()

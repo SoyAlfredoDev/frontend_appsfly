@@ -9,7 +9,6 @@ import Subscription from "../components/Subscriptions.jsx";
 export default function DashboardPage() {
     const { hasBusiness, userGuestExists, subscriptions } = useAuth();
     const hasSubscriptions = subscriptions.length > 0;
-    console.log('subscriptions', subscriptions);
 
     // Helper to determine main content width
     // If user has no business AND has pending invitations, we need space for the sidebar
