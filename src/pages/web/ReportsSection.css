@@ -1,8 +1,0 @@
-.dashboard-img {
-    max-width: 900px;
-    transition: .2s ease;
-}
-
-.dashboard-img:hover {
-    transform: scale(1.01);
-}

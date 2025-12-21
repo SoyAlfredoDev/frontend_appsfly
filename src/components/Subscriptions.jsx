@@ -16,6 +16,7 @@ export default function Subscription() {
     const [subscribingId, setSubscribingId] = useState(null); // ID del plan que se está procesando
 
     useEffect(() => {
+        console.log(businessSelected)
         const fetchPlans = async () => {
             try {
                 const res = await getPlansRequest();
