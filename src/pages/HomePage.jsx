@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
-import { FaWhatsapp, FaInstagram, FaFacebook, FaTwitter, FaTiktok, FaLinkedin } from 'react-icons/fa';
+import { FaWhatsapp } from 'react-icons/fa';
 import NavbarHome from './web/NavbarHome.jsx';
 import HeroHome from './web/HeroHome.jsx';
 import NewsHome from './web/NewsHome.jsx';
 import PlansHome from './web/PlansHome.jsx';
 import WhyHome from './web/WhyHome.jsx';
 import NewsLetterHome from './web/NewsLetterHome.jsx';
+import Footer from '../components/FooterComponent.jsx';
 
 const HomePage = () => { 
     return (
@@ -32,69 +33,8 @@ const HomePage = () => {
                 <NewsLetterHome/>
             </main>
 
-            {/* Robust Footer */}
-            <footer className="bg-surface pt-16 pb-8 border-t border-gray-200">
-                <div className="max-w-7xl mx-auto px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-                        {/* Brand Column */}
-                        <div className="space-y-4">
-                            <h3 className="text-2xl font-display font-bold text-dark">AppsFly</h3>
-                            <p className="text-gray-500 text-sm leading-relaxed">
-                                La plataforma todo en uno para gestionar tu negocio. 
-                                Simple, potente y escalable.
-                            </p>
-                        </div>
-
-                        {/* Product Column */}
-                        <div>
-                            <h4 className="font-bold text-dark mb-4">Producto</h4>
-                            <ul className="space-y-2 text-sm text-gray-500">
-                                <li><a href="#" className="hover:text-primary transition-colors">Características</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Precios</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Novedades</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Integraciones</a></li>
-                            </ul>
-                        </div>
-
-                        {/* Legal/Company Column */}
-                        <div>
-                            <h4 className="font-bold text-dark mb-4">Compañía</h4>
-                            <ul className="space-y-2 text-sm text-gray-500">
-                                <li><a href="#" className="hover:text-primary transition-colors">Nosotros</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Contacto</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Privacidad</a></li>
-                                <li><a href="#" className="hover:text-primary transition-colors">Términos</a></li>
-                            </ul>
-                        </div>
-
-                        {/* Socials Column */}
-                        <div>
-                            <h4 className="font-bold text-dark mb-4">Síguenos</h4>
-                            <div className="flex gap-4">
-                                <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 hover:bg-primary hover:text-white transition-all shadow-sm">
-                                    <FaInstagram />
-                                </a>
-                                <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 hover:bg-blue-600 hover:text-white transition-all shadow-sm">
-                                    <FaFacebook />
-                                </a>
-                                <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 hover:bg-black hover:text-white transition-all shadow-sm">
-                                    <FaTwitter />
-                                </a>
-                                <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 hover:bg-black hover:text-white transition-all shadow-sm">
-                                    <FaTiktok />
-                                </a>
-                                <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 hover:bg-blue-700 hover:text-white transition-all shadow-sm">
-                                    <FaLinkedin />
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                     
-                    <div className="pt-8 border-t border-gray-200 text-center text-gray-400 text-sm">
-                        <p>&copy; {new Date().getFullYear()} AppsFly. Todos los derechos reservados.</p>
-                    </div>
-                </div>
-            </footer>
+            {/*Footer */}
+            <Footer/>
 
             {/* Floating WhatsApp */}
             <motion.a

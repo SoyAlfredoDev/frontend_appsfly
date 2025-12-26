@@ -18,7 +18,6 @@ export default function AddProviderModal({
     onCreated = null,
     trigger = null
 }) {
-    const { user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [isOpen, setIsOpen] = useState(false);
@@ -29,11 +28,10 @@ export default function AddProviderModal({
         providerEmail: "",
         providerDocumentType: "rut",
         providerDocumentNumber: "",
-        providerCodeNumberPhone: "+56",
+        providerCodePhoneNumber: "+56",
         providerPhoneNumber: "",
         providerAddress: "",
         providerComment: "",
-        createdByUserId: user.userId
     });
 
     const countryCodes = [
@@ -269,9 +267,9 @@ export default function AddProviderModal({
                                                         <div className="relative">
                                                             <select
                                                                 className="block w-full px-3 pb-2.5 pt-5 text-sm text-gray-900 bg-white rounded-lg border border-gray-200 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 peer transition-colors cursor-pointer"
-                                                                id="providerCodeNumberPhone"
-                                                                name="providerCodeNumberPhone"
-                                                                value={formData.providerCodeNumberPhone}
+                                                                id="providerCodePhoneNumber"
+                                                                name="providerCodePhoneNumber"
+                                                                value={formData.providerCodePhoneNumber}
                                                                 onChange={handleInputChange}
                                                             >
                                                                 {sortedCountryCodes.map(country => (

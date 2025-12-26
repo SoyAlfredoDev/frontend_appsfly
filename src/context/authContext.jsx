@@ -221,6 +221,7 @@ export const AuthProvider = ({ children }) => {
                 hasBusiness,
                 setHasBusiness,
                 businessSelected,
+                setBusinessSelected,
                 subscriptions,
                 setSubscriptions,
                 searchUserGuestExists,

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Link, useNavigate } from "react-router-dom";
-import logoappsfly from "../../public/logoappsfly.png";
+import logoappsfly from "../../public/logo_appsfly.png";
 import InputFloatingComponent from '../components/inputs/InputFloatingComponent';
 import SelectFloatingComponent from '../components/inputs/SelectFloatingComponent';
 import validateRut from '../libs/validateRut.js';
 import { useAuth } from '../context/authContext.jsx';
+import { useToast } from "../context/ToastContext.jsx";
 import { v4 as uuidv4 } from 'uuid';
 import { sendEmailRequest } from '../api/email.js';
 import { RegisterEmail } from '../email-models/RegisterEmail';
@@ -26,6 +27,7 @@ const validateForm = (data) => ({
 export default function RegisterPage() {
     const { signup } = useAuth();
     const navigate = useNavigate();
+    const toast = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         userId: uuidv4(),
@@ -124,8 +126,10 @@ export default function RegisterPage() {
                 return;
             }
             if (res.userId) {
-                alert('Su registro se completó exitosamente; debe iniciar sesión nuevamente.')
-                console.log(`${baseURL}/users/${res.userId}/confirm-email`)
+                toast.success(
+                    'Su registro se completó exitosamente',
+                    'Ahora debe iniciar sesión'
+                );
                 const emailData = {
                     to: formData.userEmail,
                     subject: 'Confirmación de registro',
@@ -134,6 +138,10 @@ export default function RegisterPage() {
                 sendEmailRequest(emailData);
                 navigate('/logout');
             } else {
+                toast.error(
+                    'Hubo un error al registrarse.',
+                    'Por favor, intente de nuevo.'
+                );
                 setIsLoading(false);
                 setError(res?.data?.message || "Hubo un error al registrarse.");
             }
@@ -300,6 +308,7 @@ export default function RegisterPage() {
                         </button>
                         <Link 
                             to="/" 
+                            disabled={isLoading}
                             className="bg-white text-slate-700 border border-slate-300 font-semibold py-2.5 px-4 rounded-md hover:bg-slate-50 transition-colors text-center text-sm flex items-center justify-center"
                         >
                             Volver

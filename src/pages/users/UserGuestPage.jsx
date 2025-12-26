@@ -1,9 +1,10 @@
 import NavBarComponent from "../../components/NavBarComponent";
+import { renderToStaticMarkup } from 'react-dom/server';
 import InputFloatingComponent from '../../components/inputs/InputFloatingComponent';
 import { useState } from "react";
 import { createUserGuest } from '../../api/userGuest.js';
 import { sendEmailRequest } from '../../api/email.js';
-import { getInvitationEmailHtml } from '../../email-models/invitationTemplate.js';
+import { InvitationEmail } from '../../email-models/invitationTemplate.jsx';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from "../../context/authContext.jsx";
 import { useNavigate } from "react-router-dom";
@@ -40,17 +41,15 @@ export default function UserGuestPage() {
         try {
             // 1. Create the guest user in the database
             const response = await createUserGuest(dataFromForm);
-            console.log('Usuario invitado creado:', response);
-
             if (response.status === 201) {
-                // 2. Prepare and send the email
-                const emailHtml = getInvitationEmailHtml(dataFromForm.userGuestRole);
-                
+                // 2. Prepare and send the email                
                 try {
-                    await sendEmailRequest({
+                     await sendEmailRequest({
                         to: dataFromForm.userGuestEmail,
                         subject: 'Invitación a AppsFly - Bienvenido al Equipo',
-                        html: emailHtml
+                        html: renderToStaticMarkup( <InvitationEmail
+                            dataFromForm={dataFromForm}
+                        />)
                     });
                     
                     // 3. Success: Invitation created AND email sent

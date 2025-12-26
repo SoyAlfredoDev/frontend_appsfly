@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion as Motion } from 'framer-motion';
 import { FaCheckCircle, FaTimesCircle, FaSpinner, FaRocket } from 'react-icons/fa';
+import { useAuth } from '../../context/authContext.jsx';
 
 export default function ConfirmAccountPage() {
     const { id } = useParams();
@@ -11,6 +12,9 @@ export default function ConfirmAccountPage() {
     const [status, setStatus] = useState('loading'); // loading, success, error
     const [message, setMessage] = useState('Validando tu cuenta...');
     const baseURL = import.meta.env.VITE_API_URL;
+    const { user, setUser } = useAuth();
+   
+
 
     useEffect(() => {
         const confirmAccount = async () => {
@@ -18,14 +22,16 @@ export default function ConfirmAccountPage() {
                 // Artificial delay for better UX (so the loader is visible)
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 
-                await axios.put(`${baseURL}/users/${id}/confirm-email`);
-                setStatus('success');
-                setMessage('¡Tu cuenta ha sido confirmada exitosamente!');
-                
-                // Auto-redirect after 3 seconds
-                setTimeout(() => {
-                    navigate('/dashboard');
-                }, 3000);
+                const response = await axios.put(`${baseURL}/users/${id}/confirm-email`);
+                if(response.status === 200 ){
+                    setStatus('success');
+                    setMessage('¡Tu cuenta ha sido confirmada exitosamente!');
+                    
+                    // Auto-redirect after 3 seconds
+                    setTimeout(() => {                       
+                        navigate('/login');
+                    }, 3000);
+                }
             } catch (error) {
                 console.error(error);
                 setStatus('error');

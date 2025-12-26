@@ -26,7 +26,7 @@ export default function NavBarComponent() {
     ].filter(() => subscriptions.length > 0);
 
     return (
-        <nav className="fixed top-0 left-0 w-full z-50 bg-emerald-600 shadow-md h-14">
+        <nav className="fixed top-0 left-0 w-full z-50 bg-primary shadow-md h-14">
             <div className="max-w-7xl mx-auto px-4 h-full">
                 <div className="flex justify-between items-center h-full">
                     {/* Logo */}

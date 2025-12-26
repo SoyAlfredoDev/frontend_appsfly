@@ -4,17 +4,18 @@ import { v4 as uuidv4 } from 'uuid';
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from '../../context/authContext.jsx';
+import { useToast } from '../../context/ToastContext.jsx';
 import { createBusiness } from '../../api/business.js';
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { motion } from "framer-motion";
 import { FaStore, FaBuilding, FaIdCard, FaEnvelope, FaCheck } from "react-icons/fa";
-
 const MySwal = withReactContent(Swal);
 
 export default function RegisterBusinessPage() {
-    const { setHasBusiness, user } = useAuth();
+    const { setHasBusiness, user , setBusinessSelected} = useAuth();
     const navigate = useNavigate();
+    const toast = useToast();
     const [error, setError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -70,6 +71,7 @@ export default function RegisterBusinessPage() {
         { id: "+598", name: "Uruguay" },
         { id: "+58", name: "Venezuela" }
     ];
+
 
     // Handlers
     const handleChange = (e) => {
@@ -148,15 +150,16 @@ export default function RegisterBusinessPage() {
                     timer: 2000,
                     showConfirmButton: false
                 });
+                console.log({businessSelected:businessCreated.data})
+                console.log({businessSelected:businessCreated.data.businessId})
+                setBusinessSelected({userBusinessBusinessId:businessCreated.data.businessId});
+                
                 navigate('/dashboard');
             } else if (businessCreated.status === 202) {
                  setHasBusiness(true);
-                 await MySwal.fire({
-                    title: <strong>Recibido</strong>,
-                    text: "Tu negocio se ha registrado, pero requiere revisión adicional.",
-                    icon: 'info',
-                    confirmButtonColor: '#10b981'
-                });
+                 toast.success(
+                    'Tu negocio se ha registrado', 
+                    'pero requiere revisión adicional.');
                 navigate('/logout'); // Or dashboard depending on flow
             } else {
                 setError(businessCreated.data?.message || "Ocurrió un error inesperado.");
@@ -188,7 +191,7 @@ export default function RegisterBusinessPage() {
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
         <NavBarComponent />
 
-        <div className="flex-grow container mx-auto px-4 py-10 mt-[75px] max-w-4xl">
+        <div className="flex-grow container mx-auto px-4 py-2 mt-[75px] max-w-4xl">
 
             {/* CARD PRINCIPAL */}
             <motion.div
@@ -451,7 +454,7 @@ export default function RegisterBusinessPage() {
                     <div className="pt-6 border-t border-gray-200 flex flex-col-reverse md:flex-row justify-end gap-4">
 
                         <Link
-                            to={isSubmitting ? "#" : "/logout"}
+                            to={isSubmitting ? "#" : "/dashboard"}
                             className={`w-full md:w-auto px-6 py-3 text-sm rounded-lg text-gray-600 bg-gray-100 hover:bg-gray-200 transition ${
                                 isSubmitting ? "opacity-50 cursor-not-allowed" : ""
                             }`}
