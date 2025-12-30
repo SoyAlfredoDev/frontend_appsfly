@@ -1,10 +1,11 @@
-import axios from "./axios.js"
+import axios from './axios'; // Ensure this points to your configured axios instance
 
-export const getPurchases = () => axios.get('/purchases');
-export const createPurchase = (data) => axios.post('/purchases', data);
-export const getPurchaseById = (id) => axios.get(`/purchases/${id}`);
-export const getMonthlyPurchases = (month, year) => axios.get(`/purchases/month/${month}/${year}`);
-export const getMonthlyPurchasesNow = () => axios.get('/purchases/monthNow');
-export const getDayPurchases = (day, month, year) => axios.get(`/purchases/day/${day}/${month}/${year}`);
-export const getPurchasesByProviderIdRequest = (providerId) => axios.get(`/purchases/provider/${providerId}`);
-export const countPurchasesMonthRequest = (month, year) => axios.get(`/purchases/count/${month}/${year}`);
+export const createPurchaseRequest = async (purchaseData) => {
+    try {
+        const res = await axios.post('/purchases', purchaseData);
+        return res.data;
+    } catch (error) {
+        console.error("Error creating purchase:", error);
+        throw error;
+    }
+};

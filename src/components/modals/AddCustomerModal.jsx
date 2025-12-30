@@ -1,27 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
 import IsRequiredComponent from '../IsRequiredComponent.jsx';
-import { createCustomer } from '../../api/customers.js';
+import { createCustomer, updateCustomer } from '../../api/customers.js';
 import { useAuth } from '../../context/authContext.jsx';
-import { FaPlus, FaTimes } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSave, FaUserEdit } from "react-icons/fa";
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
-
-const MySwal = withReactContent(Swal);
+import { useToast } from '../../context/ToastContext.jsx';
 
 export default function AddCustomerModal({
     title,
     colorBtn = "success",
     onCreated = null,
-    trigger = null
+    trigger = null,
+    isOpen: externalIsOpen,
+    onClose: externalOnClose,
+    customerToEdit = null
 }) {
     const { user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const [isOpen, setIsOpen] = useState(false);
+    const toast = useToast();
+    
+    const isControlled = externalIsOpen !== undefined;
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    const isOpen = isControlled ? externalIsOpen : internalIsOpen;
+
     const [isLoading, setIsLoading] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -30,10 +35,10 @@ export default function AddCustomerModal({
         customerEmail: "",
         customerDocumentType: "rut",
         customerDocumentNumber: "",
-        customerCodeNumberPhone: "+56",
+        customerCodePhoneNumber: "+56",
         customerPhoneNumber: "",
         customerComment: "",
-        createdByUserId: user.userId
+        createdByUserId: user?.userId || ""
     });
 
     const countryCodes = [
@@ -64,6 +69,26 @@ export default function AddCustomerModal({
         ...countryCodes.slice(1).sort((a, b) => a.name.localeCompare(b.name))
     ];
 
+    useEffect(() => {
+        if (isOpen) {
+            if (customerToEdit) {
+                setFormData({
+                    customerFirstName: customerToEdit.customerFirstName || "",
+                    customerLastName: customerToEdit.customerLastName || "",
+                    customerEmail: customerToEdit.customerEmail || "",
+                    customerDocumentType: customerToEdit.customerDocumentType || "rut",
+                    customerDocumentNumber: customerToEdit.customerDocumentNumber || "",
+                    customerCodePhoneNumber: customerToEdit.customerCodePhoneNumber || "+56",
+                    customerPhoneNumber: customerToEdit.customerPhoneNumber || "",
+                    customerComment: customerToEdit.customerComment || "",
+                    createdByUserId: customerToEdit.createdByUserId || user?.userId
+                });
+            } else {
+                handleResetForm();
+            }
+        }
+    }, [customerToEdit, isOpen, user]);
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
@@ -76,12 +101,7 @@ export default function AddCustomerModal({
         e.preventDefault();
         
         if (!formData.customerFirstName || !formData.customerLastName || !formData.customerDocumentNumber) {
-            MySwal.fire({
-                icon: 'warning',
-                title: 'Campos Incompletos',
-                text: 'Por favor completa los campos obligatorios (Nombre, Apellido, Documento).',
-                confirmButtonColor: '#10b981'
-            });
+            toast.info('Campos Incompletos', 'Por favor completa los campos obligatorios (Nombre, Apellido, Documento).');
             return;
         }
 
@@ -89,60 +109,58 @@ export default function AddCustomerModal({
         setIsLoading(true);
 
         try {
-            const customerCreated = await createCustomer(formData);
-            const customerCreatedId = customerCreated.data.customer.customerId;
-            
-            MySwal.fire({
-                icon: 'success',
-                title: '¡Cliente Creado!',
-                text: 'El cliente se ha registrado correctamente.',
-                timer: 1500,
-                showConfirmButton: false
-            });
+            let resultId;
+            if (customerToEdit) {
+                await updateCustomer(customerToEdit.customerId, formData);
+                resultId = customerToEdit.customerId;
+                toast.success('¡Cliente Actualizado!', 'El cliente se ha actualizado correctamente.');
+            } else {
+                const customerCreated = await createCustomer(formData);
+                resultId = customerCreated.data.customer.customerId;
+                toast.success('¡Cliente Creado!', 'El cliente se ha registrado correctamente.');
+            }
 
-            if (onCreated) onCreated(customerCreatedId);
+            if (onCreated) onCreated(resultId);
             
             closeModal();
             handleResetForm();
 
-            if (location.pathname === '/customers') {
-                navigate('/customers');
-            }
-
         } catch (error) {
             console.error(error);
-            MySwal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No se pudo crear el cliente. Verifica los datos e inténtalo de nuevo.',
-                confirmButtonColor: '#ef4444'
-            });
+            toast.error('Error', 'No se pudo procesar la solicitud. Verifica los datos e inténtalo de nuevo.');
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleResetForm = () => {
-        setFormData({
-            customerFirstName: "",
-            customerLastName: "",
-            customerDocumentType: "rut",
-            customerDocumentNumber: "",
-            customerCodeNumberPhone: "+56",
-            customerPhoneNumber: "",
-            customerComment: "",
-            createdByUserId: user.userId,
-            customerEmail: "",
-        });
+        if (!customerToEdit) {
+            setFormData({
+                customerFirstName: "",
+                customerLastName: "",
+                customerEmail: "",
+                customerDocumentType: "rut",
+                customerDocumentNumber: "",
+                customerCodePhoneNumber: "+56",
+                customerPhoneNumber: "",
+                customerComment: "",
+                createdByUserId: user?.userId || "",
+            });
+        }
     };
 
     const openModal = () => setIsOpen(true);
+    const setIsOpen = (val) => {
+        if (!isControlled) setInternalIsOpen(val);
+    }
     const closeModal = () => {
-        setIsOpen(false);
-        handleResetForm();
+        if (isControlled) {
+            if (externalOnClose) externalOnClose();
+        } else {
+            setInternalIsOpen(false);
+        }
     }
 
-    // Map bootstrap color prop to Tailwind classes purely for button
     const btnColorMap = {
         success: 'bg-emerald-600 hover:bg-emerald-700 text-white',
         primary: 'bg-blue-600 hover:bg-blue-700 text-white',
@@ -151,30 +169,31 @@ export default function AddCustomerModal({
     };
     const btnClass = btnColorMap[colorBtn] || btnColorMap.success;
 
+    const modalTitle = title || (customerToEdit ? 'Editar Cliente' : 'Nuevo Cliente');
+
     return (
         <>
-            {trigger ? (
-                // If custom trigger is provided, use it and attach onClick
-                <div onClick={openModal} className="cursor-pointer">
-                    {trigger}
-                </div>
-            ) : (
-                // Default Button
-                <button
-                    type="button"
-                    onClick={openModal}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors shadow-sm font-medium text-sm ${btnClass}`}
-                >
-                    <FaPlus className="text-xs" />
-                    <span className="hidden md:inline">Nuevo Cliente</span>
-                </button>
+            {!isControlled && (
+                trigger ? (
+                    <div onClick={() => setIsOpen(true)} className="cursor-pointer">
+                        {trigger}
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => setIsOpen(true)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors shadow-sm font-medium text-sm ${btnClass}`}
+                    >
+                        <FaPlus className="text-xs" />
+                        <span className="hidden md:inline">Nuevo Cliente</span>
+                    </button>
+                )
             )}
 
             {createPortal(
                 <AnimatePresence>
                     {isOpen && (
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                            {/* Backdrop */}
                             <Motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -183,7 +202,6 @@ export default function AddCustomerModal({
                                 className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
                             />
                             
-                            {/* Modal Content */}
                             <Motion.div
                                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -191,16 +209,16 @@ export default function AddCustomerModal({
                                 transition={{ duration: 0.2, ease: "easeOut" }}
                                 className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
                             >
-                                    
-                                    {/* Header */}
                                     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50 shrink-0">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600">
-                                                <FaPlus size={18} />
+                                            <div className={`p-2 rounded-lg ${customerToEdit ? 'bg-amber-100/50 text-amber-600' : 'bg-emerald-100/50 text-emerald-600'}`}>
+                                                {customerToEdit ? <FaUserEdit size={18} /> : <FaPlus size={18} />}
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-gray-800 leading-tight">{title}</h3>
-                                                <p className="text-xs text-gray-500">Complete la información para registrar un nuevo cliente</p>
+                                                <h3 className="text-lg font-bold text-gray-800 leading-tight">{modalTitle}</h3>
+                                                <p className="text-xs text-gray-500">
+                                                    {customerToEdit ? 'Modifique los datos del cliente' : 'Complete la información para registrar un nuevo cliente'}
+                                                </p>
                                             </div>
                                         </div>
                                         <button 
@@ -211,11 +229,9 @@ export default function AddCustomerModal({
                                         </button>
                                     </div>
 
-                                    {/* Body */}
                                     <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
                                         <form id="addCustomerForm" onSubmit={handleOnSubmit} className="space-y-6">
                                             
-                                            {/* Personal Info */}
                                             <div className="space-y-4">
                                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3">Información Personal</h4>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -234,7 +250,6 @@ export default function AddCustomerModal({
                                                 </div>
                                             </div>
 
-                                            {/* ID Info */}
                                             <div className="space-y-4">
                                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3">Identificación</h4>
                                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
@@ -253,7 +268,7 @@ export default function AddCustomerModal({
                                                             </select>
                                                             <label 
                                                                 htmlFor="customerDocumentType"
-                                                                className="absolute text-sm text-gray-500 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-3 peer-focus:text-emerald-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-4 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto pointer-events-none"
+                                                                className="absolute text-sm text-gray-500 duration-300 transform -translate-y-4 scale-75 top-4 z-10 origin-[0] start-3 peer-focus:text-emerald-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-4 peer-focus:scale-75 peer-focus:-translate-y-4 pointer-events-none"
                                                             >
                                                                 Tipo de Documento
                                                             </label>
@@ -271,7 +286,6 @@ export default function AddCustomerModal({
                                                 </div>
                                             </div>
 
-                                            {/* Contact Info */}
                                             <div className="space-y-4">
                                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3">Contacto</h4>
                                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
@@ -320,7 +334,6 @@ export default function AddCustomerModal({
                                                 </div>
                                             </div>
 
-                                            {/* Comments */}
                                             <div className="space-y-2">
                                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1 mb-3">Adicional</h4>
                                                 <div className="relative">
@@ -349,7 +362,6 @@ export default function AddCustomerModal({
                                         </form>
                                     </div>
 
-                                    {/* Footer */}
                                     <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50 shrink-0">
                                         <button
                                             type="button"
@@ -372,8 +384,8 @@ export default function AddCustomerModal({
                                                 </>
                                             ) : (
                                                 <>
-                                                   <FaPlus className="text-xs" />
-                                                   <span>Crear Cliente</span>
+                                                   {customerToEdit ? <FaSave className="text-xs" /> : <FaPlus className="text-xs" />}
+                                                   <span>{customerToEdit ? 'Actualizar Cliente' : 'Crear Cliente'}</span>
                                                 </>
                                             )}
                                         </button>

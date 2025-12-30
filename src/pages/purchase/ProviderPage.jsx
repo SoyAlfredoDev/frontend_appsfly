@@ -13,6 +13,8 @@ import AddProviderModal from "../../components/modals/AddProviderModal.jsx";
 import validateRut from '../../libs/validateRut.js'
 import { FcOk } from "react-icons/fc";
 import { FaEye, FaEdit, FaTrash, FaSearch, FaSortUp, FaSortDown, FaSort } from "react-icons/fa";
+import { useConfirm } from "../../context/ConfirmationContext.jsx";
+import { useToast } from "../../context/ToastContext.jsx";
 import { useNavigate } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 
@@ -23,6 +25,9 @@ export default function ProviderPage() {
     const [globalFilter, setGlobalFilter] = useState("");
     const [isLoading, setIsLoading] = useState(true);
 
+    const confirm = useConfirm();
+    const toast = useToast();
+
     const fetchProviders = async () => {
         setIsLoading(true);
         try {
@@ -30,6 +35,7 @@ export default function ProviderPage() {
             setProviders(result.data);
         } catch (error) {
             console.log(error);
+            toast.error("Error", "No se pudieron cargar los proveedores.");
         } finally {
             setIsLoading(false);
         }
@@ -49,19 +55,32 @@ export default function ProviderPage() {
     };
 
     const handleDeleteProvider = async (providerId, providerName = '') => {
-        try {
-            if (confirm(`¿Estás seguro de que deseas eliminar a ${providerName}? Esta acción no se puede deshacer.`)) {
+        const isConfirmed = await confirm({
+            title: 'Eliminar Proveedor',
+            message: `¿Estás seguro de que deseas eliminar a "${providerName}"? Esta acción no se puede deshacer.`,
+            variant: 'danger',
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar'
+        });
+
+        if (isConfirmed) {
+            try {
                 const res = await deleteProviderById(providerId);
-                if (res.status === 200) { fetchProviders(); alert('Proveedor eliminado con éxito.') }
-                if (res.status === 400) alert('No se puede eliminar el proveedor porque tiene datos asociados.')
-                if (res.status === 500) alert('Error del servidor. Por favor, inténtelo de nuevo más tarde.')
-            }
-        } catch (error) {
-            if (error.status === 400) {
-                alert("No se puede eliminar el proveedor porque tiene datos asociados.");
-                return;
-            } else {
-                alert("Ocurrió un error al eliminar el proveedor. Por favor, inténtelo de nuevo más tarde.");
+                if (res.status === 200) {
+                    toast.success("Eliminado", "Proveedor eliminado con éxito.");
+                    fetchProviders();
+                } else if (res.status === 400) { // Axios might throw for 400, but in case it returns response
+                     toast.warning("No se pudo eliminar", "El proveedor tiene datos asociados y no se puede borrar.");
+                } else {
+                     toast.error("Error", "Ocurrió un error al eliminar el proveedor.");
+                }
+            } catch (error) {
+                if (error.response?.status === 400) {
+                    toast.warning("No se pudo eliminar", "El proveedor tiene datos asociados.");
+                } else {
+                    toast.error("Error", "Error del servidor al intentar eliminar.");
+                }
+                console.error(error);
             }
         }
     };

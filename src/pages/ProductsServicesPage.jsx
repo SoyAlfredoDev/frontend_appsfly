@@ -129,7 +129,7 @@ export default function ProductsServicesPage() {
         },
         {
             header: "Acciones ",
-            accessorFn: row => row?._id ?? "",
+            accessorFn: row => row?.productId ?? "",
             cell: info => {
                 const productId = info.getValue();
                 return (

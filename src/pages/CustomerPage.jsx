@@ -12,16 +12,24 @@ import { useEffect, useState } from "react";
 import AddCustomerModal from "../components/modals/AddCustomerModal.jsx";
 import validateRut from '../libs/validateRut.js'
 import { FcOk } from "react-icons/fc";
-import { FaEye, FaEdit, FaTrash, FaSearch, FaSortUp, FaSortDown, FaSort } from "react-icons/fa";
+import { FaEye, FaEdit, FaTrash, FaSearch, FaSortUp, FaSortDown, FaSort, FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
+import { useToast } from "../context/ToastContext.jsx";
+import { useConfirm } from "../context/ConfirmationContext.jsx";
 
 export default function CustomerPage() {
     const navigate = useNavigate();
+    const toast = useToast();
+    const confirm = useConfirm();
     const [customers, setCustomers] = useState([]);
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState("");
     const [isLoading, setIsLoading] = useState(true);
+    
+    // State for Modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingCustomer, setEditingCustomer] = useState(null);
 
     const fetchCustomers = async () => {
         setIsLoading(true);
@@ -44,24 +52,44 @@ export default function CustomerPage() {
     };
 
     const handleEditCustomer = (customerId) => {
-        console.log("Editar cliente con ID:", customerId);
-        // navigate(`/customer/view/${customerId}`);
+        const customer = customers.find(c => c.customerId === customerId);
+        if (customer) {
+            setEditingCustomer(customer);
+            setIsModalOpen(true);
+        }
+    };
+
+    const handleCreateCustomer = () => {
+        setEditingCustomer(null);
+        setIsModalOpen(true);
     };
 
     const handleDeleteCustomer = async (customerId, firstName = '', lastName = '') => {
         try {
-            if (confirm(`¿Estás seguro de que deseas eliminar a ${formatName(firstName)} ${formatName(lastName)}? Esta acción no se puede deshacer.`)) {
+            const isConfirmed = await confirm({
+                title: 'Eliminar Cliente',
+                message: `¿Estás seguro de que deseas eliminar a ${formatName(firstName)} ${formatName(lastName)}? Esta acción no se puede deshacer.`,
+                variant: 'danger',
+                confirmText: 'Eliminar',
+                cancelText: 'Cancelar'
+            });
+
+            if (isConfirmed) {
                 const res = await deleteCustomerById(customerId);
-                if (res.status === 200) { fetchCustomers(); alert('Cliente eliminado con éxito.') }
-                if (res.status === 400) alert('No se puede eliminar el cliente porque tiene datos asociados.')
-                if (res.status === 500) alert('Error del servidor. Por favor, inténtelo de nuevo más tarde.')
+                if (res.status === 200) { 
+                    fetchCustomers(); 
+                    toast.success('Cliente Eliminado', 'El cliente ha sido eliminado con éxito.');
+                }
+                if (res.status === 400) {
+                    toast.warning('No se puede eliminar', 'El cliente tiene datos asociados y no puede ser eliminado.');
+                }
             }
         } catch (error) {
-            if (error.status === 400) {
-                alert("No se puede eliminar el cliente porque tiene datos asociados.");
-                return;
+            console.error(error);
+            if (error.response?.status === 400) {
+                 toast.warning('No se puede eliminar', 'El cliente tiene datos asociados y no puede ser eliminado.');
             } else {
-                alert("Ocurrió un error al eliminar el cliente. Por favor, inténtelo de nuevo más tarde.");
+                 toast.error('Error', 'Ocurrió un error al eliminar el cliente. Por favor, inténtelo de nuevo más tarde.');
             }
         }
     };
@@ -189,10 +217,13 @@ export default function CustomerPage() {
                                 />
                             </div>
                             
-                            <AddCustomerModal
-                                title={'Nuevo cliente'}
-                                onCreated={fetchCustomers}
-                            />
+                            <button
+                                onClick={handleCreateCustomer}
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors shadow-sm font-medium text-sm bg-emerald-600 hover:bg-emerald-700 text-white justify-center"
+                            >
+                                <FaPlus className="text-xs" />
+                                <span className="inline">Nuevo Cliente</span>
+                            </button>
                         </div>
                     </div>
 
@@ -282,6 +313,14 @@ export default function CustomerPage() {
                         </div>
                     </div>
                 </Motion.div>
+
+                {/* Controlled Modal */}
+                <AddCustomerModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    customerToEdit={editingCustomer}
+                    onCreated={fetchCustomers}
+                />
             </div>
         </ProtectedView>
     );

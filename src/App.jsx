@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/authContext.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
+import { ConfirmationProvider } from './context/ConfirmationContext.jsx';
 
 /* Public pages */
 import HomePage from './pages/HomePage';
@@ -21,6 +22,7 @@ import CustomerViewPage from './pages/CustomerViewPage.jsx';
 
 /* Products & Services */
 import ProductsServicesPage from './pages/ProductsServicesPage.jsx';
+import ProductsServicesViewPage from './pages/ProductsServicesViewPage.jsx';
 
 /* Sales */
 import SalesPage from './pages/Sales/SalesPage.jsx';
@@ -30,6 +32,7 @@ import ViewSalePage from './pages/Sales/ViewSalePage.jsx';
 /* Purchases */
 import PurchasePage from './pages/purchase/PurchasePage.jsx';
 import ProviderPage from './pages/purchase/ProviderPage.jsx';
+import NewPurchasePage from './pages/purchase/NewPurchasePage.jsx';
 
 /* Daily Sales */
 import PageDailySales from './pages/PageDailySales.jsx';
@@ -60,64 +63,68 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="*" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-            <Route path="/terminos" element={<TermsPage />} />
-            <Route path="/politicas" element={<PrivacyPage />} />
+        <ConfirmationProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="*" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+              <Route path="/terminos" element={<TermsPage />} />
+              <Route path="/politicas" element={<PrivacyPage />} />
 
-            {/* General dashboard */}
-            <Route path="/dashboard" element={<DashboardPage />} />
+              {/* General dashboard */}
+              <Route path="/dashboard" element={<DashboardPage />} />
 
-            {/* Customers */}
-            <Route path="/customers" element={<CustomerPage />} />
-            <Route path="/customers/:id" element={<CustomerViewPage />} />
+              {/* Customers */}
+              <Route path="/customers" element={<CustomerPage />} />
+              <Route path="/customers/:id" element={<CustomerViewPage />} />
 
-            {/* Products */}
-            <Route path="/products_services" element={<ProductsServicesPage />} />
+              {/* Products */}
+              <Route path="/products_services" element={<ProductsServicesPage />} />
+              <Route path="/products/:id" element={<ProductsServicesViewPage />} />
 
-            {/* Sales */}
-            <Route path="/sales" element={<SalesPage />} />
-            <Route path="/sales/register" element={<NewSalePage />} />
-            <Route path="/sales/view/:id" element={<ViewSalePage />} />
+              {/* Sales */}
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/sales/register" element={<NewSalePage />} />
+              <Route path="/sales/view/:id" element={<ViewSalePage />} />
 
-            {/* Purchases */}
-            <Route path="/purchase" element={<PurchasePage />} />
-            <Route path="/providers" element={<ProviderPage />} />
+              {/* Purchases */}
+              <Route path="/purchase" element={<PurchasePage />} />
+              <Route path="/providers" element={<ProviderPage />} />
+              <Route path="/purchase/register" element={<NewPurchasePage />} />
 
-            {/* Daily sales */}
-            <Route path="/sales/dailySales" element={<PageDailySales />} />
-            <Route path="/daily-sales/view/:id" element={<ViewDailySalePage />} />
+              {/* Daily sales */}
+              <Route path="/sales/dailySales" element={<PageDailySales />} />
+              <Route path="/daily-sales/view/:id" element={<ViewDailySalePage />} />
 
-            {/* Users */}
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/users/userGuest" element={<UserGuestPage />} />
-            <Route path="/users/:id/confirm-email" element={<ConfirmAccountPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+              {/* Users */}
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/users/userGuest" element={<UserGuestPage />} />
+              <Route path="/users/:id/confirm-email" element={<ConfirmAccountPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
 
-            {/* Finance */}
-            <Route path="/transactions" element={<TransactionsPage />} />
-            <Route path="/expenses" element={<ExpensesPage />} />
-            <Route path="/finance" element={<FinancePage />} />
+              {/* Finance */}
+              <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/finance" element={<FinancePage />} />
 
-            {/* Support */}
-            <Route path="/support" element={<SupportPage />} />
+              {/* Support */}
+              <Route path="/support" element={<SupportPage />} />
 
-            {/* Business */}
-            <Route path="/business/register" element={<RegisterBusinessPage />} />
+              {/* Business */}
+              <Route path="/business/register" element={<RegisterBusinessPage />} />
 
-            {/* Admin */}
-            <Route path="/admin/dashboard" element={<DashboardAdminPage />} />
-            <Route path="/admin/tickets" element={<TicketsAdminPage />} />
-            <Route path="/admin/tickets/:id" element={<TicketDetailAdminPage />} />
-          </Routes>
-        </BrowserRouter>
+              {/* Admin */}
+              <Route path="/admin/dashboard" element={<DashboardAdminPage />} />
+              <Route path="/admin/tickets" element={<TicketsAdminPage />} />
+              <Route path="/admin/tickets/:id" element={<TicketDetailAdminPage />} />
+            </Routes>
+          </BrowserRouter>
+        </ConfirmationProvider>
       </ToastProvider>
     </AuthProvider>
   );

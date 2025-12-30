@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-table";
 import { getPurchases } from "../../api/purchase.js";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaEye, FaPlus, FaSearch, FaShoppingBag, FaSort, FaSortUp, FaSortDown, FaMoneyBillWave } from 'react-icons/fa';
 
@@ -22,13 +22,11 @@ export default function PurchasePage() {
     const [isLoading, setIsLoading] = useState(true);
 
     const handleAddPurchase = () => {
-        // navigate("/purchases/register"); // Not yet implemented as per instructions
-        console.log("Navigate to create purchase");
+        navigate('/purchase/register');
     };
 
     const handleViewPurchase = (purchaseId) => {
-        // navigate(`/purchases/view/${purchaseId}`); // Not yet implemented
-        console.log("Navigate to view purchase", purchaseId);
+        navigate(`/purchase/view/${purchaseId}`);
     }
 
     const columns = [

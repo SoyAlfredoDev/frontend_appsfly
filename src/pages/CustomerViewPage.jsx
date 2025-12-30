@@ -9,13 +9,16 @@ import formatCurrency from '../utils/formatCurrency.js';
 import formatDate from '../utils/formatDate.js';
 import formatName from '../utils/formatName.js'
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { FaUser, FaHistory, FaCreditCard, FaArrowLeft, FaEdit, FaPhone, FaIdCard, FaReceipt } from 'react-icons/fa';
+import { FaUser, FaHistory, FaCreditCard, FaArrowLeft, FaEdit, FaPhone, FaIdCard, FaEnvelope } from 'react-icons/fa';
+
+import AddCustomerModal from '../components/modals/AddCustomerModal.jsx';
 
 export default function CustomerViewPage() {
     const [loading, setLoading] = useState(true);
     const [customer, setCustomer] = useState(null);
     const [sales, setSales] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const { id } = useParams();
     const navigate = useNavigate();
     const methodsPaymets = [
@@ -25,22 +28,22 @@ export default function CustomerViewPage() {
         { methodId: '3', methodName: 'Transferencia Bancaria' },
     ];
 
+    const getData = async () => {
+        try {
+            const customerFound = await getCustomerById(id);
+            const salesFound = await getSalesByCustomerIdRequest(id);
+            const paymentsFound = await getPaymentByCustomerId(id);
+            setSales(salesFound.data);
+            setPayments(paymentsFound.data);
+            setCustomer(customerFound.data);
+            setLoading(false);
+        } catch (error) {
+            console.log(error);
+        }
+    };
 
     useEffect(() => {
-        const fetchCustomer = async () => {
-            try {
-                const customerFound = await getCustomerById(id);
-                const salesFound = await getSalesByCustomerIdRequest(id);
-                const paymentsFound = await getPaymentByCustomerId(id);
-                setSales(salesFound.data);
-                setPayments(paymentsFound.data);
-                setCustomer(customerFound.data);
-                setLoading(false);
-            } catch (error) {
-                console.log(error);
-            }
-        };
-        fetchCustomer();
+        getData();
     }, [id]);
 
     const containerVariants = {
@@ -88,7 +91,10 @@ export default function CustomerViewPage() {
                             >
                                 <FaArrowLeft /> Volver
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-sm text-sm font-medium">
+                            <button 
+                                onClick={() => setIsModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-sm text-sm font-medium"
+                            >
                                 <FaEdit /> Editar
                             </button>
                         </div>
@@ -136,7 +142,14 @@ export default function CustomerViewPage() {
                                             {loading ? <div className="h-5 w-24 bg-gray-100 rounded animate-pulse"></div> : customer?.customerPhoneNumber}
                                         </div>
                                     </div>
-                                    {/* Aquí podrías agregar email si estuviera en el fetch inicial, o dirección */}
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                            <FaEnvelope className="text-gray-400" /> Email
+                                        </label>
+                                        <div className="text-gray-700">
+                                            {loading ? <div className="h-5 w-24 bg-gray-100 rounded animate-pulse"></div> : customer?.customerEmail}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Columna 3: Avatar Placeholder */}
@@ -231,7 +244,7 @@ export default function CustomerViewPage() {
                                                     <td className="px-4 py-3 text-gray-600 text-xs">
                                                         {methodsPaymets.find(method => method.methodId === payment?.paymentMethod)?.methodName || 'Desconocido'}
                                                         <div className="text-gray-400 text-[10px] mt-0.5">
-                                                             {[payment?.user?.userFirstName, payment?.user?.userLastName]
+                                                                {[payment?.user?.userFirstName, payment?.user?.userLastName]
                                                                 .map(formatName)
                                                                 .filter(Boolean)
                                                                 .join(" ")
@@ -246,6 +259,14 @@ export default function CustomerViewPage() {
                             </div>
                         </Motion.div>
                     </div>
+
+                    <AddCustomerModal
+                        title={'Editar Cliente'}
+                        isOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        customerToEdit={customer}
+                        onCreated={getData}
+                    />
                 </div>
             </Motion.div>
         </ProtectedView>

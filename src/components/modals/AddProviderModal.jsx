@@ -4,13 +4,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
 import IsRequiredComponent from '../IsRequiredComponent.jsx';
 import { createProvider } from '../../api/providers.js';
-import { useAuth } from '../../context/authContext.jsx';
 import { FaPlus, FaTimes } from "react-icons/fa";
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
-
-const MySwal = withReactContent(Swal);
+import { useToast } from '../../context/ToastContext.jsx';
 
 export default function AddProviderModal({
     title,
@@ -18,8 +14,7 @@ export default function AddProviderModal({
     onCreated = null,
     trigger = null
 }) {
-    const navigate = useNavigate();
-    const location = useLocation();
+    const toast = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -71,15 +66,9 @@ export default function AddProviderModal({
     };
 
     const handleOnSubmit = async (e) => {
-        e.preventDefault();
-        
+        e.preventDefault();        
         if (!formData.providerName || !formData.providerDocumentNumber) {
-            MySwal.fire({
-                icon: 'warning',
-                title: 'Campos Incompletos',
-                text: 'Por favor completa los campos obligatorios (Nombre, Documento).',
-                confirmButtonColor: '#10b981'
-            });
+            toast.warning('Campos Incompletos', 'Por favor completa los campos obligatorios (Nombre, Documento).');
             return;
         }
 
@@ -88,15 +77,9 @@ export default function AddProviderModal({
 
         try {
             const providerCreated = await createProvider(formData);
-            const providerCreatedId = providerCreated.data.provider.providerId;
+            const providerCreatedId = providerCreated.data.providerId;
             
-            MySwal.fire({
-                icon: 'success',
-                title: '¡Proveedor Creado!',
-                text: 'El proveedor se ha registrado correctamente.',
-                timer: 1500,
-                showConfirmButton: false
-            });
+            toast.success('¡Proveedor Creado!', 'El proveedor se ha registrado correctamente.');
 
             if (onCreated) onCreated(providerCreatedId);
             
@@ -105,12 +88,7 @@ export default function AddProviderModal({
 
         } catch (error) {
             console.error(error);
-            MySwal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'No se pudo crear el proveedor. Verifica los datos e inténtalo de nuevo.',
-                confirmButtonColor: '#ef4444'
-            });
+            toast.error('Error', 'No se pudo crear el proveedor. Verifica los datos e inténtalo de nuevo.');
         } finally {
             setIsLoading(false);
         }
@@ -119,14 +97,13 @@ export default function AddProviderModal({
     const handleResetForm = () => {
         setFormData({
             providerName: "",
+            providerEmail: "",
             providerDocumentType: "rut",
             providerDocumentNumber: "",
-            providerCodeNumberPhone: "+56",
+            providerCodePhoneNumber: "+56",
             providerPhoneNumber: "",
             providerAddress: "",
             providerComment: "",
-            createdByUserId: user.userId,
-            providerEmail: "",
         });
     };
 
