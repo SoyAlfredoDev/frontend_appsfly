@@ -8,7 +8,7 @@ export default function NavbarHome() {
             
             {/* Logo responsive */}
             <div className="w-28 md:w-[140px]">
-                <img src="../../public/logo_appsfly.png" alt="logo appsfly" className="w-full h-auto" />
+                <img src="/logo_appsfly.png" alt="logo appsfly" className="w-full h-auto" />
             </div>
 
             <div className="flex gap-4 items-center">
