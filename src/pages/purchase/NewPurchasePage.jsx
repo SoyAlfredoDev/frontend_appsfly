@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from "react-router-dom";
 import NavBarComponent from "../../components/NavBarComponent.jsx";
 import ProtectedView from "../../components/ProtectedView.jsx";
-import formatCurrency from "../../utils/formatCurrency.jsx";
+import formatCurrency from "../../utils/formatCurrency.js";
 
 export default function NewPurchasePage() {
     const navigate = useNavigate();
