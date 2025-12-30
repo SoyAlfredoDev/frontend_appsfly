@@ -3,9 +3,9 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaPlus, FaTrash, FaSave, FaCalendar, FaHashtag, FaUserTie, FaBoxOpen, FaCommentAlt, FaMoneyBillWave, FaArrowLeft, FaTimes } from "react-icons/fa";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from "react-router-dom";
-import NavBarComponent from "../../components/NavBarComponent";
-import ProtectedView from "../../components/ProtectedView";
-import formatCurrency from "../../utils/formatCurrency";
+import NavBarComponent from "../../components/NavBarComponent.jsx";
+import ProtectedView from "../../components/ProtectedView.jsx";
+import formatCurrency from "../../utils/formatCurrency.jsx";
 
 export default function NewPurchasePage() {
     const navigate = useNavigate();

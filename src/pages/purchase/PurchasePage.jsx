@@ -1,5 +1,5 @@
-import NavBarComponent from "../../components/NavBarComponent";
-import ProtectedView from "../../components/ProtectedView";
+import NavBarComponent from "../../components/NavBarComponent.jsx";
+import ProtectedView from "../../components/ProtectedView.jsx";
 import { useEffect, useState } from "react";
 import {
     useReactTable,
