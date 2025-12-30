@@ -8,7 +8,7 @@ import {
     getFilteredRowModel,
     flexRender
 } from "@tanstack/react-table";
-import { getPurchases } from "../../api/purchase.js";
+import { getPurchaseRequests } from "../../api/purchase.js";
 
 import { useNavigate, Link } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";

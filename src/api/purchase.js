@@ -9,3 +9,14 @@ export const createPurchaseRequest = async (purchaseData) => {
         throw error;
     }
 };
+
+
+export const getPurchaseRequests = async () => {
+    try {
+        const res = await axios.get('/purchases');
+        return res.data;
+    } catch (error) {
+        console.error("Error fetching purchase requests:", error);
+        throw error;
+    }
+};

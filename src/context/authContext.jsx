@@ -161,6 +161,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
+                
                 // 1) Validar token en backend
                 const res = await authVerifyRequest(); // Este ya envía el Bearer por el interceptor
 
