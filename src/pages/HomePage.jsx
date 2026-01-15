@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { FaWhatsapp } from 'react-icons/fa';
-import NavbarHome from './web/NavbarHome.jsx';
 import HeroHome from './web/HeroHome.jsx';
 import NewsHome from './web/NewsHome.jsx';
 import PlansHome from './web/PlansHome.jsx';
@@ -10,12 +9,7 @@ import Footer from '../components/FooterComponent.jsx';
 
 const HomePage = () => { 
     return (
-        <div className="font-sans text-dark bg-white overflow-x-hidden selection:bg-primary selection:text-white">
-            {/* Header / Navbar */}
-            <div className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100">
-                <NavbarHome />
-            </div>
-            
+        <div className="font-sans text-dark bg-white overflow-x-hidden selection:bg-primary selection:text-white">     
             <main>
                 {/* Hero Section */}
                 <HeroHome />
