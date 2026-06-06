@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { getUsersBusinessDB } from "../../api/user.js";
 import { getUserGuestByBusinessIdRequest } from "../../api/userGuest.js";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion as Motion } from "framer-motion";
 import { useAuth } from "../../context/authContext.jsx";
+import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import ExpensePageLayout from "../../components/ui/ExpensePageLayout.jsx";
 import ExpenseTableCard, {
   ExpenseTableScroll,
@@ -35,20 +36,28 @@ export default function UsersPage() {
   const [globalFilter, setGlobalFilter] = useState("");
   const { businessSelected } = useAuth();
 
-  useEffect(() => {
+  useAbortEffect((signal) => {
+    const businessId = businessSelected?.userBusinessBusinessId;
+    if (!businessId) {
+      setLoading(false);
+      return;
+    }
+
     const searchData = async () => {
       try {
         setLoading(true);
-        const userGuestFound = await getUserGuestByBusinessIdRequest(
-          businessSelected?.userBusinessBusinessId,
-        );
-        setUserGuest(userGuestFound.data);
-        const usersFound = await getUsersBusinessDB();
-        setUsers(usersFound.data);
+        const [userGuestFound, usersFound] = await Promise.all([
+          getUserGuestByBusinessIdRequest(businessId, { signal }),
+          getUsersBusinessDB({ signal }),
+        ]);
+        if (!signal.aborted) {
+          setUserGuest(userGuestFound.data);
+          setUsers(usersFound.data);
+        }
       } catch (error) {
-        console.error(error);
+        if (!isAbortError(error)) console.error(error);
       } finally {
-        setLoading(false);
+        if (!signal.aborted) setLoading(false);
       }
     };
     searchData();

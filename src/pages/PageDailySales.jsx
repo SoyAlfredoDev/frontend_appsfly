@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import axios from "../api/axios.js";
 import { v4 as uuidv4 } from "uuid";
 import { Link, useNavigate } from "react-router-dom";
@@ -6,6 +6,7 @@ import ExpensePageLayout, { ExpenseAnimatedSection } from "../components/ui/Expe
 import { getClosureStatus, closeAllPendingClosures } from "../api/dailySales.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../context/ConfirmationContext.jsx";
+import { useAbortEffect, isAbortError } from "../hooks/useAbortEffect.js";
 import {
   FaEye,
   FaLock,
@@ -60,58 +61,50 @@ export default function PageDailySales() {
   const [pendingDates, setPendingDates] = useState([]);
   const [closingAll, setClosingAll] = useState(false);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get("/dailySales");
-      setDailySales(res.data || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    fetchClosureStatus();
+  const applyClosureStatus = useCallback((data) => {
+    const dates = data?.fechasPendientes ?? [];
+    setPendingDates(dates);
+    setPendingClosure(data?.error === "BLOQUEO_CIERRE_PENDIENTE" ? data : null);
   }, []);
 
-  const fetchClosureStatus = async () => {
+  /** Una sola petición paralela — evita doble round-trip al montar. */
+  const refreshPageData = useCallback(async (signal, { showTableLoading = false } = {}) => {
+    if (showTableLoading) setLoading(true);
     try {
-      const res = await getClosureStatus();
-      const dates = res.data?.fechasPendientes ?? [];
-      setPendingDates(dates);
-      if (res.data?.error === "BLOQUEO_CIERRE_PENDIENTE") {
-        setPendingClosure(res.data);
-      } else {
-        setPendingClosure(null);
-      }
+      const [listRes, statusRes] = await Promise.all([
+        axios.get("/dailySales", { signal }),
+        getClosureStatus({ signal }),
+      ]);
+      setDailySales(listRes.data || []);
+      applyClosureStatus(statusRes.data);
     } catch (error) {
-      console.error(error);
+      if (!isAbortError(error)) console.error(error);
+    } finally {
+      if (showTableLoading) setLoading(false);
     }
-  };
+  }, [applyClosureStatus]);
+
+  useAbortEffect((signal) => {
+    refreshPageData(signal, { showTableLoading: true });
+  }, [refreshPageData]);
 
   const runCloseAllPending = async () => {
+    const dates = pendingDates;
+    if (dates.length === 0) {
+      toast.info("Sin pendientes", "No hay cierres diarios pendientes por procesar.");
+      return;
+    }
+
+    const isConfirmed = await confirm({
+      title: "¿Cerrar todos los días pendientes?",
+      message: `Se generarán ${dates.length} cierre(s) diario(s) en orden cronológico.`,
+      variant: "success",
+      confirmText: "Sí, cerrar todos",
+      cancelText: "Cancelar",
+    });
+    if (!isConfirmed) return;
+
     try {
-      const statusRes = await getClosureStatus();
-      const dates = statusRes.data?.fechasPendientes ?? [];
-      setPendingDates(dates);
-
-      if (dates.length === 0) {
-        toast.info("Sin pendientes", "No hay cierres diarios pendientes por procesar.");
-        return;
-      }
-
-      const isConfirmed = await confirm({
-        title: "¿Cerrar todos los días pendientes?",
-        message: `Se generarán ${dates.length} cierre(s) diario(s) en orden cronológico.`,
-        variant: "success",
-        confirmText: "Sí, cerrar todos",
-        cancelText: "Cancelar",
-      });
-      if (!isConfirmed) return;
-
       setClosingAll(true);
       const res = await closeAllPendingClosures();
       const { closedCount = 0, closed = [] } = res.data ?? {};
@@ -123,8 +116,7 @@ export default function PageDailySales() {
       } else {
         toast.info("Sin pendientes", res.data?.message ?? "No había cierres pendientes.");
       }
-      await fetchData();
-      await fetchClosureStatus();
+      await refreshPageData(undefined, { showTableLoading: false });
     } catch (error) {
       console.error(error);
       toast.error("Error", "No se pudieron procesar todos los cierres pendientes.");
@@ -140,11 +132,12 @@ export default function PageDailySales() {
         dailySalesDay: day,
       });
       toast.success("Cierre realizado", `Cierre diario del ${formatClosureDate(day)} registrado correctamente.`);
-      await fetchData();
-      await fetchClosureStatus();
+      await refreshPageData(undefined, { showTableLoading: false });
     } catch (error) {
       if (error.response?.data?.type === "DUPLICATE_DATE") {
         toast.info("Cierre existente", "Ya existe un cierre registrado para esa fecha.");
+      } else if (error.response?.data?.type === "NO_SALES") {
+        toast.info("Sin ventas", error.response?.data?.message ?? "No hay ventas ese día para generar cierre.");
       } else {
         toast.error("Error", "No se pudo realizar el cierre. Intente nuevamente.");
       }

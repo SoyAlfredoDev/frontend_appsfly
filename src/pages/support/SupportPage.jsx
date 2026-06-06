@@ -3,23 +3,134 @@ import { useAuth } from "../../context/authContext.jsx";
 import { createTicket, getTickets } from "../../api/ticket.js";
 import { createTicketDetail } from "../../api/ticketDetail.js";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { FaPaperPlane, FaSpinner, FaHistory, FaCheckCircle, FaExclamationCircle, FaPlus, FaCloudUploadAlt, FaTimes } from "react-icons/fa";
-import PageContainer from "../../components/layout/PageContainer.jsx";
+import {
+    FaPaperPlane,
+    FaSpinner,
+    FaHistory,
+    FaCheckCircle,
+    FaExclamationCircle,
+    FaPlus,
+    FaCloudUploadAlt,
+    FaTimes,
+    FaFileImage,
+    FaSyncAlt,
+    FaHeadset,
+} from "react-icons/fa";
+import PageContainer, { PageHeader } from "../../components/layout/PageContainer.jsx";
+import InputFloatingComponent from "../../components/inputs/InputFloatingComponent.jsx";
+import SelectFloatingComponent from "../../components/inputs/SelectFloatingComponent.jsx";
+import TextareaFloatingComponent from "../../components/inputs/TextareaFloatingComponent.jsx";
+import formatDate from "../../utils/formatDate.js";
+import {
+    PRIMARY_BTN_BLOCK,
+    TABLE_WRAPPER,
+    TABLE_TOOLBAR,
+    THEAD,
+    TH,
+    TD,
+    TD_MUTED,
+    TBODY,
+    TR_ROW,
+    containerVariants,
+    itemVariants,
+    formatRecordCount,
+} from "../../utils/expenseUiPatterns.js";
 
+const TICKET_TYPE_OPTIONS = [
+    { value: "SUPPORT", label: "Soporte Técnico" },
+    { value: "SUGGESTION", label: "Sugerencia" },
+    { value: "REQUEST", label: "Solicitud Comercial / Otro" },
+];
+
+const TICKET_TYPE_LABELS = {
+    SUPPORT: "Soporte",
+    SUGGESTION: "Sugerencia",
+    REQUEST: "Solicitud",
+};
+
+function TicketStatusBadge({ status }) {
+    const config = {
+        CLOSED: {
+            label: "Cerrado",
+            className: "bg-slate-100 text-slate-600 border border-slate-200",
+        },
+        PENDING: {
+            label: "Pendiente",
+            className: "bg-amber-50 text-amber-700 border border-amber-200",
+        },
+        IN_PROGRESS: {
+            label: "En progreso",
+            className: "bg-secondary/10 text-secondary border border-secondary/20",
+        },
+        URGENT: {
+            label: "Urgente",
+            className: "bg-red-50 text-red-700 border border-red-200",
+        },
+        RESOLVED: {
+            label: "Resuelto",
+            className: "bg-slate-100 text-slate-600 border border-slate-200",
+        },
+    };
+
+    const resolved =
+        config[status] ?? {
+            label: "Abierto",
+            className: "bg-primary/10 text-primary border border-primary/20",
+        };
+
+    return (
+        <span
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${resolved.className}`}
+        >
+            {resolved.label}
+        </span>
+    );
+}
+
+function AssociationCheckbox({ checked, onChange, label }) {
+    return (
+        <label className="flex items-center gap-2.5 cursor-pointer group">
+            <span
+                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                    checked
+                        ? "border-primary bg-primary text-white"
+                        : "border-slate-300 bg-white group-hover:border-primary/40"
+                }`}
+            >
+                <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={onChange}
+                    className="sr-only"
+                />
+                {checked && (
+                    <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none" aria-hidden>
+                        <path
+                            d="M2 6l3 3 5-5"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </svg>
+                )}
+            </span>
+            <span className="text-sm text-slate-700">{label}</span>
+        </label>
+    );
+}
 
 export default function SupportPage() {
     const { user, business } = useAuth();
-    
-    // --- Estado para Listado de Tickets ---
+
     const [tickets, setTickets] = useState([]);
     const [loadingTickets, setLoadingTickets] = useState(true);
 
-    // --- Estado para Creación de Tickets ---
     const initialFormData = {
         subject: "",
         ticketType: "SUPPORT",
         description: "",
-        ticketAssociatedTo: []
+        ticketAssociatedTo: [],
     };
     const [formData, setFormData] = useState(initialFormData);
     const [fileToUpload, setFileToUpload] = useState(null);
@@ -27,13 +138,11 @@ export default function SupportPage() {
     const [successMsg, setSuccessMsg] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
 
-    // Initial load
     useEffect(() => {
-        // Pre-seleccionar asociaciones por defecto
         if (user && business) {
-            setFormData(prev => ({
+            setFormData((prev) => ({
                 ...prev,
-                ticketAssociatedTo: [user.userId, business.businessId]
+                ticketAssociatedTo: [user.userId, business.businessId],
             }));
         }
         fetchTickets();
@@ -43,7 +152,6 @@ export default function SupportPage() {
         try {
             setLoadingTickets(true);
             const res = await getTickets();
-            // Asumiendo que res.data es el array de tickets
             setTickets(res.data || []);
         } catch (error) {
             console.error("Error fetching tickets:", error);
@@ -52,10 +160,9 @@ export default function SupportPage() {
         }
     };
 
-    // --- Manejo de Formulario ---
     const handleOnChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleFileChange = (e) => {
@@ -67,33 +174,31 @@ export default function SupportPage() {
     };
 
     const toggleAssociation = (id) => {
-        setFormData(prev => {
+        setFormData((prev) => {
             const current = prev.ticketAssociatedTo;
             if (current.includes(id)) {
-                return { ...prev, ticketAssociatedTo: current.filter(item => item !== id) };
-            } else {
-                return { ...prev, ticketAssociatedTo: [...current, id] };
+                return { ...prev, ticketAssociatedTo: current.filter((item) => item !== id) };
             }
+            return { ...prev, ticketAssociatedTo: [...current, id] };
         });
     };
 
-    // --- Lógica Cloudinary (Reutilizada y simplificada) ---
     const cloud_name = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const upload_preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-    
+
     const uploadImage = async (ticketId) => {
         if (!fileToUpload) return null;
-        
+
         const data = new FormData();
-        data.append('file', fileToUpload);
-        data.append('upload_preset', upload_preset);
-        data.append('folder', 'tickets_support');
-        data.append('public_id', `ticket-${ticketId}`); // Usar ID del ticket para unicidad relativa
+        data.append("file", fileToUpload);
+        data.append("upload_preset", upload_preset);
+        data.append("folder", "tickets_support");
+        data.append("public_id", `ticket-${ticketId}`);
 
         try {
             const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, {
-                method: 'POST',
-                body: data
+                method: "POST",
+                body: data,
             });
             const json = await res.json();
             if (!res.ok) throw new Error(json.error?.message || "Error subiendo imagen");
@@ -104,7 +209,6 @@ export default function SupportPage() {
         }
     };
 
-    // --- Envio del Formulario ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMsg(null);
@@ -122,54 +226,45 @@ export default function SupportPage() {
         setLoadingSubmit(true);
 
         try {
-            // 1. Crear Ticket principal
-            // Combinar Asunto en la primera linea de la descripción inicial si el backend no soporta 'subject'
-            // Ojo: Si el backend createTicket NO recibe 'subject', lo ignorará. 
-            // Lo más seguro es que el primer Mensaje (Detalle) contenga el Asunto + Descripción.
-            
             const ticketRes = await createTicket({
                 ticketAssociatedTo: formData.ticketAssociatedTo,
                 ticketType: formData.ticketType,
-                // Si el backend soporta subject en ticket, se envia. Si no, no pasa nada.
-                ticketSubject: formData.subject 
+                ticketSubject: formData.subject,
             });
 
             if (ticketRes.status !== 201) throw new Error("Error al iniciar el ticket.");
             const createdTicketId = ticketRes.data.ticketId;
 
-            // 2. Subir imagen si existe
             let imageUrl = null;
             if (fileToUpload) {
                 try {
                     imageUrl = await uploadImage(createdTicketId);
                 } catch (imgErr) {
                     console.warn("Fallo subida imagen", imgErr);
-                    // No bloqueamos, pero avisamos? O seguimos sin imagen.
-                    // Decisión: Seguir con el ticket pero avisar en consola.
                 }
             }
 
-            // 3. Crear Detalle (El mensaje inicial)
-            // Combinamos Subject + Description para que se vea claro en el chat
             const fullContent = `[ASUNTO: ${formData.subject}]\n\n${formData.description}`;
 
             const detailRes = await createTicketDetail({
                 ticketId: createdTicketId,
-                ticketAssociatedTo: formData.ticketAssociatedTo, // El creador del mensaje (detalle) es el usuario
+                ticketAssociatedTo: formData.ticketAssociatedTo,
                 ticketDetailContent: fullContent,
                 ticketDetailImage: imageUrl ? [imageUrl] : [],
-                ticketDetailOrigin: 'CUSTOMER'
+                ticketDetailOrigin: "CUSTOMER",
             });
 
             if (detailRes.status === 201) {
                 setSuccessMsg("¡Ticket creado exitosamente! Nuestro equipo te contactará pronto.");
-                setFormData(prev => ({ ...initialFormData, ticketAssociatedTo: prev.ticketAssociatedTo })); // Resetear pero mantener asociaciones
+                setFormData((prev) => ({
+                    ...initialFormData,
+                    ticketAssociatedTo: prev.ticketAssociatedTo,
+                }));
                 setFileToUpload(null);
-                fetchTickets(); // Recargar lista
+                fetchTickets();
             } else {
                 throw new Error("Error al guardar el detalle del ticket.");
             }
-
         } catch (error) {
             console.error(error);
             setErrorMsg(error.message || "Ocurrió un error inesperado.");
@@ -178,253 +273,268 @@ export default function SupportPage() {
         }
     };
 
-    // --- Renderizado ---
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-    };
-    
-    const itemVariants = {
-        hidden: { y: 20, opacity: 0 },
-        show: { y: 0, opacity: 1 }
-    };
-
     return (
         <PageContainer>
-            <div className="min-h-screen bg-gray-50 pt-[100px] pb-12 px-4 sm:px-6 lg:px-8">
-                <Motion.div 
-                    className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8"
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="show"
-                >
-                    
-                    {/* --- COLUMNA IZQUIERDA: FORMULARIO (lg:col-span-5) --- */}
-                    <div className="lg:col-span-5 space-y-6">
-                        <Motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                    <FaPlus className="text-blue-600" /> Nuevo Ticket
+            <Motion.div
+                className="space-y-6"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+            >
+                <Motion.div variants={itemVariants}>
+                    <PageHeader
+                        title="Soporte al Cliente"
+                        subtitle="Crea tickets de ayuda y consulta el historial de solicitudes"
+                    />
+                </Motion.div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                    {/* Formulario — columna izquierda */}
+                    <Motion.div variants={itemVariants} className="lg:col-span-5 flex flex-col min-h-0">
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full">
+                            <div className="px-6 py-4 border-b border-gray-100">
+                                <h2 className="font-display text-lg font-bold text-dark flex items-center gap-2">
+                                    <FaPlus className="text-primary text-base" />
+                                    Nuevo Ticket
                                 </h2>
-                                <p className="text-gray-500 text-sm mt-1">
-                                    Describe tu problema o solicitud y te ayudaremos lo antes posible.
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    Describe tu problema y te ayudaremos lo antes posible.
                                 </p>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-5">
-                                {/* TIPO */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Solicitud</label>
-                                    <select
-                                        name="ticketType"
-                                        value={formData.ticketType}
-                                        onChange={handleOnChange}
-                                        className="w-full rounded-lg border-gray-300 border p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-                                    >
-                                        <option value="SUPPORT">Soporte Técnico</option>
-                                        <option value="SUGGESTION">Sugerencia</option>
-                                        <option value="REQUEST">Solicitud Comercial / Otro</option>
-                                    </select>
-                                </div>
+                            <form onSubmit={handleSubmit} className="flex flex-col flex-1 p-6 space-y-4">
+                                <SelectFloatingComponent
+                                    label="Tipo de Solicitud"
+                                    name="ticketType"
+                                    value={formData.ticketType}
+                                    onChange={handleOnChange}
+                                    options={TICKET_TYPE_OPTIONS}
+                                    className="!mb-0"
+                                />
 
-                                {/* ASUNTO */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Asunto</label>
-                                    <input
-                                        type="text"
-                                        name="subject"
-                                        value={formData.subject}
-                                        onChange={handleOnChange}
-                                        placeholder="Ej: Problema con la facturación..."
-                                        className="w-full rounded-lg border-gray-300 border p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-                                        required
-                                    />
-                                </div>
+                                <InputFloatingComponent
+                                    label="Asunto"
+                                    type="text"
+                                    name="subject"
+                                    value={formData.subject}
+                                    onChange={handleOnChange}
+                                />
 
-                                {/* DESCRIPCIÓN */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Detalle</label>
-                                    <textarea
-                                        name="description"
-                                        value={formData.description}
-                                        onChange={handleOnChange}
-                                        rows={5}
-                                        placeholder="Explica detalladamente lo que sucede..."
-                                        className="w-full rounded-lg border-gray-300 border p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none resize-none"
-                                        required
-                                    />
-                                </div>
+                                <TextareaFloatingComponent
+                                    label="Detalle"
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleOnChange}
+                                    rows={4}
+                                />
 
-                                {/* ADJUNTOS */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Adjuntar Imagen (Opcional)</label>
-                                    {!fileToUpload ? (
-                                        <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors cursor-pointer relative bg-gray-50 hover:bg-white group">
-                                            <div className="space-y-1 text-center">
-                                                <FaCloudUploadAlt className="mx-auto h-12 w-12 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                                                <div className="flex text-sm text-gray-600 justify-center">
-                                                    <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
-                                                        <span>Subir un archivo</span>
-                                                        <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/*" onChange={handleFileChange} />
-                                                    </label>
-                                                </div>
-                                                <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 5MB</p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                                            <span className="text-sm text-blue-700 truncate max-w-[200px]">{fileToUpload.name}</span>
-                                            <button 
-                                                type="button" 
-                                                onClick={handleRemoveFile}
-                                                className="text-red-500 hover:text-red-700 transition-colors"
-                                            >
-                                                <FaTimes />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* ASOCIACIONES (Checkboxes simplificados) */}
-                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-3">Asociar a:</span>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={formData.ticketAssociatedTo.includes(user?.userId)}
-                                                onChange={() => toggleAssociation(user?.userId)}
-                                                className="rounded text-blue-600 focus:ring-blue-500 border-gray-300"
-                                            />
-                                            <span className="text-sm text-gray-700">Mi Usuario ({user?.userFirstName})</span>
-                                        </label>
-                                        {business && (
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={formData.ticketAssociatedTo.includes(business?.businessId)}
-                                                    onChange={() => toggleAssociation(business?.businessId)}
-                                                    className="rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                                        Adjuntar imagen (opcional)
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        {!fileToUpload ? (
+                                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg transition-colors border border-slate-200 border-dashed text-sm">
+                                                <FaCloudUploadAlt className="text-primary" />
+                                                <span>Seleccionar archivo</span>
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleFileChange}
                                                 />
-                                                <span className="text-sm text-gray-700">Mi Negocio ({business?.businessName})</span>
                                             </label>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-sm text-primary bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
+                                                <FaFileImage />
+                                                <span className="truncate max-w-[180px]">{fileToUpload.name}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRemoveFile}
+                                                    className="text-slate-400 hover:text-red-500 transition-colors ml-1"
+                                                    aria-label="Quitar archivo"
+                                                >
+                                                    <FaTimes className="text-xs" />
+                                                </button>
+                                            </div>
+                                        )}
+                                        <span className="text-[11px] text-slate-400">PNG, JPG hasta 5MB</span>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                        Asociar a
+                                    </p>
+                                    <div className="flex flex-col gap-2">
+                                        <AssociationCheckbox
+                                            checked={formData.ticketAssociatedTo.includes(user?.userId)}
+                                            onChange={() => toggleAssociation(user?.userId)}
+                                            label={`Mi Usuario (${user?.userFirstName ?? "—"})`}
+                                        />
+                                        {business && (
+                                            <AssociationCheckbox
+                                                checked={formData.ticketAssociatedTo.includes(
+                                                    business?.businessId,
+                                                )}
+                                                onChange={() => toggleAssociation(business?.businessId)}
+                                                label={`Mi Negocio (${business?.businessName})`}
+                                            />
                                         )}
                                     </div>
                                 </div>
 
-                                {/* MENSAJES DE ESTADO */}
                                 <AnimatePresence>
                                     {errorMsg && (
-                                        <Motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start gap-2">
-                                            <FaExclamationCircle className="mt-0.5 flex-shrink-0" />
+                                        <Motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: "auto" }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start gap-2 border border-red-100"
+                                        >
+                                            <FaExclamationCircle className="mt-0.5 shrink-0" />
                                             {errorMsg}
                                         </Motion.div>
                                     )}
                                     {successMsg && (
-                                        <Motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-green-50 text-green-600 p-3 rounded-lg text-sm flex items-start gap-2">
-                                            <FaCheckCircle className="mt-0.5 flex-shrink-0" />
+                                        <Motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: "auto" }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="bg-primary/10 text-primary p-3 rounded-lg text-sm flex items-start gap-2 border border-primary/20"
+                                        >
+                                            <FaCheckCircle className="mt-0.5 shrink-0" />
                                             {successMsg}
                                         </Motion.div>
                                     )}
                                 </AnimatePresence>
 
-                                <button
-                                    type="submit"
-                                    disabled={loadingSubmit}
-                                    className="w-full bg-gray-900 text-white font-semibold py-3 px-4 rounded-xl hover:bg-gray-800 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {loadingSubmit ? (
-                                        <>
-                                            <FaSpinner className="animate-spin" /> Creando Ticket...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <FaPaperPlane /> Enviar Ticket
-                                        </>
-                                    )}
-                                </button>
+                                <div className="mt-auto pt-1">
+                                    <button
+                                        type="submit"
+                                        disabled={loadingSubmit}
+                                        className={`${PRIMARY_BTN_BLOCK} disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary`}
+                                    >
+                                        {loadingSubmit ? (
+                                            <>
+                                                <FaSpinner className="animate-spin" />
+                                                Creando ticket…
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FaPaperPlane />
+                                                Enviar ticket
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </form>
-                        </Motion.div>
-                    </div>
+                        </div>
+                    </Motion.div>
 
-                    {/* --- COLUMNA DERECHA: LISTADO (lg:col-span-7) --- */}
-                    <div className="lg:col-span-7">
-                        <Motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-full max-h-[800px]">
-                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                    <FaHistory className="text-gray-500" /> Historial de Tickets
-                                </h3>
-                                <button 
-                                    onClick={fetchTickets} 
-                                    className="text-sm text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                    {/* Historial — columna derecha */}
+                    <Motion.div variants={itemVariants} className="lg:col-span-7 flex flex-col min-h-0">
+                        <div className={`${TABLE_WRAPPER} flex flex-col h-full`}>
+                            <div className={TABLE_TOOLBAR}>
+                                <div>
+                                    <h2 className="font-display text-lg font-bold text-dark flex items-center gap-2">
+                                        <FaHistory className="text-slate-400 text-base" />
+                                        Historial de Tickets
+                                    </h2>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        {formatRecordCount(tickets.length, loadingTickets)}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={fetchTickets}
+                                    disabled={loadingTickets}
+                                    className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-secondary hover:text-secondary-hover hover:bg-secondary/5 rounded-lg transition-colors border border-transparent hover:border-secondary/15 disabled:opacity-50"
                                 >
+                                    <FaSyncAlt className={loadingTickets ? "animate-spin" : ""} />
                                     Actualizar
                                 </button>
                             </div>
 
-                            <div className="overflow-y-auto p-0 flex-1 custom-scrollbar">
-                                {loadingTickets ? (
-                                    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-                                        <FaSpinner className="animate-spin text-2xl mb-2" />
-                                        <p>Cargando tickets...</p>
-                                    </div>
-                                ) : tickets.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-16 text-gray-400 px-6 text-center">
-                                        <div className="bg-gray-100 p-4 rounded-full mb-3">
-                                            <FaPaperPlane className="text-xl text-gray-300" />
-                                        </div>
-                                        <p className="font-medium text-gray-600">No has creado ningún ticket aún.</p>
-                                        <p className="text-sm mt-1">Usa el formulario para contactar a soporte.</p>
-                                    </div>
-                                ) : (
-                                    <table className="w-full text-left border-collapse">
-                                        <thead className="bg-white text-gray-500 text-xs uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                                            <tr>
-                                                <th className="px-6 py-4 font-semibold">Ticket #</th>
-                                                <th className="px-6 py-4 font-semibold">Estado</th>
-                                                <th className="px-6 py-4 font-semibold">Tipo</th>
-                                                <th className="px-6 py-4 font-semibold text-right">Fecha</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {tickets.map((ticket) => (
-                                                <tr key={ticket.ticketId || ticket.id} className="hover:bg-blue-50/50 transition-colors group cursor-pointer">
-                                                    <td className="px-6 py-4">
-                                                        <span className="font-mono text-gray-900 font-medium">
-                                                            {ticket.ticketNumber || ticket.ticketId?.slice(0, 8)}
-                                                        </span>
-                                                        {ticket.ticketSubject && (
-                                                            <p className="text-xs text-gray-500 truncate max-w-[150px]">{ticket.ticketSubject}</p>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                            ${ticket.ticketStatus === 'CLOSED' ? 'bg-gray-100 text-gray-800' : 
-                                                              ticket.ticketStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 
-                                                              'bg-green-100 text-green-800'}`}>
-                                                            {ticket.ticketStatus === 'PENDING' ? 'Pendiente' : 
-                                                             ticket.ticketStatus === 'CLOSED' ? 'Cerrado' : 'Abierto'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-600">
-                                                        {ticket.ticketType === 'SUPPORT' ? 'Soporte' : 
-                                                         ticket.ticketType === 'SUGGESTION' ? 'Sugerencia' : 'Solicitud'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-sm text-gray-500">
-                                                        {new Date(ticket.createdAt || Date.now()).toLocaleDateString("es-CL")}
+                            <div className="overflow-x-auto overflow-y-auto flex-1 min-h-[320px] custom-scrollbar">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className={`${THEAD} sticky top-0 z-10`}>
+                                        <tr>
+                                            <th className={TH}>Ticket #</th>
+                                            <th className={TH}>Estado</th>
+                                            <th className={TH}>Tipo</th>
+                                            <th className={`${TH} text-right`}>Fecha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className={TBODY}>
+                                        <AnimatePresence mode="wait">
+                                            {loadingTickets ? (
+                                                <tr key="loading">
+                                                    <td colSpan={4} className="px-6 py-12 text-center">
+                                                        <div className="flex flex-col items-center justify-center gap-3">
+                                                            <div className="animate-spin h-8 w-8 border-2 border-primary rounded-full border-t-transparent" />
+                                                            <p className="text-slate-500 text-sm">
+                                                                Cargando tickets…
+                                                            </p>
+                                                        </div>
                                                     </td>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                )}
+                                            ) : tickets.length === 0 ? (
+                                                <tr key="empty">
+                                                    <td colSpan={4} className="px-6 py-12 text-center">
+                                                        <div className="flex flex-col items-center justify-center gap-3 text-slate-500">
+                                                            <FaHeadset className="text-4xl text-slate-300" />
+                                                            <p className="text-sm font-medium">
+                                                                No has creado ningún ticket aún.
+                                                            </p>
+                                                            <p className="text-xs text-slate-400">
+                                                                Usa el formulario para contactar a soporte.
+                                                            </p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                tickets.map((ticket) => (
+                                                    <Motion.tr
+                                                        key={ticket.ticketId || ticket.id}
+                                                        initial={{ opacity: 0, y: 4 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0 }}
+                                                        className={TR_ROW}
+                                                    >
+                                                        <td className={TD}>
+                                                            <span className="font-mono font-semibold text-dark text-sm">
+                                                                {ticket.ticketNumber ||
+                                                                    ticket.ticketId?.slice(0, 8)}
+                                                            </span>
+                                                            {ticket.ticketSubject && (
+                                                                <p className="text-xs text-slate-500 truncate max-w-[180px] mt-0.5">
+                                                                    {ticket.ticketSubject}
+                                                                </p>
+                                                            )}
+                                                        </td>
+                                                        <td className={TD}>
+                                                            <TicketStatusBadge status={ticket.ticketStatus} />
+                                                        </td>
+                                                        <td className={`${TD_MUTED} whitespace-nowrap`}>
+                                                            {TICKET_TYPE_LABELS[ticket.ticketType] ??
+                                                                ticket.ticketType ??
+                                                                "—"}
+                                                        </td>
+                                                        <td className={`${TD_MUTED} text-right whitespace-nowrap`}>
+                                                            {formatDate(ticket.createdAt || Date.now())}
+                                                        </td>
+                                                    </Motion.tr>
+                                                ))
+                                            )}
+                                        </AnimatePresence>
+                                    </tbody>
+                                </table>
                             </div>
-                        </Motion.div>
-                    </div>
-
-                </Motion.div>
-            </div>
+                        </div>
+                    </Motion.div>
+                </div>
+            </Motion.div>
         </PageContainer>
     );
 }

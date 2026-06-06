@@ -1,8 +1,11 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/authContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 import { ConfirmationProvider } from "./context/ConfirmationContext.jsx";
 import AppLayout from "./components/layout/AppLayout.jsx";
+import TenantContentGate from "./components/TenantContentGate.jsx";
+import AdminLayout from "./components/layout/AdminLayout.jsx";
+import AdminProtectedView from "./components/AdminProtectedView.jsx";
 
 /* Public pages */
 import HomePage from "./pages/HomePage";
@@ -53,6 +56,7 @@ import ConfirmAccountPage from "./pages/users/ConfirmAccountPage.jsx";
 import TransactionsPage from "./pages/TransactionsPage.jsx";
 import ExpensesPage from "./pages/ExpensesPage.jsx";
 import FinancePage from "./pages/FinancePage.jsx";
+import ReportsPage from "./pages/ReportsPage.jsx";
 
 /* Support */
 import SupportPage from "./pages/support/SupportPage.jsx";
@@ -60,6 +64,10 @@ import SupportPage from "./pages/support/SupportPage.jsx";
 /* Admin */
 import TicketsAdminPage from "./pages/admin/TicketsAdminPage.jsx";
 import TicketDetailAdminPage from "./pages/admin/TicketDetailAdminPage.jsx";
+import SubscriptionsAdminPage from "./pages/admin/SubscriptionsAdminPage.jsx";
+import BusinessesAdminPage from "./pages/admin/BusinessesAdminPage.jsx";
+import BusinessDetailAdminPage from "./pages/admin/BusinessDetailAdminPage.jsx";
+import PlansAdminPage from "./pages/admin/PlansAdminPage.jsx";
 
 function App() {
   return (
@@ -82,33 +90,47 @@ function App() {
               <Route path="/about-us" element={<AboutUsPage />} />
               <Route path="/users/:id/confirm-email" element={<ConfirmAccountPage />} />
 
-              {/* Authenticated app shell */}
+              {/* Authenticated tenant shell */}
               <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/customers" element={<CustomerPage />} />
-                <Route path="/customers/:id" element={<CustomerViewPage />} />
-                <Route path="/products_services" element={<ProductsServicesPage />} />
-                <Route path="/products/:id" element={<ProductsServicesViewPage />} />
-                <Route path="/sales" element={<SalesPage />} />
-                <Route path="/sales/register" element={<NewSalePage />} />
-                <Route path="/sales/view/:id" element={<ViewSalePage />} />
-                <Route path="/purchase" element={<PurchasePage />} />
-                <Route path="/providers" element={<ProviderPage />} />
-                <Route path="/purchase/register" element={<NewPurchasePage />} />
-                <Route path="/sales/dailySales" element={<PageDailySales />} />
-                <Route path="/sales/dailySales/view/:id" element={<ViewDailySalePage />} />
-                <Route path="/daily-sales/view/:id" element={<ViewDailySalePage />} />
-                <Route path="/users" element={<UsersPage />} />
-                <Route path="/users/userGuest" element={<UserGuestPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
-                <Route path="/expenses" element={<ExpensesPage />} />
-                <Route path="/finance" element={<FinancePage />} />
-                <Route path="/support" element={<SupportPage />} />
-                <Route path="/business/register" element={<RegisterBusinessPage />} />
-                <Route path="/admin/dashboard" element={<DashboardAdminPage />} />
-                <Route path="/admin/tickets" element={<TicketsAdminPage />} />
-                <Route path="/admin/tickets/:id" element={<TicketDetailAdminPage />} />
+                <Route element={<TenantContentGate />}>
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/customers" element={<CustomerPage />} />
+                  <Route path="/customers/:id" element={<CustomerViewPage />} />
+                  <Route path="/products_services" element={<ProductsServicesPage />} />
+                  <Route path="/products/:id" element={<ProductsServicesViewPage />} />
+                  <Route path="/sales/register" element={<NewSalePage />} />
+                  <Route path="/sales/dailySales/view/:id" element={<ViewDailySalePage />} />
+                  <Route path="/sales/dailySales" element={<PageDailySales />} />
+                  <Route path="/sales/view/:id" element={<ViewSalePage />} />
+                  <Route path="/sales" element={<SalesPage />} />
+                  <Route path="/purchase" element={<PurchasePage />} />
+                  <Route path="/providers" element={<ProviderPage />} />
+                  <Route path="/purchase/register" element={<NewPurchasePage />} />
+                  <Route path="/daily-sales/view/:id" element={<ViewDailySalePage />} />
+                  <Route path="/users" element={<UsersPage />} />
+                  <Route path="/users/userGuest" element={<UserGuestPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/transactions" element={<TransactionsPage />} />
+                  <Route path="/expenses" element={<ExpensesPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/finance" element={<FinancePage />} />
+                  <Route path="/support" element={<SupportPage />} />
+                  <Route path="/business/register" element={<RegisterBusinessPage />} />
+                </Route>
+              </Route>
+
+              {/* Zona administrativa global */}
+              <Route element={<AdminProtectedView />}>
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                  <Route path="/admin/dashboard" element={<DashboardAdminPage />} />
+                  <Route path="/admin/subscriptions" element={<SubscriptionsAdminPage />} />
+                  <Route path="/admin/businesses" element={<BusinessesAdminPage />} />
+                  <Route path="/admin/businesses/:id" element={<BusinessDetailAdminPage />} />
+                  <Route path="/admin/plans" element={<PlansAdminPage />} />
+                  <Route path="/admin/tickets" element={<TicketsAdminPage />} />
+                  <Route path="/admin/tickets/:id" element={<TicketDetailAdminPage />} />
+                </Route>
               </Route>
 
               <Route path="*" element={<HomePage />} />

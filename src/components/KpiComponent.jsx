@@ -41,7 +41,7 @@ export default function KpiComponent({
         </span>
       </div>
 
-      <div className="bg-dark text-white text-center py-2.5 px-4 text-xs font-medium">
+      <div className="bg-slate-50 text-slate-600 text-center py-2.5 px-4 text-xs font-medium border-t border-slate-100">
         {footer}
       </div>
     </motion.div>

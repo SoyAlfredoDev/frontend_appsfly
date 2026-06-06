@@ -32,6 +32,8 @@ import {
 } from "react-icons/fa";
 
 import { getClosureStatus, closeAllPendingClosures } from "../../api/dailySales.js";
+import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
+import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineItem.jsx";
 import {
   PRIMARY_BTN,
   PRIMARY_BTN_BLOCK,
@@ -56,8 +58,6 @@ import {
   TBODY,
   ACTION_DELETE,
   PAGE_HEADER_CARD,
-  containerVariants,
-  itemVariants,
   formatRecordCount,
 } from "../../utils/expenseUiPatterns.js";
 
@@ -87,6 +87,9 @@ function formatPendingClosureDate(dateStr) {
   });
 }
 
+/** Evita toasts duplicados al remontar (React Strict Mode). */
+let lastClosureToastKey = null;
+
 export default function NewSalePage() {
   const toast = useToast();
   const confirm = useConfirm();
@@ -105,7 +108,7 @@ export default function NewSalePage() {
   // Totals
   const [total, setTotal] = useState(0);
   const [totalPayments, setTotalPayments] = useState(0);
-  const [amountDue, setAmountDue] = useState(0);
+  const amountDue = useMemo(() => total - totalPayments, [total, totalPayments]);
 
   // Sale header
   const [dataSale, setDataSale] = useState({
@@ -179,56 +182,75 @@ export default function NewSalePage() {
   }, []);
 
   // ── Data loaders ────────────────────────────────────
-  const searchCustomers = async () => {
+  const searchCustomers = useCallback(async (signal) => {
     try {
-      const res = await getCustomers();
+      const res = await getCustomers({ signal });
       setCustomers(res.data);
       return res.data;
     } catch (error) {
-      console.log(error);
+      if (!isAbortError(error)) console.log(error);
       return [];
     }
-  };
+  }, []);
 
-  const searchProductsServices = async () => {
+  const searchProductsServices = useCallback(async (signal) => {
     try {
-      const res = await getProductsAndServices();
+      const res = await getProductsAndServices({ signal });
       setProductsServices(res);
       return res;
     } catch (error) {
-      console.log(error);
+      if (!isAbortError(error)) console.log(error);
       return [];
     }
-  };
-
-  useEffect(() => {
-    const loadData = async () => {
-      setIsDataLoading(true);
-      await Promise.all([
-        searchCustomers(),
-        searchProductsServices(),
-        checkSalesClosureStatus(),
-      ]);
-      setIsDataLoading(false);
-    };
-    loadData();
   }, []);
 
-  const checkSalesClosureStatus = async () => {
-    try {
-      const res = await getClosureStatus();
-      applyClosureStatus(res.data);
-      if (res.data?.blocked) {
-        if (res.data.error === "DAY_CLOSED") {
-          toast.info("Día cerrado", res.data.message);
-        } else {
-          toast.error("Operación bloqueada", res.data.message);
-        }
-      }
-    } catch (error) {
-      console.error("Error verificando cierre diario:", error);
+  const notifyClosureBlockOnce = useCallback((status) => {
+    if (!status?.blocked) return;
+    const key = `${status.error}:${status.fechaPendiente ?? ""}`;
+    if (lastClosureToastKey === key) return;
+    lastClosureToastKey = key;
+    if (status.error === "DAY_CLOSED") {
+      toast.info("Día cerrado", status.message);
+    } else {
+      toast.error("Operación bloqueada", status.message);
     }
-  };
+  }, [toast]);
+
+  const checkSalesClosureStatus = useCallback(async (signal) => {
+    try {
+      const res = await getClosureStatus({ signal });
+      applyClosureStatus(res.data);
+      notifyClosureBlockOnce(res.data);
+    } catch (error) {
+      if (!isAbortError(error)) {
+        console.error("Error verificando cierre diario:", error);
+      }
+    }
+  }, [applyClosureStatus, notifyClosureBlockOnce]);
+
+  useAbortEffect((signal) => {
+    const loadData = async () => {
+      setIsDataLoading(true);
+      try {
+        const [customersRes, productsRes] = await Promise.all([
+          getCustomers({ signal }),
+          getProductsAndServices({ signal }),
+        ]);
+        if (!signal.aborted) {
+          setCustomers(customersRes.data ?? []);
+          setProductsServices(productsRes ?? []);
+        }
+        await checkSalesClosureStatus(signal);
+      } catch (error) {
+        if (!isAbortError(error)) console.error(error);
+      } finally {
+        if (!signal.aborted) setIsDataLoading(false);
+      }
+    };
+    loadData();
+    // Carga inicial única al montar — evita re-fetch en loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCloseAllPending = async () => {
     const pendingCount = closureBlock?.fechasPendientes?.length ?? (closureBlock?.fechaPendiente ? 1 : 0);
@@ -368,15 +390,18 @@ export default function NewSalePage() {
     setTotalPayments(pTotal);
   };
 
-  // Recalculate amountDue whenever total or totalPayments change
+  // Sincroniza totales en el payload de venta solo cuando cambian.
   useEffect(() => {
-    const due = total - totalPayments;
-    setAmountDue(due);
-    setDataSale((prev) => ({
-      ...prev,
-      saleTotal: total,
-      saleTotalPayments: totalPayments,
-    }));
+    setDataSale((prev) => {
+      if (prev.saleTotal === total && prev.saleTotalPayments === totalPayments) {
+        return prev;
+      }
+      return {
+        ...prev,
+        saleTotal: total,
+        saleTotalPayments: totalPayments,
+      };
+    });
   }, [totalPayments, total]);
 
   // ── Submit ───────────────────────────────────────────
@@ -486,7 +511,7 @@ export default function NewSalePage() {
       <Motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="flex flex-col w-full min-h-[calc(100dvh-3.5rem)] md:min-h-dvh items-center justify-center bg-surface"
+        className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh items-center justify-center bg-surface"
       >
         <div className="text-center space-y-4">
           <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
@@ -504,25 +529,47 @@ export default function NewSalePage() {
 
   return (
     <Motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="flex flex-col w-full min-h-[calc(100dvh-3.5rem)] md:min-h-dvh bg-surface overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+      className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface pb-[4.5rem] md:pb-0"
     >
-        {/* Header — PageHeader / Expenses (full-bleed) */}
+        {/* Header — compacto en móvil */}
         <Motion.div
-          variants={itemVariants}
-          className={`${PAGE_HEADER_CARD} flex-none !rounded-none border-x-0 border-t-0 shadow-sm w-full flex-col gap-4`}
+          className="flex-none w-full border-b border-gray-200 bg-white md:bg-transparent md:border-0"
         >
+          {/* Móvil: barra superior mínima */}
+          <div className="md:hidden px-3 py-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Link
+                to="/sales"
+                className="p-2 -ml-1 text-gray-500 hover:text-gray-700 rounded-lg"
+                title="Volver"
+              >
+                <FaChevronLeft className="text-sm" />
+              </Link>
+              <div className="min-w-0">
+                <h1 className="text-base font-bold text-dark truncate">Nueva Venta</h1>
+                <p className="text-[10px] text-gray-400 truncate">{todayDate}</p>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-[10px] uppercase font-semibold text-gray-400">Total</p>
+              <p className="text-sm font-bold text-primary font-mono">{formatCurrency(total)}</p>
+            </div>
+          </div>
+
+          {/* Desktop: header completo */}
+          <div className={`hidden md:flex ${PAGE_HEADER_CARD} !rounded-none border-x-0 border-t-0 shadow-sm w-full flex-col gap-4`}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
             <div className="flex items-center gap-3">
-              <a
-                href="/sales"
+              <Link
+                to="/sales"
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Volver a Ventas"
               >
                 <FaChevronLeft className="text-sm" />
-              </a>
+              </Link>
               <div>
                 <h1 className="page-title">Nueva Venta</h1>
                 <p className="page-subtitle">
@@ -544,42 +591,38 @@ export default function NewSalePage() {
               </div>
             </div>
           </div>
+          </div>
 
-          <div className="flex items-center gap-2 w-full">
+          {/* Cliente — una sola instancia responsive */}
+          <div className="px-3 md:px-6 pb-3 flex items-center gap-2 w-full">
               <div
                 ref={customerDropdownRef}
                 className="flex-1 relative"
               >
-                {/* Selected customer display OR search input */}
                 {selectedCustomer && !isCustomerDropdownOpen ? (
                   <div
-                    className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-4 h-11 cursor-pointer hover:bg-primary/10 transition-colors"
+                    className="flex items-center gap-2 md:gap-3 bg-primary/5 border border-primary/20 rounded-lg md:rounded-xl px-3 md:px-4 h-10 md:h-11 cursor-pointer hover:bg-primary/10 transition-colors"
                     onClick={() => setIsCustomerDropdownOpen(true)}
                   >
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {selectedCustomer.customerFirstName
-                        ?.charAt(0)
-                        ?.toUpperCase()}
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">
+                      {selectedCustomer.customerFirstName?.charAt(0)?.toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
+                      <p className="text-xs md:text-sm font-semibold text-gray-800 truncate">
                         {selectedCustomer.customerFirstName}{" "}
                         {selectedCustomer.customerLastName}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {selectedCustomer.customerDocumentNumber ||
-                          "Sin documento"}
+                      <p className="hidden md:block text-xs text-gray-500 truncate">
+                        {selectedCustomer.customerDocumentNumber || "Sin documento"}
                       </p>
                     </div>
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setDataSale((prev) => ({
-                          ...prev,
-                          saleCustomerId: null,
-                        }));
+                        setDataSale((prev) => ({ ...prev, saleCustomerId: null }));
                       }}
-                      className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                      className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
                       title="Cambiar cliente"
                     >
                       <FaTimes className="text-xs" />
@@ -587,11 +630,11 @@ export default function NewSalePage() {
                   </div>
                 ) : (
                   <div className="relative">
-                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" />
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs md:text-sm pointer-events-none" />
                     <input
                       type="text"
-                      className={TABLE_SEARCH}
-                      placeholder="Buscar cliente por nombre o documento..."
+                      className={`${TABLE_SEARCH} !py-2 !text-sm !pl-9 md:!pl-10`}
+                      placeholder="Buscar cliente..."
                       value={customerSearch}
                       onChange={(e) => {
                         setCustomerSearch(e.target.value);
@@ -603,7 +646,6 @@ export default function NewSalePage() {
                   </div>
                 )}
 
-                {/* Dropdown list */}
                 <AnimatePresence>
                   {isCustomerDropdownOpen && (
                     <Motion.div
@@ -611,31 +653,32 @@ export default function NewSalePage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto"
+                      className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg md:rounded-xl shadow-lg max-h-48 md:max-h-52 overflow-y-auto"
                     >
                       {filteredCustomers.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-sm text-gray-400">
+                        <div className="px-3 py-4 text-center text-xs md:text-sm text-gray-400">
                           No se encontraron clientes
                         </div>
                       ) : (
                         filteredCustomers.map((c) => (
                           <button
                             key={c.customerId}
-                            className={`w-full flex items-center gap-3 px-4 h-10 text-left hover:bg-primary/5 transition-colors text-sm ${c.customerId === dataSale.saleCustomerId ? "bg-primary/10" : ""}`}
-                            onClick={() =>
-                              handleChangeCustomerSelect(c.customerId)
-                            }
+                            type="button"
+                            className={`w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 h-9 md:h-10 text-left hover:bg-primary/5 transition-colors text-xs md:text-sm ${c.customerId === dataSale.saleCustomerId ? "bg-primary/10" : ""}`}
+                            onClick={() => handleChangeCustomerSelect(c.customerId)}
                           >
-                            <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs flex-shrink-0">
+                            <div className="hidden md:flex w-7 h-7 rounded-full bg-gray-200 items-center justify-center text-gray-600 font-bold text-xs shrink-0">
                               {c.customerFirstName?.charAt(0)?.toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-gray-800 truncate">
                                 {c.customerFirstName} {c.customerLastName}
                               </p>
-                              <p className="text-xs text-gray-400 truncate">
-                                {c.customerDocumentNumber || "—"}
-                              </p>
+                              {c.customerDocumentNumber && (
+                                <p className="hidden md:block text-xs text-gray-400 truncate">
+                                  {c.customerDocumentNumber}
+                                </p>
+                              )}
                             </div>
                           </button>
                         ))
@@ -645,30 +688,29 @@ export default function NewSalePage() {
                 </AnimatePresence>
               </div>
 
-              {/* New Customer button */}
               <NewCustomerModal
                 trigger={
-                  <button type="button" className={PRIMARY_BTN} title="Registrar Cliente" disabled={isSalesBlocked}>
+                  <button type="button" className={`${PRIMARY_BTN} !px-3 !py-2 h-10 shrink-0`} title="Registrar Cliente" disabled={isSalesBlocked}>
                     <FaUserPlus className="text-sm" />
-                    <span className="hidden sm:inline">Nuevo</span>
+                    <span className="hidden lg:inline ml-1">Nuevo</span>
                   </button>
                 }
-                title={"Registrar Cliente"}
+                title="Registrar Cliente"
                 onCreated={handleCreated}
               />
 
               {dataSale.saleCustomerId && (
-                <a
-                  href={`/customers/${dataSale.saleCustomerId}`}
+                <Link
+                  to={`/customers/${dataSale.saleCustomerId}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center w-10 h-10 text-secondary hover:bg-secondary/10 rounded-lg transition-colors border border-slate-200"
+                  className="hidden sm:flex items-center justify-center w-10 h-10 text-secondary hover:bg-secondary/10 rounded-lg transition-colors border border-slate-200 shrink-0"
                   title="Ver Ficha Cliente"
                 >
                   <FaSearch className="text-xs" />
-                </a>
+                </Link>
               )}
-            </div>
+          </div>
         </Motion.div>
 
         {/* Banner de bloqueo por cierre pendiente o día cerrado */}
@@ -679,18 +721,18 @@ export default function NewSalePage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -10 }}
               transition={{ duration: 0.28, ease: "easeOut" }}
-              className="flex-none mx-4 md:mx-6 mt-4 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 shadow-sm overflow-hidden"
+              className="flex-none mx-3 md:mx-6 mt-3 md:mt-4 rounded-lg md:rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 shadow-sm overflow-hidden"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
-                <div className="flex items-start gap-4 flex-1 min-w-0">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
-                    <FaExclamationTriangle className="text-amber-600 text-xl" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4 p-3 md:p-5">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="flex-shrink-0 w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-amber-100 flex items-center justify-center">
+                    <FaExclamationTriangle className="text-amber-600 text-base md:text-xl" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-base font-bold text-gray-900">
+                    <h2 className="text-sm md:text-base font-bold text-gray-900">
                       Operación bloqueada
                     </h2>
-                    <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                    <p className="text-xs md:text-sm text-gray-600 mt-0.5 leading-relaxed">
                       {closureBlock?.error === "DAY_CLOSED" ? (
                         closureBlock.message
                       ) : (
@@ -737,11 +779,25 @@ export default function NewSalePage() {
           }`}
         >
 
-        {/* KPI Cards — ExpensesPage */}
-        <Motion.div
-          variants={itemVariants}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-4 px-6 py-4 border-b border-gray-200 bg-surface flex-none"
-        >
+        {/* KPI — tira compacta móvil / cards desktop */}
+        <div className="md:hidden flex gap-2 px-3 py-2 border-b border-gray-200 bg-surface flex-none overflow-x-auto">
+          <div className="flex-shrink-0 rounded-lg bg-white border border-gray-200 px-3 py-2 min-w-[72px]">
+            <p className="text-[10px] font-semibold uppercase text-gray-400">Items</p>
+            <p className="text-sm font-bold text-gray-900">{itemCount}</p>
+          </div>
+          <div className="flex-shrink-0 rounded-lg bg-white border border-gray-200 px-3 py-2 min-w-[88px]">
+            <p className="text-[10px] font-semibold uppercase text-gray-400">Abonado</p>
+            <p className="text-sm font-bold text-primary font-mono">{formatCurrency(totalPayments)}</p>
+          </div>
+          <div className="flex-shrink-0 rounded-lg bg-white border border-gray-200 px-3 py-2 min-w-[88px]">
+            <p className="text-[10px] font-semibold uppercase text-gray-400">Saldo</p>
+            <p className={`text-sm font-bold font-mono ${amountDue > 0 ? "text-red-500" : "text-gray-900"}`}>
+              {formatCurrency(amountDue)}
+            </p>
+          </div>
+        </div>
+
+        <div className="hidden md:grid grid-cols-3 gap-4 px-6 py-4 border-b border-gray-200 bg-surface flex-none">
           <div className={KPI_CARD}>
             <div className={KPI_ICON_PRIMARY}>
               <FaMoneyBillWave className="text-xl" />
@@ -769,14 +825,79 @@ export default function NewSalePage() {
               <p className={KPI_VALUE}>{formatCurrency(amountDue)}</p>
             </div>
           </div>
-        </Motion.div>
+        </div>
 
-        {/* Tabla de productos — patrón ExpensesPage */}
-        <div className="flex-1 overflow-y-auto w-full">
-          <Motion.div
-            variants={itemVariants}
-            className={TABLE_WRAPPER_FULL}
-          >
+        {/* Items — tarjetas móvil / tabla desktop */}
+        <div className="flex-1 min-h-0 overflow-y-auto w-full">
+          {/* Móvil */}
+          <div className="md:hidden px-3 py-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-800">Productos</h2>
+                <p className="text-[10px] text-gray-500">{formatRecordCount(itemCount)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={newRow}
+                className={`${PRIMARY_BTN} !py-1.5 !px-3 !text-xs`}
+                disabled={isSalesBlocked}
+              >
+                <FaPlus className="text-[10px]" /> Agregar
+              </button>
+            </div>
+
+            {dataTable.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-gray-400">
+                <FaBoxOpen className="text-3xl mx-auto mb-2 text-gray-300" />
+                <p className="text-sm font-medium">Sin productos</p>
+                <p className="text-xs mt-1">Toca Agregar para comenzar</p>
+              </div>
+            ) : (
+              dataTable.map((d, index) => (
+                <SaleLineItemMobileCard
+                  key={d.saleDetailId}
+                  row={d}
+                  index={index}
+                  productsServices={productsServices}
+                  onSelectProduct={handleChangeSelect}
+                  onAmountStep={handleAmountStep}
+                  onAmountInput={handleOnInput}
+                  onPriceInput={handleOnInput}
+                  onDelete={() => handleDeleteRow(d.saleDetailId)}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Móvil: pagos y comentarios (scroll) */}
+          <div className="md:hidden px-3 pb-4 space-y-3 border-t border-gray-100 pt-3 mt-1">
+            <div>
+              <h2 className="text-xs font-semibold text-gray-800 mb-2">Métodos de pago</h2>
+              <CardRegisterPayments sendPayments={handlePayments} />
+            </div>
+            <div>
+              <h2 className="text-xs font-semibold text-gray-800 mb-2">Comentarios</h2>
+              <textarea
+                className={`${TABLE_INPUT} resize-none w-full text-sm min-h-[64px]`}
+                placeholder="Notas sobre la venta..."
+                value={dataSale.saleComment || ""}
+                onChange={(e) =>
+                  setDataSale((prev) => ({ ...prev, saleComment: e.target.value }))
+                }
+              />
+            </div>
+            {total > 0 && (
+              <div className="flex justify-between text-xs pt-1 border-t border-gray-100">
+                <span className="text-primary font-medium">Abonado: {formatCurrency(totalPayments)}</span>
+                <span className={`font-semibold ${amountDue > 0 ? "text-red-500" : "text-gray-400"}`}>
+                  Saldo: {formatCurrency(amountDue)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop */}
+          <div className={`hidden md:block ${TABLE_WRAPPER_FULL}`}>
             <div className={TABLE_TOOLBAR}>
               <div>
                 <h2 className={TABLE_SECTION_TITLE}>Productos y Servicios</h2>
@@ -958,22 +1079,16 @@ export default function NewSalePage() {
               </table>
             </div>
 
-            {/* Add Row Button */}
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 hidden md:block">
               <button type="button" onClick={newRow} className={PRIMARY_BTN_BLOCK} disabled={isSalesBlocked}>
                 <FaPlus /> Agregar Item
               </button>
             </div>
-          </Motion.div>
+          </div>
         </div>
 
-        {/* ═══════════════════════════════════════════
-                    3. FOOTER — Comments, Payments, Summary
-                   ═══════════════════════════════════════════ */}
-        <Motion.div
-          variants={itemVariants}
-          className="bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(2,31,65,0.05)] flex-none z-20 w-full"
-        >
+        {/* FOOTER — scroll en móvil; desktop igual que antes */}
+        <div className="hidden md:block bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(2,31,65,0.05)] flex-none z-20 w-full shrink-0">
           <div className="w-full flex flex-col lg:flex-row">
             <div className="lg:w-1/4 p-6 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
               <h2 className={TABLE_SECTION_TITLE}>Comentarios</h2>
@@ -1075,7 +1190,40 @@ export default function NewSalePage() {
               </button>
             </div>
           </div>
-        </Motion.div>
+        </div>
+        </div>
+
+        {/* Móvil: barra fija inferior tipo POS */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-[0_-4px_24px_rgba(2,31,65,0.12)] px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+          <div className="flex items-center gap-3 max-w-lg mx-auto">
+            <div className="shrink-0">
+              <p className="text-[10px] uppercase font-semibold text-gray-400 leading-none">Total</p>
+              <p className="text-base font-extrabold text-gray-900 font-mono leading-tight">
+                {formatCurrency(total)}
+              </p>
+              {amountDue > 0 && (
+                <p className="text-[10px] text-red-500 font-semibold">Saldo {formatCurrency(amountDue)}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className={`${PRIMARY_BTN} flex-1 justify-center !py-3 !text-sm font-semibold`}
+              disabled={isLoading || isSalesBlocked}
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <FaSave />
+                  Finalizar venta
+                </>
+              )}
+            </button>
+          </div>
         </div>
     </Motion.div>
   );

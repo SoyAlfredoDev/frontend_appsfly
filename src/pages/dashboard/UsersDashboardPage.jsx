@@ -207,17 +207,20 @@ export default function UsersDashboardPage() {
 }
 
 const toneStyles = {
-  primary: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/15",
-  secondary: "bg-secondary/10 text-secondary border-secondary/20 hover:bg-secondary/15",
-  neutral: "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100",
-  dark: "bg-dark/10 text-dark border-dark/15 hover:bg-dark/15",
+  primary:
+    "bg-primary text-white border-primary hover:bg-primary-hover shadow-sm hover:shadow-md",
+  secondary:
+    "bg-white text-secondary border-slate-200 hover:border-secondary/35 hover:shadow-md",
+  neutral:
+    "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-sm hover:shadow-md",
+  dark: "bg-white text-dark border-slate-200 hover:border-dark/25 shadow-sm hover:shadow-md",
 };
 
 function QuickAccessLink({ to, label, icon, tone = "neutral" }) {
   return (
     <Link to={to} className="no-underline">
       <motion.div
-        className={`p-4 rounded-xl border transition-all duration-200 flex flex-col items-center justify-center gap-3 text-center h-full shadow-sm hover:shadow-md ${toneStyles[tone]}`}
+        className={`p-4 rounded-xl border transition-all duration-200 flex flex-col items-center justify-center gap-3 text-center h-full ${toneStyles[tone]}`}
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
       >

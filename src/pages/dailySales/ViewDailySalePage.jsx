@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import {
@@ -22,6 +22,7 @@ import {
   FaClock,
 } from "react-icons/fa";
 import { getDailySaleDetail } from "../../api/dailySales.js";
+import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import ExpensePageLayout, { ExpenseAnimatedSection } from "../../components/ui/ExpensePageLayout.jsx";
 import ExpenseTableCard, { ExpenseTableScroll } from "../../components/ui/ExpenseTableCard.jsx";
 import {
@@ -54,16 +55,16 @@ export default function ViewDailySalePage() {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useAbortEffect((signal) => {
     const fetchDetail = async () => {
       try {
         setLoading(true);
-        const res = await getDailySaleDetail(id);
+        const res = await getDailySaleDetail(id, { signal });
         setDetail(res.data);
       } catch (error) {
-        console.error("Error fetching detail:", error);
+        if (!isAbortError(error)) console.error("Error fetching detail:", error);
       } finally {
-        setLoading(false);
+        if (!signal.aborted) setLoading(false);
       }
     };
     fetchDetail();

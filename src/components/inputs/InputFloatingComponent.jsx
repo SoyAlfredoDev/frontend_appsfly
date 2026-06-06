@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
+
 export default function InputFloatingComponent({
     label,
     type = 'text',
@@ -10,7 +13,17 @@ export default function InputFloatingComponent({
     autoComplete = undefined,
     isValid = '',
     disabled = false,
+    showPasswordToggle = false,
+    inputMode = undefined,
+    maxLength = undefined,
+    spellCheck = undefined,
+    autoCapitalize = undefined,
 }) {
+    const [passwordVisible, setPasswordVisible] = useState(false);
+    const isPasswordField = type === 'password';
+    const resolvedType = isPasswordField && showPasswordToggle && passwordVisible ? 'text' : type;
+    const hasPasswordToggle = isPasswordField && showPasswordToggle;
+
     const borderColor = isValid === true
         ? 'border-primary focus:border-primary'
         : isValid === false
@@ -20,12 +33,13 @@ export default function InputFloatingComponent({
     return (
         <div className={`relative ${className}`}>
             <input
-                type={type}
+                type={resolvedType}
                 id={name}
                 name={name}
                 className={`
                     block px-3 pb-2 pt-4 w-full text-sm text-slate-800 bg-white rounded-lg border
                     appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 peer transition-colors
+                    ${hasPasswordToggle ? 'pr-10' : ''}
                     ${borderColor}
                     ${readOnly || disabled ? 'bg-slate-50 cursor-not-allowed' : ''}
                 `}
@@ -36,7 +50,28 @@ export default function InputFloatingComponent({
                 readOnly={readOnly}
                 disabled={disabled}
                 autoComplete={autoComplete}
+                inputMode={inputMode}
+                maxLength={maxLength}
+                spellCheck={spellCheck}
+                autoCapitalize={autoCapitalize}
             />
+            {hasPasswordToggle && (
+                <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none focus:text-primary rounded-r-lg disabled:opacity-50"
+                    onClick={() => setPasswordVisible((visible) => !visible)}
+                    aria-label={passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    aria-pressed={passwordVisible}
+                    disabled={disabled || readOnly}
+                    tabIndex={0}
+                >
+                    {passwordVisible ? (
+                        <FaEyeSlash className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                        <FaEye className="h-4 w-4" aria-hidden="true" />
+                    )}
+                </button>
+            )}
             <label
                 htmlFor={name}
                 className={`

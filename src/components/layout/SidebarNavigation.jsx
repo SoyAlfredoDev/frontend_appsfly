@@ -1,10 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../../context/authContext.jsx";
-import formatName from "../../utils/formatName.js";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaBars, FaTimes, FaSignOutAlt } from "react-icons/fa";
+import { FaBars, FaTimes, FaSignOutAlt, FaUserCircle } from "react-icons/fa";
+import { useAuth } from "../../context/authContext.jsx";
+import useTenantSubscriptionBlock from "../../hooks/useTenantSubscriptionBlock.js";
+import formatName from "../../utils/formatName.js";
 import { NAV_ITEMS } from "./navigationConfig.js";
+
+const PROFILE_NAV = [{ name: "Mi perfil", path: "/profile", icon: FaUserCircle }];
 
 function NavLinks({ items, isActive, onNavigate, variant = "sidebar" }) {
   return items.map((item) => {
@@ -43,23 +46,24 @@ function NavLinks({ items, isActive, onNavigate, variant = "sidebar" }) {
 }
 
 export default function SidebarNavigation() {
-  const { user, logout, subscriptions } = useAuth();
+  const { user, logout } = useAuth();
+  const { subscriptionLocked } = useTenantSubscriptionBlock();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
-  const filteredItems = NAV_ITEMS.filter(() => subscriptions.length > 0);
+  const filteredItems = subscriptionLocked ? PROFILE_NAV : NAV_ITEMS;
 
   const closeMobile = () => setMobileOpen(false);
+  const homePath = subscriptionLocked ? "/profile" : "/dashboard";
 
   return (
     <>
-      {/* Desktop Sidebar */}
       <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[260px] flex-col bg-dark border-r border-white/5">
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-5 shrink-0">
-          <Link to="/dashboard" className="no-underline group">
+          <Link to={homePath} className="no-underline group">
             <img
               src="/logo-appsfly-white.png"
               alt="AppsFly"
@@ -69,6 +73,11 @@ export default function SidebarNavigation() {
         </div>
 
         <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 py-4 space-y-1">
+          {subscriptionLocked && (
+            <p className="mb-3 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-3 text-xs text-amber-200/90 leading-relaxed">
+              Membresía inactiva. Solo Perfil y Cerrar sesión están disponibles.
+            </p>
+          )}
           <NavLinks items={filteredItems} isActive={isActive} />
         </nav>
 
@@ -92,13 +101,10 @@ export default function SidebarNavigation() {
         </div>
       </aside>
 
-      {/* Mobile Top Bar */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-dark border-b border-white/10 shadow-lg">
         <div className="flex h-full items-center justify-between px-4">
-          <Link to="/dashboard" className="no-underline">
-            <span className="text-lg font-bold font-display text-white">
-              AppsFly
-            </span>
+          <Link to={homePath} className="no-underline">
+            <span className="text-lg font-bold font-display text-white">AppsFly</span>
           </Link>
           <button
             type="button"
@@ -111,7 +117,6 @@ export default function SidebarNavigation() {
         </div>
       </header>
 
-      {/* Mobile Drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -131,9 +136,7 @@ export default function SidebarNavigation() {
               className="md:hidden fixed top-0 right-0 bottom-0 z-50 w-[min(85vw,320px)] bg-dark border-l border-white/10 flex flex-col shadow-2xl"
             >
               <div className="flex h-14 items-center justify-between border-b border-white/10 px-4 shrink-0">
-                <span className="text-sm font-semibold text-slate-300">
-                  Menú
-                </span>
+                <span className="text-sm font-semibold text-slate-300">Menú</span>
                 <button
                   type="button"
                   onClick={closeMobile}
@@ -148,6 +151,11 @@ export default function SidebarNavigation() {
                   <div className="mb-4 rounded-lg bg-white/5 px-3 py-2 text-sm text-slate-300">
                     {formatName(user?.userFirstName)}
                   </div>
+                )}
+                {subscriptionLocked && (
+                  <p className="mb-3 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-3 text-xs text-amber-200/90">
+                    Membresía inactiva. Accede a Perfil o renueva tu plan.
+                  </p>
                 )}
                 <NavLinks
                   items={filteredItems}

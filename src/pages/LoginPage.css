@@ -1,21 +1,178 @@
-.login-container {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #4caf50, #2e7d32);
-    padding: 20px;
+/* Login — capa premium AppsFly (#021f41 / #01c676 / #094fd1) */
+
+.login-page {
+    position: relative;
+    min-height: 100dvh;
+    width: 100%;
+    background-color: #021f41;
+    overflow: hidden;
+}
+
+.login-page__ambient {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 80% 60% at 10% 15%, rgba(1, 198, 118, 0.14), transparent 55%),
+        radial-gradient(ellipse 70% 55% at 92% 88%, rgba(9, 79, 209, 0.22), transparent 50%),
+        linear-gradient(165deg, #021f41 0%, #0a2d52 48%, #021f41 100%);
+}
+
+.login-page__grid {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    min-height: 100dvh;
+    width: 100%;
+}
+
+.login-brand-panel {
+    display: none;
+    width: 44%;
+    max-width: 520px;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2.5rem 2.75rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+@media (min-width: 1024px) {
+    .login-brand-panel {
+        display: flex;
+    }
+}
+
+.login-brand-panel__accent-line {
+    width: 3rem;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #01c676, #094fd1);
+    margin-bottom: 1.25rem;
+}
+
+.login-form-column {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+}
+
+@media (min-width: 640px) {
+    .login-form-column {
+        padding: 2rem 1.5rem;
+    }
 }
 
 .login-card {
-    max-width: 500px;
     width: 100%;
+    max-width: 28rem;
+    padding: 2rem 1.75rem;
     border-radius: 1rem;
-    background-color: white;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(9, 79, 209, 0.1);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 25px 50px -12px rgba(2, 31, 65, 0.55),
+        0 12px 24px -8px rgba(9, 79, 209, 0.12);
 }
 
-.login-card .logo {
-    max-width: 180px;
+@media (min-width: 640px) {
+    .login-card {
+        padding: 2.5rem 2.25rem;
+    }
 }
 
-.login-card h1 {
-    font-weight: bold;
-    color: #2e7d32;
+.login-card__logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.75rem;
+}
+
+.login-card__logo {
+    height: 2.75rem;
+    width: auto;
+    object-fit: contain;
+}
+
+@media (min-width: 640px) {
+    .login-card__logo {
+        height: 3rem;
+    }
+}
+
+.login-link {
+    color: #094fd1;
+    font-weight: 600;
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.login-link:hover {
+    color: #073da3;
+    opacity: 0.9;
+}
+
+.login-link-muted {
+    color: rgba(255, 255, 255, 0.55);
+    transition: color 0.2s ease;
+}
+
+.login-link-muted:hover {
+    color: #01c676;
+}
+
+.login-submit-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #fff;
+    background-color: #01c676;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(1, 198, 118, 0.35);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-submit-btn:hover:not(:disabled) {
+    background-color: #01a866;
+    box-shadow: 0 6px 20px rgba(1, 198, 118, 0.4);
+}
+
+.login-submit-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(1, 198, 118, 0.45);
+}
+
+.login-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.login-ghost-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    text-decoration: none;
+}
+
+.login-ghost-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #021f41;
 }

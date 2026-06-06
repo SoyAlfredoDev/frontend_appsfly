@@ -6,5 +6,5 @@ export const userGuestExistsRequest = (email) =>
   axios.get(`/userGuest/exists/${email}`);
 export const responseUserGuestRequest = (data) =>
   axios.put("/userGuest/update/", data);
-export const getUserGuestByBusinessIdRequest = (businessId) =>
-  axios.get(`/userGuest/${businessId}`);
+export const getUserGuestByBusinessIdRequest = (businessId, config) =>
+  axios.get(`/userGuest/${businessId}`, config);

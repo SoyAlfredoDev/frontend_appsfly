@@ -1,22 +1,24 @@
 import { useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
+import { motion } from "framer-motion";
+import { FaArrowLeft, FaSpinner } from "react-icons/fa";
 import InputFloatingComponent from "../components/inputs/InputFloatingComponent";
 import { useAuth } from "../context/authContext.jsx";
-import logoappsfly from "../../public/logo_appsfly.png";
-import { motion } from "framer-motion";
+import { useToast } from "../context/ToastContext.jsx";
 import { getLoginErrorMessage, isServerUnavailableError } from "../utils/apiErrors.js";
+import "./LoginPage.css";
+
+const LOGO_SRC = "/logo_appsfly.png";
 
 export default function LoginPage() {
     const { signin } = useAuth();
     const navigate = useNavigate();
-    const [error, setError] = useState(null);
+    const toast = useToast();
     const [loading, setLoading] = useState(false);
-    const [serverError, setServerError] = useState(false);
-    const [serverMessage, setServerMessage] = useState("");
 
     const [formData, setFormData] = useState({
-        userEmail: '',
-        userPassword: ''
+        userEmail: "",
+        userPassword: "",
     });
 
     const handleInputChange = (e) => {
@@ -29,129 +31,180 @@ export default function LoginPage() {
 
     const handleOnSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
-        setServerError(false);
-        setServerMessage("");
+        if (loading) return;
+
+        const payload = {
+            userEmail: formData.userEmail.trim().toLowerCase(),
+            userPassword: formData.userPassword,
+        };
+
+        if (!payload.userEmail || !payload.userPassword) {
+            toast.error("Campos incompletos", "Completa correo y contraseña.");
+            return;
+        }
+
         setLoading(true);
 
         try {
-            await signin(formData);
-            navigate('/dashboard');
-        } catch (error) {
-            console.error(error);
+            await signin(payload);
+            navigate("/dashboard");
+        } catch (submitError) {
+            console.error(submitError);
 
-            if (isServerUnavailableError(error)) {
-                setServerError(true);
-                setServerMessage(getLoginErrorMessage(error));
+            if (isServerUnavailableError(submitError)) {
+                toast.error(
+                    "Servicio no disponible",
+                    getLoginErrorMessage(submitError),
+                );
             } else {
-                setError(getLoginErrorMessage(error));
+                toast.error(
+                    "Error al iniciar sesión",
+                    getLoginErrorMessage(submitError),
+                );
             }
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-surface px-4">
-            <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="bg-white p-8 md:p-10 rounded-xl shadow-lg w-full max-w-sm border border-slate-100"
-            >
-                <div className="text-center mb-8">
-                    <Link to="/">
+        <div className="login-page">
+            <div className="login-page__ambient" aria-hidden="true" />
+
+            <div className="login-page__grid">
+                <aside className="login-brand-panel" aria-hidden="true">
+                    <Link to="/" className="inline-block">
                         <img
-                            src={logoappsfly}
-                            className="h-12 mx-auto mb-5 object-contain"
-                            alt="AppsFly"
+                            src="/logo-appsfly-white.png"
+                            alt=""
+                            className="h-9 w-auto object-contain opacity-95"
                         />
                     </Link>
-                    <h2 className="text-2xl font-bold text-dark font-display">Bienvenido</h2>
-                    <p className="text-slate-500 text-sm mt-2">Ingresa a tu cuenta para continuar</p>
-                </div>
 
-                {serverError && (
-                    <div className="bg-amber-50 text-amber-800 px-4 py-3 rounded-lg mb-6 text-sm font-medium border border-amber-100 flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                            <svg className="w-5 h-5 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                            <span className="font-bold">Servicio no disponible</span>
-                        </div>
-                        <p className="pl-7 text-xs opacity-90">
-                            {serverMessage}
+                    <div className="max-w-sm">
+                        <div className="login-brand-panel__accent-line" />
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
+                            Plataforma B2B
+                        </p>
+                        <h1 className="text-3xl xl:text-[2rem] font-bold font-display text-white leading-tight">
+                            Operaciones claras.
+                            <span className="block text-primary mt-1">Decisiones rápidas.</span>
+                        </h1>
+                        <p className="mt-4 text-sm text-white/70 leading-relaxed font-sans">
+                            Ventas, inventario, gastos y reportes en un solo ecosistema.
+                            Accede con tu cuenta corporativa.
                         </p>
                     </div>
-                )}
 
-                {error && !serverError && (
-                    <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm font-medium border border-red-100 flex items-center gap-2">
-                         <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        {error}
-                    </div>
-                )}
+                    <p className="text-xs text-white/40 font-sans">
+                        © {new Date().getFullYear()} AppsFly. Todos los derechos reservados.
+                    </p>
+                </aside>
 
-                <form onSubmit={handleOnSubmit} className="space-y-5">
-                    <InputFloatingComponent
-                        label="Correo electrónico"
-                        type="email"
-                        name="userEmail"
-                        value={formData.userEmail}
-                        onChange={handleInputChange}
-                        required
-                        autoComplete="email"
-                    />
+                <main className="login-form-column">
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="w-full flex justify-center"
+                    >
+                        <div className="login-card">
+                            <div className="login-card__logo-wrap">
+                                <Link to="/" className="inline-block">
+                                    <img
+                                        src={LOGO_SRC}
+                                        className="login-card__logo"
+                                        alt="AppsFly"
+                                    />
+                                </Link>
+                            </div>
 
-                    <div className="space-y-1">
-                        <InputFloatingComponent
-                            label="Contraseña"
-                            type="password"
-                            name="userPassword"
-                            value={formData.userPassword}
-                            onChange={handleInputChange}
-                            required
-                            autoComplete="current-password"
-                        />
-                        <div className="flex justify-end mt-1">
-                            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:text-primary-hover transition-colors focus:outline-none focus:underline">
-                                ¿Olvidaste tu contraseña?
-                            </Link>
+                            <div className="text-center mb-8">
+                                <h2 className="text-2xl font-bold text-dark font-display tracking-tight">
+                                    Bienvenido
+                                </h2>
+                                <p className="text-slate-500 text-sm mt-2 font-sans">
+                                    Ingresa a tu cuenta para continuar
+                                </p>
+                            </div>
+
+                            <form onSubmit={handleOnSubmit} className="space-y-6">
+                                <InputFloatingComponent
+                                    label="Correo electrónico"
+                                    type="email"
+                                    name="userEmail"
+                                    value={formData.userEmail}
+                                    onChange={handleInputChange}
+                                    required
+                                    autoComplete="email"
+                                    inputMode="email"
+                                    autoCapitalize="none"
+                                    spellCheck={false}
+                                    maxLength={254}
+                                    disabled={loading}
+                                />
+
+                                <div className="space-y-2">
+                                    <InputFloatingComponent
+                                        label="Contraseña"
+                                        type="password"
+                                        name="userPassword"
+                                        value={formData.userPassword}
+                                        onChange={handleInputChange}
+                                        required
+                                        autoComplete="current-password"
+                                        showPasswordToggle
+                                        maxLength={128}
+                                        disabled={loading}
+                                    />
+                                    <div className="flex justify-end">
+                                        <Link
+                                            to="/forgot-password"
+                                            className="login-link text-xs focus:outline-none focus-visible:underline"
+                                        >
+                                            ¿Olvidaste tu contraseña?
+                                        </Link>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-1">
+                                    <motion.button
+                                        type="submit"
+                                        disabled={loading}
+                                        whileHover={loading ? undefined : { scale: 1.02 }}
+                                        whileTap={loading ? undefined : { scale: 0.98 }}
+                                        transition={{ type: "spring", stiffness: 400, damping: 24 }}
+                                        className="login-submit-btn"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <FaSpinner className="animate-spin h-4 w-4" aria-hidden="true" />
+                                                <span>Iniciando sesión...</span>
+                                            </>
+                                        ) : (
+                                            "Iniciar sesión"
+                                        )}
+                                    </motion.button>
+
+                                    <Link to="/" className="login-ghost-btn">
+                                        <FaArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                        Volver al inicio
+                                    </Link>
+                                </div>
+                            </form>
+
+                            <p className="mt-8 text-center text-xs text-slate-500 font-sans">
+                                ¿No tienes una cuenta?{" "}
+                                <Link
+                                    to="/register"
+                                    className="login-link text-xs focus:outline-none focus-visible:underline"
+                                >
+                                    Regístrate aquí
+                                </Link>
+                            </p>
                         </div>
-                    </div>
-
-                    <div className="pt-2 space-y-3">
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="btn-primary w-full py-3 disabled:opacity-70"
-                        >
-                            {loading ? (
-                                <>
-                                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span>Iniciando...</span>
-                                </>
-                            ) : (
-                                'Iniciar Sesión'
-                            )}
-                        </button>
-                        
-                        <Link 
-                            to="/" 
-                            className="btn-ghost w-full py-3 flex items-center justify-center"
-                        >
-                            Volver al inicio
-                        </Link>
-                    </div>
-                </form>
-                
-                <div className="mt-8 text-center text-xs text-slate-500">
-                    ¿No tienes una cuenta?{' '}
-                    <Link to="/register" className="font-bold text-primary hover:text-primary-hover transition-colors">
-                        Regístrate aquí
-                    </Link>
-                </div>
-            </motion.div>
+                    </motion.div>
+                </main>
+            </div>
         </div>
     );
 }

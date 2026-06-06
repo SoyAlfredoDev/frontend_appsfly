@@ -10,6 +10,7 @@ import {
   FaReceipt,
   FaExchangeAlt,
   FaCalendarCheck,
+  FaFileAlt,
 } from "react-icons/fa";
 
 export const NAV_ITEMS = [
@@ -21,6 +22,7 @@ export const NAV_ITEMS = [
   { name: "Compras", path: "/purchase", icon: FaTruck },
   { name: "Proveedores", path: "/providers", icon: FaStore },
   { name: "Gastos", path: "/expenses", icon: FaReceipt },
+  { name: "Reportes", path: "/reports", icon: FaFileAlt },
   { name: "Transacciones", path: "/transactions", icon: FaExchangeAlt },
   { name: "Usuarios", path: "/users", icon: FaUserFriends },
   { name: "Perfil", path: "/profile", icon: FaUserCircle },

@@ -1,10 +1,18 @@
-import { useContext, useState, createContext, useEffect } from "react";
+import { useContext, useState, createContext, useEffect, useMemo, useCallback } from "react";
 import { registerRequest, loginRequest, logoutRequest, authVerifyRequest } from "../api/auth.js";
 import { userGuestExistsRequest } from "../api/userGuest.js";
 import { getUserBusinessById } from '../api/userBusiness.js';
 import { getUserByIdRequest, userIsSuperAdminRequest } from "../api/user.js";
 import { getSubscriptionsByBusinessIdRequest } from "../api/subscription.js";
 import { getBusinessByIdRequest } from "../api/business.js";
+import {
+    getSubscriptionAccessState,
+    hasActiveSubscription as checkActiveSubscription,
+    hasSubscriptionHistory as checkSubscriptionHistory,
+    canClaimFreeTrial as checkCanClaimFreeTrial,
+    isFirstTimeSubscriber as checkFirstTimeSubscriber,
+    isExpiredSubscriber as checkExpiredSubscriber,
+} from "../utils/subscriptionAccess.js";
 
 export const AuthContext = createContext();
 
@@ -22,8 +30,58 @@ export const AuthProvider = ({ children }) => {
     const [subscriptions, setSubscriptions] = useState([]);
     const [businessSelected, setBusinessSelected] = useState(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
+    const [tenantAccessReady, setTenantAccessReady] = useState(false);
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [business, setBusiness] = useState(null);
+
+    const subscriptionAccess = useMemo(
+        () => getSubscriptionAccessState(subscriptions),
+        [subscriptions],
+    );
+
+    const hasActiveSubscription = useMemo(
+        () => checkActiveSubscription(subscriptions),
+        [subscriptions],
+    );
+
+    const hasSubscriptionHistory = useMemo(
+        () => checkSubscriptionHistory(subscriptions),
+        [subscriptions],
+    );
+
+    const canClaimFreeTrial = useMemo(
+        () => checkCanClaimFreeTrial(subscriptions),
+        [subscriptions],
+    );
+
+    const isFirstTimeSubscriber = useMemo(
+        () => checkFirstTimeSubscriber(subscriptions),
+        [subscriptions],
+    );
+
+    const isExpiredSubscriber = useMemo(
+        () => checkExpiredSubscriber(subscriptions),
+        [subscriptions],
+    );
+
+    const refreshSubscriptions = useCallback(async () => {
+        const businessId =
+            businessSelected?.userBusinessBusinessId ?? businessSelected?.businessId;
+        if (!businessId) {
+            setSubscriptions([]);
+            return [];
+        }
+        try {
+            const res = await getSubscriptionsByBusinessIdRequest(businessId);
+            const list = Array.isArray(res.data) ? res.data : [];
+            setSubscriptions(list);
+            return list;
+        } catch (error) {
+            console.error("Error fetching subscriptions:", error);
+            setSubscriptions([]);
+            return [];
+        }
+    }, [businessSelected]);
 
     // Check if the user has pending guest invitations
     const searchUserGuestExists = async (email) => {
@@ -80,9 +138,13 @@ export const AuthProvider = ({ children }) => {
     const getSubscriptionsByBusinessId = async (businessId) => {
         try {
             const res = await getSubscriptionsByBusinessIdRequest(businessId);
-            setSubscriptions(res.data);
+            const list = Array.isArray(res.data) ? res.data : [];
+            setSubscriptions(list);
+            return list;
         } catch (error) {
             console.error("Error fetching subscriptions:", error);
+            setSubscriptions([]);
+            return [];
         }
     };
 
@@ -103,8 +165,9 @@ export const AuthProvider = ({ children }) => {
             const business = await searchBusinessByUserId(data.userId);
             // Use the business directly (not businessSelected)
             if (business) {
-                await getSubscriptionsByBusinessId(business.businessId);
+                await getSubscriptionsByBusinessId(business.userBusinessBusinessId);
             }
+            setTenantAccessReady(true);
             return data;
         } catch (error) {
             return { error: error.response.data.error }
@@ -141,9 +204,10 @@ export const AuthProvider = ({ children }) => {
                 await getSubscriptionsByBusinessId(business.userBusinessBusinessId);
                 await searchBusinessByBusinessId(business.userBusinessBusinessId);
             }
-            checkIfUserIsSuperAdmin();
         } catch (postLoginError) {
             console.error("Error loading post-login data:", postLoginError);
+        } finally {
+            setTenantAccessReady(true);
         }
 
         return data;
@@ -159,6 +223,8 @@ export const AuthProvider = ({ children }) => {
         setHasBusiness(false);
         setSubscriptions([]);
         setBusinessSelected(null);
+        setTenantAccessReady(false);
+        setIsSuperAdmin(false);
     };
 
     // Restore session automatically using Bearer Token
@@ -170,6 +236,7 @@ export const AuthProvider = ({ children }) => {
             if (!token) {
                 setIsAuthenticated(false);
                 setUser(null);
+                setTenantAccessReady(true);
                 setLoadingAuth(false);
                 return;
             }
@@ -195,15 +262,10 @@ export const AuthProvider = ({ children }) => {
                 const business = await searchBusinessByUserId(userData.userId);
 
                 if (business) {
-                    const subscriptions = await getSubscriptionsByBusinessId(
-                        business.userBusinessBusinessId
-
-                    );
+                    await getSubscriptionsByBusinessId(business.userBusinessBusinessId);
                     await searchBusinessByBusinessId(business.userBusinessBusinessId);
                 }
-                checkIfUserIsSuperAdmin()
-
-
+                await checkIfUserIsSuperAdmin();
             } catch (error) {
                 // ❌ Token expiró o inválido → limpiar
                 console.log("Auth restore error:", error);
@@ -212,7 +274,7 @@ export const AuthProvider = ({ children }) => {
                 setUser(null);
                 setIsAuthenticated(false);
             } finally {
-                // Cerrar loading del auth
+                setTenantAccessReady(true);
                 setLoadingAuth(false);
             }
         };
@@ -231,6 +293,7 @@ export const AuthProvider = ({ children }) => {
                 setUser,
                 isAuthenticated,
                 loadingAuth,
+                tenantAccessReady,
                 userGuestExists,
                 setUserGuestExists,
                 hasBusiness,
@@ -239,6 +302,13 @@ export const AuthProvider = ({ children }) => {
                 setBusinessSelected,
                 subscriptions,
                 setSubscriptions,
+                subscriptionAccess,
+                hasActiveSubscription,
+                hasSubscriptionHistory,
+                canClaimFreeTrial,
+                isFirstTimeSubscriber,
+                isExpiredSubscriber,
+                refreshSubscriptions,
                 searchUserGuestExists,
                 isSuperAdmin,
                 business

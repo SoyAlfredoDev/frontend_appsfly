@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTimes } from "react-icons/fa";
 
@@ -9,27 +9,24 @@ export const useToast = () => useContext(ToastContext);
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  // Función para agregar un toast
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
+
   const addToast = useCallback((type, title, message) => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts((prev) => [...prev, { id, type, title, message }]);
+    setTimeout(() => removeToast(id), 10000);
+  }, [removeToast]);
 
-    // Auto eliminar después de 4 segundos
-    setTimeout(() => {
-      removeToast(id);
-    }, 10000);
-  }, []);
-
-  const removeToast = (id) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
-
-  // Helpers rápidos para usar en los componentes
-  const toast = {
-    success: (title, msg) => addToast("success", title, msg),
-    error: (title, msg) => addToast("error", title, msg),
-    info: (title, msg) => addToast("info", title, msg),
-  };
+  const toast = useMemo(
+    () => ({
+      success: (title, msg) => addToast("success", title, msg),
+      error: (title, msg) => addToast("error", title, msg),
+      info: (title, msg) => addToast("info", title, msg),
+    }),
+    [addToast],
+  );
 
   return (
     <ToastContext.Provider value={toast}>

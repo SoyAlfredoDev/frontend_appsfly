@@ -1,8 +1,9 @@
 import CategoryModal from "../components/modals/CategoryModal.jsx";
 import { getCategories } from "../api/category";
 import { getProductsAndServices } from "../libs/productsAndServices";
-import { useEffect, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import AddProductModal from "../components/modals/AddProductModal";
+import { useAbortEffect, isAbortError } from "../hooks/useAbortEffect.js";
 import {
     useReactTable,
     getCoreRowModel,
@@ -29,66 +30,56 @@ export default function ProductsServicesPage() {
     const [isLoading, setIsLoading] = useState(true);
     // ➡️ ESTADOS PRINCIPALES DE DATOS
     const [allProducts, setAllProducts] = useState([]);
-    const [displayedProducts, setDisplayedProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     // Estados para filtros
     const [showProducts, setShowProducts] = useState(true);
     const [showServices, setShowServices] = useState(true);
     const [activeCategories, setActiveCategories] = useState({});
 
-    // Cargar productos y servicios
-    const fetchProducts = async () => {
+    const fetchProducts = useCallback(async (signal) => {
         try {
-            const resProductsAndServices = await getProductsAndServices();
-            const loadedProducts = resProductsAndServices ?? [];
-            setAllProducts(loadedProducts);
-            setDisplayedProducts(loadedProducts);
-            setIsLoading(false);
+            const resProductsAndServices = await getProductsAndServices({ signal });
+            setAllProducts(resProductsAndServices ?? []);
         } catch (error) {
-            console.log(error);
+            if (!isAbortError(error)) console.log(error);
         }
-    };
+    }, []);
 
-    // Cargar categorías
-    const fetchCategories = async () => {
+    const fetchCategories = useCallback(async (signal) => {
         try {
-            const res = await getCategories();
+            const res = await getCategories({ signal });
             const data = res?.data ?? [];
             setCategories(data);
-            // Crear mapa { categoriaID: true }
             const initialCategoriesState = data.reduce((acc, c) => {
                 acc[c.categoryId] = true;
                 return acc;
             }, {});
             setActiveCategories(initialCategoriesState);
         } catch (error) {
-            console.log(error);
+            if (!isAbortError(error)) console.log(error);
         }
-    };
-
-    useEffect(() => {
-        fetchProducts();
-        fetchCategories();
     }, []);
 
-    // ➡️ APLICAR FILTROS
-    useEffect(() => {
-        let filtered = allProducts;
-        // 1. FILTRAR POR TIPO
-        filtered = filtered.filter(item => {
+    useAbortEffect((signal) => {
+        const load = async () => {
+            setIsLoading(true);
+            try {
+                await Promise.all([fetchProducts(signal), fetchCategories(signal)]);
+            } finally {
+                if (!signal.aborted) setIsLoading(false);
+            }
+        };
+        load();
+    }, [fetchProducts, fetchCategories]);
+
+    const displayedProducts = useMemo(() => {
+        return allProducts.filter((item) => {
             if (!showProducts && item.type === "PRODUCT") return false;
             if (!showServices && item.type === "SERVICE") return false;
-            return true;
-        });
-        // 2. FILTRAR POR CATEGORÍA
-        filtered = filtered.filter(item => {
             const categoryId = item?.category?.categoryId;
-            if (categoryId) {
-                return activeCategories[categoryId] === true;
-            }
+            if (categoryId && activeCategories[categoryId] !== true) return false;
             return true;
         });
-        setDisplayedProducts(filtered);
     }, [showProducts, showServices, activeCategories, allProducts]);
 
     const columns = [
