@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaWhatsapp, FaInstagram, FaFacebook, FaTwitter, FaTiktok, FaLinkedin, FaShieldAlt, FaServer, FaBan, FaClock, FaCopyright } from 'react-icons/fa';
+import { FaWhatsapp, FaShieldAlt, FaServer, FaBan, FaClock, FaCopyright } from 'react-icons/fa';
 import Footer from '../components/FooterComponent';
 import NavbarHome from './web/NavbarHome.jsx';
 

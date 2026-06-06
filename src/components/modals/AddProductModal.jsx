@@ -4,15 +4,13 @@ import { useAuth } from "../../context/authContext";
 import { createProducts } from "../../api/product.js";
 import { createServices } from "../../api/service.js";
 import { getCategories } from "../../api/category.js";
-import Swal from "sweetalert2";
-import withReactContent from "sweetalert2-react-content";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaPlus, FaTimes, FaBoxOpen, FaHandHoldingHeart } from "react-icons/fa";
-
-const MySwal = withReactContent(Swal);
+import { useToast } from "../../context/ToastContext.jsx";
 
 export default function AddProductModal({ onCreated, title }) {
     const { user } = useAuth();
+    const toast = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -70,27 +68,39 @@ export default function AddProductModal({ onCreated, title }) {
 
     const handleOnSubmit = async (e) => {
         e.preventDefault();
+
+        if (!formData.name?.trim() || !formData.sku?.trim() || !formData.categoryId) {
+            toast.info('Campos incompletos', 'Completa nombre, SKU y categoría antes de guardar.');
+            return;
+        }
         
         try {
             setLoading(true);
             let res;
             if (formData.typeSelect === 'PRODUCT') {
                 res = await createProducts(formData);
-                showAlert('Producto creado', 'Producto creado con exito', 'success');
             } else if (formData.typeSelect === 'SERVICE') {
                 res = await createServices(formData);
-                showAlert('Servicio creado', 'Servicio creado con exito', 'success');
             }
 
-            if (!res.data) {
+            if (!res?.data) {
                 throw new Error('Error al crear producto/servicio');
             }
+
+            toast.success(
+                formData.typeSelect === 'PRODUCT' ? 'Producto creado' : 'Servicio creado',
+                formData.typeSelect === 'PRODUCT'
+                    ? 'El producto se registró correctamente.'
+                    : 'El servicio se registró correctamente.',
+            );
 
             closeModal();
             if (onCreated) onCreated();
 
         } catch (error) {
-            setError(error.response?.data?.message || error.message);
+            const msg = error.response?.data?.message || error.message || 'No se pudo crear el registro.';
+            setError(msg);
+            toast.error('Error', msg);
         } finally {
             setLoading(false);
         }
@@ -109,24 +119,12 @@ export default function AddProductModal({ onCreated, title }) {
         setFormData(prev => ({ ...prev, [name]: checked }));
     };
 
-    const showAlert = (message, text, icon) => {
-        MySwal.fire({
-            title: <p>{message}</p>,
-            text: text,
-            icon: icon,
-            confirmButtonText: "OK",
-            customClass: {
-                confirmButton: 'bg-emerald-600'
-            }
-        });
-    };
-
     return (
         <>
             <button
                 type="button"
                 onClick={openModal}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors shadow-sm text-sm font-medium"
             >
                 <FaPlus /><span className='hidden md:inline'>Agregar</span>
             </button>
@@ -175,8 +173,8 @@ export default function AddProductModal({ onCreated, title }) {
                                             onClick={() => setFormData(prev => ({ ...prev, typeSelect: 'PRODUCT' }))}
                                             className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 text-center ${
                                                 formData.typeSelect === 'PRODUCT' 
-                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
-                                                : 'border-slate-200 hover:border-emerald-300 text-slate-500'
+                                                ? 'border-primary bg-primary/10 text-primary' 
+                                                : 'border-slate-200 hover:border-primary/40 text-slate-500'
                                             }`}
                                         >
                                             <FaBoxOpen className="text-2xl" />
@@ -186,8 +184,8 @@ export default function AddProductModal({ onCreated, title }) {
                                             onClick={() => setFormData(prev => ({ ...prev, typeSelect: 'SERVICE' }))}
                                             className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 text-center ${
                                                 formData.typeSelect === 'SERVICE' 
-                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
-                                                : 'border-slate-200 hover:border-emerald-300 text-slate-500'
+                                                ? 'border-primary bg-primary/10 text-primary' 
+                                                : 'border-slate-200 hover:border-primary/40 text-slate-500'
                                             }`}
                                         >
                                             <FaHandHoldingHeart className="text-2xl" />
@@ -227,7 +225,7 @@ export default function AddProductModal({ onCreated, title }) {
                                             <select
                                                 id="categoryId"
                                                 name="categoryId"
-                                                className="block px-3 pb-2 pt-4 w-full text-sm text-slate-800 bg-white rounded-md border border-slate-300 focus:outline-none focus:ring-0 focus:border-emerald-600 peer transition-colors"
+                                                className="block px-3 pb-2 pt-4 w-full text-sm text-slate-800 bg-white rounded-md border border-slate-300 focus:outline-none focus:ring-0 focus:border-primary peer transition-colors"
                                                 value={formData.categoryId}
                                                 onChange={handleInputChange}
                                                 required
@@ -237,7 +235,7 @@ export default function AddProductModal({ onCreated, title }) {
                                                     <option key={c.categoryId} value={c.categoryId}>{c.categoryName}</option>
                                                 ))}
                                             </select>
-                                            <label htmlFor="categoryId" className="absolute text-sm text-slate-500 duration-300 transform -translate-y-3 scale-75 top-3.5 z-10 origin-[0] start-3 peer-focus:text-emerald-700 pointer-events-none select-none">
+                                            <label htmlFor="categoryId" className="absolute text-sm text-slate-500 duration-300 transform -translate-y-3 scale-75 top-3.5 z-10 origin-[0] start-3 peer-focus:text-primary pointer-events-none select-none">
                                                 Categoría
                                             </label>
                                         </div>
@@ -246,7 +244,7 @@ export default function AddProductModal({ onCreated, title }) {
                                             <select
                                                 id="unit"
                                                 name="unit"
-                                                className="block px-3 pb-2 pt-4 w-full text-sm text-slate-800 bg-white rounded-md border border-slate-300 focus:outline-none focus:ring-0 focus:border-emerald-600 peer transition-colors"
+                                                className="block px-3 pb-2 pt-4 w-full text-sm text-slate-800 bg-white rounded-md border border-slate-300 focus:outline-none focus:ring-0 focus:border-primary peer transition-colors"
                                                 value={formData.unit}
                                                 onChange={handleInputChange}
                                                 required
@@ -267,7 +265,7 @@ export default function AddProductModal({ onCreated, title }) {
                                                     </>
                                                 )}
                                             </select>
-                                            <label htmlFor="unit" className="absolute text-sm text-slate-500 duration-300 transform -translate-y-3 scale-75 top-3.5 z-10 origin-[0] start-3 peer-focus:text-emerald-700 pointer-events-none select-none">
+                                            <label htmlFor="unit" className="absolute text-sm text-slate-500 duration-300 transform -translate-y-3 scale-75 top-3.5 z-10 origin-[0] start-3 peer-focus:text-primary pointer-events-none select-none">
                                                 Unidad de medida
                                             </label>
                                         </div>
@@ -294,7 +292,7 @@ export default function AddProductModal({ onCreated, title }) {
                                                     onChange={handleInputBoxChange}
                                                     className="sr-only peer" 
                                                 />
-                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                                 <span className="ml-3 text-sm font-medium text-gray-700">Precio Fijo</span>
                                             </label>
                                         </div>
@@ -317,7 +315,7 @@ export default function AddProductModal({ onCreated, title }) {
                                 <button
                                     type="button"
                                     onClick={closeModal}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/40 transition-colors"
                                     disabled={loading}
                                 >
                                     Cancelar
@@ -325,7 +323,7 @@ export default function AddProductModal({ onCreated, title }) {
                                 <button
                                     form="addProductForm"
                                     type="submit"
-                                    className="px-6 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-6 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/40 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     disabled={loading}
                                 >
                                     {loading ? 'Creando...' : 'Crear Registro'}

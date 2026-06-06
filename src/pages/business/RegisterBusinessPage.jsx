@@ -1,5 +1,4 @@
 import InputFloatingComponent from "../../components/inputs/InputFloatingComponent";
-import NavBarComponent from "../../components/NavBarComponent";
 import { v4 as uuidv4 } from 'uuid';
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -10,6 +9,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { motion } from "framer-motion";
 import { FaStore, FaBuilding, FaIdCard, FaEnvelope, FaCheck } from "react-icons/fa";
+import PageContainer from "../../components/layout/PageContainer.jsx";
 const MySwal = withReactContent(Swal);
 
 export default function RegisterBusinessPage() {
@@ -189,8 +189,6 @@ export default function RegisterBusinessPage() {
 
     return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col">
-        <NavBarComponent />
-
         <div className="flex-grow container mx-auto px-4 py-2 mt-[75px] max-w-4xl">
 
             {/* CARD PRINCIPAL */}

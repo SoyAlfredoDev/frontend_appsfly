@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import NavBarComponent from "../../components/NavBarComponent";
-import ProtectedView from "../../components/ProtectedView";
 import { useAuth } from "../../context/authContext.jsx";
 import { createTicket, getTickets } from "../../api/ticket.js";
 import { createTicketDetail } from "../../api/ticketDetail.js";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaPaperPlane, FaSpinner, FaHistory, FaCheckCircle, FaExclamationCircle, FaPlus, FaCloudUploadAlt, FaTimes } from "react-icons/fa";
+import PageContainer from "../../components/layout/PageContainer.jsx";
 
 
 export default function SupportPage() {
@@ -192,8 +191,7 @@ export default function SupportPage() {
     };
 
     return (
-        <ProtectedView>
-            <NavBarComponent />
+        <PageContainer>
             <div className="min-h-screen bg-gray-50 pt-[100px] pb-12 px-4 sm:px-6 lg:px-8">
                 <Motion.div 
                     className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8"
@@ -427,6 +425,6 @@ export default function SupportPage() {
 
                 </Motion.div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 }

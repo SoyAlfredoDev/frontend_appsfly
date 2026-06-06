@@ -1,0 +1,27 @@
+import {
+  FaChartLine,
+  FaUsers,
+  FaBoxOpen,
+  FaShoppingCart,
+  FaTruck,
+  FaStore,
+  FaUserFriends,
+  FaUserCircle,
+  FaReceipt,
+  FaExchangeAlt,
+  FaCalendarCheck,
+} from "react-icons/fa";
+
+export const NAV_ITEMS = [
+  { name: "Dashboard", path: "/dashboard", icon: FaChartLine },
+  { name: "Clientes", path: "/customers", icon: FaUsers },
+  { name: "Productos", path: "/products_services", icon: FaBoxOpen },
+  { name: "Ventas", path: "/sales", icon: FaShoppingCart },
+  { name: "Cierres Diarios", path: "/sales/dailySales", icon: FaCalendarCheck },
+  { name: "Compras", path: "/purchase", icon: FaTruck },
+  { name: "Proveedores", path: "/providers", icon: FaStore },
+  { name: "Gastos", path: "/expenses", icon: FaReceipt },
+  { name: "Transacciones", path: "/transactions", icon: FaExchangeAlt },
+  { name: "Usuarios", path: "/users", icon: FaUserFriends },
+  { name: "Perfil", path: "/profile", icon: FaUserCircle },
+];

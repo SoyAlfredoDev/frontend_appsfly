@@ -1,33 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useLocation } from 'react-router-dom';
 import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
 import IsRequiredComponent from '../IsRequiredComponent.jsx';
-import { createProvider } from '../../api/providers.js';
-import { FaPlus, FaTimes } from "react-icons/fa";
+import { createProvider, updateProvider } from '../../api/providers.js';
+import { FaPlus, FaTimes, FaSave } from "react-icons/fa";
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../../context/ToastContext.jsx';
+
+const initialFormState = {
+    providerName: "",
+    providerEmail: "",
+    providerDocumentType: "rut",
+    providerDocumentNumber: "",
+    providerCodePhoneNumber: "+56",
+    providerPhoneNumber: "",
+    providerAddress: "",
+    providerComment: "",
+};
 
 export default function AddProviderModal({
     title,
     colorBtn = "success",
     onCreated = null,
-    trigger = null
+    trigger = null,
+    isOpen: externalIsOpen,
+    onClose: externalOnClose,
+    providerToEdit = null,
 }) {
     const toast = useToast();
-    const [isOpen, setIsOpen] = useState(false);
+    const isControlled = externalIsOpen !== undefined;
+    const [internalIsOpen, setInternalIsOpen] = useState(false);
+    const isOpen = isControlled ? externalIsOpen : internalIsOpen;
+    const isEditing = Boolean(providerToEdit);
     const [isLoading, setIsLoading] = useState(false);
 
-    const [formData, setFormData] = useState({
-        providerName: "",
-        providerEmail: "",
-        providerDocumentType: "rut",
-        providerDocumentNumber: "",
-        providerCodePhoneNumber: "+56",
-        providerPhoneNumber: "",
-        providerAddress: "",
-        providerComment: "",
-    });
+    const [formData, setFormData] = useState(initialFormState);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        if (providerToEdit) {
+            setFormData({
+                providerName: providerToEdit.providerName || "",
+                providerEmail: providerToEdit.providerEmail || "",
+                providerDocumentType: providerToEdit.providerDocumentType || "rut",
+                providerDocumentNumber: providerToEdit.providerDocumentNumber || "",
+                providerCodePhoneNumber: providerToEdit.providerCodePhoneNumber || "+56",
+                providerPhoneNumber: providerToEdit.providerPhoneNumber || "",
+                providerAddress: providerToEdit.providerAddress || "",
+                providerComment: providerToEdit.providerComment || "",
+            });
+        } else {
+            setFormData(initialFormState);
+        }
+    }, [providerToEdit, isOpen]);
 
     const countryCodes = [
         { id: "+56", name: "Chile" },
@@ -76,42 +102,46 @@ export default function AddProviderModal({
         setIsLoading(true);
 
         try {
-            const providerCreated = await createProvider(formData);
-            const providerCreatedId = providerCreated.data.providerId;
-            
-            toast.success('¡Proveedor Creado!', 'El proveedor se ha registrado correctamente.');
+            if (isEditing) {
+                await updateProvider(providerToEdit.providerId, formData);
+                toast.success('¡Proveedor Actualizado!', 'Los datos se guardaron correctamente.');
+                if (onCreated) onCreated(providerToEdit.providerId);
+            } else {
+                const providerCreated = await createProvider(formData);
+                const providerCreatedId = providerCreated.data.providerId;
+                toast.success('¡Proveedor Creado!', 'El proveedor se ha registrado correctamente.');
+                if (onCreated) onCreated(providerCreatedId);
+            }
 
-            if (onCreated) onCreated(providerCreatedId);
-            
             closeModal();
-            handleResetForm();
-
         } catch (error) {
             console.error(error);
-            toast.error('Error', 'No se pudo crear el proveedor. Verifica los datos e inténtalo de nuevo.');
+            toast.error(
+                'Error',
+                isEditing
+                    ? 'No se pudo actualizar el proveedor.'
+                    : 'No se pudo crear el proveedor. Verifica los datos e inténtalo de nuevo.',
+            );
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleResetForm = () => {
-        setFormData({
-            providerName: "",
-            providerEmail: "",
-            providerDocumentType: "rut",
-            providerDocumentNumber: "",
-            providerCodePhoneNumber: "+56",
-            providerPhoneNumber: "",
-            providerAddress: "",
-            providerComment: "",
-        });
+        setFormData(initialFormState);
     };
 
-    const openModal = () => setIsOpen(true);
+    const openModal = () => setInternalIsOpen(true);
     const closeModal = () => {
-        setIsOpen(false);
+        if (isControlled) {
+            externalOnClose?.();
+        } else {
+            setInternalIsOpen(false);
+        }
         handleResetForm();
-    }
+    };
+
+    const modalTitle = title || (isEditing ? 'Editar proveedor' : 'Nuevo proveedor');
 
     // Map bootstrap color prop to Tailwind classes purely for button
     const btnColorMap = {
@@ -125,12 +155,10 @@ export default function AddProviderModal({
     return (
         <>
             {trigger ? (
-                // If custom trigger is provided, use it and attach onClick
                 <div onClick={openModal} className="cursor-pointer">
                     {trigger}
                 </div>
-            ) : (
-                // Default Button
+            ) : !isControlled ? (
                 <button
                     type="button"
                     onClick={openModal}
@@ -139,7 +167,7 @@ export default function AddProviderModal({
                     <FaPlus className="text-xs" />
                     <span className="hidden md:inline">Nuevo Proveedor</span>
                 </button>
-            )}
+            ) : null}
 
             {createPortal(
                 <AnimatePresence>
@@ -167,11 +195,15 @@ export default function AddProviderModal({
                                     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50 shrink-0">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-emerald-100/50 rounded-lg text-emerald-600">
-                                                <FaPlus size={18} />
+                                                {isEditing ? <FaSave size={18} /> : <FaPlus size={18} />}
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-gray-800 leading-tight">{title}</h3>
-                                                <p className="text-xs text-gray-500">Complete la información para registrar un nuevo proveedor</p>
+                                                <h3 className="text-lg font-bold text-gray-800 leading-tight">{modalTitle}</h3>
+                                                <p className="text-xs text-gray-500">
+                                                    {isEditing
+                                                        ? 'Actualice la información del proveedor'
+                                                        : 'Complete la información para registrar un nuevo proveedor'}
+                                                </p>
                                             </div>
                                         </div>
                                         <button 
@@ -347,8 +379,8 @@ export default function AddProviderModal({
                                                 </>
                                             ) : (
                                                 <>
-                                                   <FaPlus className="text-xs" />
-                                                   <span>Crear Proveedor</span>
+                                                   {isEditing ? <FaSave className="text-xs" /> : <FaPlus className="text-xs" />}
+                                                   <span>{isEditing ? 'Guardar Cambios' : 'Crear Proveedor'}</span>
                                                 </>
                                             )}
                                         </button>

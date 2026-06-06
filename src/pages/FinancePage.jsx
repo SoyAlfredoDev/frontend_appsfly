@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import NavBarComponent from '../components/NavBarComponent.jsx';
-import ProtectedView from "../components/ProtectedView";
 import { calculateTotalAvailableByPaymentMethod } from '../utils/financeUtils.js';
 import { getFinancialMovements } from '../libs/getFinancialMovements.js'
+import PageContainer from "../components/layout/PageContainer.jsx";
 
 export default function FinancePage() {
     const [totalAvailable, setTotalAvailable] = useState(0);
@@ -24,8 +23,7 @@ export default function FinancePage() {
         }
     };
     return (
-        <ProtectedView>
-            <NavBarComponent />
+        <PageContainer>
             <div className="container-fluid">
                 <div className="row" style={{ marginTop: '80px' }}>
                     <div className="col-9 col-md-5">
@@ -96,6 +94,6 @@ export default function FinancePage() {
                     </div>
                 </div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 }

@@ -4,6 +4,7 @@ import InputFloatingComponent from "../components/inputs/InputFloatingComponent"
 import { useAuth } from "../context/authContext.jsx";
 import logoappsfly from "../../public/logo_appsfly.png";
 import { motion } from "framer-motion";
+import { getLoginErrorMessage, isServerUnavailableError } from "../utils/apiErrors.js";
 
 export default function LoginPage() {
     const { signin } = useAuth();
@@ -11,6 +12,7 @@ export default function LoginPage() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [serverError, setServerError] = useState(false);
+    const [serverMessage, setServerMessage] = useState("");
 
     const [formData, setFormData] = useState({
         userEmail: '',
@@ -29,23 +31,20 @@ export default function LoginPage() {
         e.preventDefault();
         setError(null);
         setServerError(false);
+        setServerMessage("");
         setLoading(true);
 
         try {
-            const res = await signin(formData);
-            if (!res) {
-                setError('Credenciales incorrectas. Por favor verifica tu correo y contraseña.');
-                setLoading(false);
-                return;
-            }
+            await signin(formData);
             navigate('/dashboard');
         } catch (error) {
             console.error(error);
-            // Detectar error de red o servidor caído
-            if (!error.response) {
+
+            if (isServerUnavailableError(error)) {
                 setServerError(true);
+                setServerMessage(getLoginErrorMessage(error));
             } else {
-                setError('Error al iniciar sesión. Intenta nuevamente.');
+                setError(getLoginErrorMessage(error));
             }
             setLoading(false);
         }
@@ -75,10 +74,10 @@ export default function LoginPage() {
                     <div className="bg-amber-50 text-amber-800 px-4 py-3 rounded-lg mb-6 text-sm font-medium border border-amber-100 flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                             <svg className="w-5 h-5 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                            <span className="font-bold">Falla temporal en el sistema</span>
+                            <span className="font-bold">Servicio no disponible</span>
                         </div>
                         <p className="pl-7 text-xs opacity-90">
-                            Estamos teniendo problemas de conexión. Por favor intenta nuevamente más tarde. Disculpa las molestias.
+                            {serverMessage}
                         </p>
                     </div>
                 )}
@@ -108,10 +107,11 @@ export default function LoginPage() {
                             name="userPassword"
                             value={formData.userPassword}
                             onChange={handleInputChange}
+                            required
                             autoComplete="current-password"
                         />
                         <div className="flex justify-end mt-1">
-                            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:text-emerald-700 transition-colors focus:outline-none focus:underline">
+                            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:text-primary-hover transition-colors focus:outline-none focus:underline">
                                 ¿Olvidaste tu contraseña?
                             </Link>
                         </div>
@@ -121,7 +121,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-primary hover:bg-emerald-600 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                            className="btn-primary w-full py-3 disabled:opacity-70"
                         >
                             {loading ? (
                                 <>
@@ -138,7 +138,7 @@ export default function LoginPage() {
                         
                         <Link 
                             to="/" 
-                            className="w-full bg-white text-slate-700 border border-slate-300 font-semibold py-3 px-4 rounded-lg hover:bg-slate-50 transition-colors flex items-center justify-center text-sm focus:ring-2 focus:ring-offset-2 focus:ring-slate-200"
+                            className="btn-ghost w-full py-3 flex items-center justify-center"
                         >
                             Volver al inicio
                         </Link>
@@ -147,7 +147,7 @@ export default function LoginPage() {
                 
                 <div className="mt-8 text-center text-xs text-slate-500">
                     ¿No tienes una cuenta?{' '}
-                    <Link to="/register" className="font-bold text-primary hover:text-emerald-700 transition-colors">
+                    <Link to="/register" className="font-bold text-primary hover:text-primary-hover transition-colors">
                         Regístrate aquí
                     </Link>
                 </div>

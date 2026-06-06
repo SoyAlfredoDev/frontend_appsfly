@@ -16,18 +16,18 @@ export default function ConfirmationModal({
     const variants = {
         danger: {
             icon: <FaExclamationTriangle className="text-red-500 text-3xl" />,
-            button: 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/20',
+            button: 'btn-danger shadow-lg hover:shadow-xl',
             bgIcon: 'bg-red-50'
         },
         success: {
-            icon: <FaCheckCircle className="text-emerald-500 text-3xl" />,
-            button: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20',
-            bgIcon: 'bg-emerald-50'
+            icon: <FaCheckCircle className="text-primary text-3xl" />,
+            button: 'btn-primary shadow-lg hover:shadow-xl',
+            bgIcon: 'bg-primary/10'
         },
         info: {
-            icon: <FaInfoCircle className="text-blue-500 text-3xl" />,
-            button: 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20',
-            bgIcon: 'bg-blue-50'
+            icon: <FaInfoCircle className="text-secondary text-3xl" />,
+            button: 'btn-secondary shadow-lg hover:shadow-xl',
+            bgIcon: 'bg-secondary/10'
         }
     };
 
@@ -40,7 +40,7 @@ export default function ConfirmationModal({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
+                className="modal-backdrop"
             />
 
             <Motion.div
@@ -48,7 +48,7 @@ export default function ConfirmationModal({
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden"
+                className="modal-panel w-full max-w-md relative z-10"
             >
                 {/* Close Button */}
                 <button 
@@ -61,7 +61,7 @@ export default function ConfirmationModal({
                 <div className="p-8 flex flex-col items-center text-center">
                     
                     {/* Icon */}
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${currentVariant.bgIcon}`}>
+                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 ${currentVariant.bgIcon}`}>
                         {currentVariant.icon}
                     </div>
 
@@ -77,13 +77,13 @@ export default function ConfirmationModal({
                     <div className="flex flex-col-reverse md:flex-row gap-3 w-full">
                         <button
                             onClick={onClose}
-                            className="w-full px-5 py-3 text-sm font-semibold text-gray-600 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition-all focus:outline-none"
+                            className="btn-ghost w-full py-3 rounded-lg"
                         >
                             {cancelText}
                         </button>
                         <button
                             onClick={onConfirm}
-                            className={`w-full px-5 py-3 text-sm font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all focus:outline-none transform active:scale-95 flex-1 ${currentVariant.button}`}
+                            className={`w-full py-3 rounded-lg ${currentVariant.button}`}
                         >
                             {confirmText}
                         </button>

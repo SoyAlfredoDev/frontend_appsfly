@@ -1,5 +1,3 @@
-import NavBarComponent from "../../components/NavBarComponent"
-import ProtectedView from "../../components/ProtectedView";
 import { v4 as uuidv4 } from 'uuid';
 import { getSaleById } from '../../api/sale.js'
 import { getSaleDetailById } from '../../api/saleDetail.js'
@@ -10,6 +8,7 @@ import { IconPrinter } from "../../components/IconComponent.jsx"
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import SimpleTestPDFContent from '../../components/Printables/SimpleTestPDF.jsx'
 import { motion as Motion, AnimatePresence } from "framer-motion";
+import PageContainer from "../../components/layout/PageContainer.jsx";
 import { 
     FaHashtag, 
     FaCalendarAlt, 
@@ -148,12 +147,10 @@ export default function ViewSalePage() {
     };
 
     return (
-        <ProtectedView>
-            <div className="min-h-screen bg-gray-50/50 pb-12 font-montserrat">
-                <NavBarComponent />
-                
+        <PageContainer>
+<div className="min-h-screen bg-gray-50/50 pb-12 font-montserrat">
                 <Motion.div 
-                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-[65px]"
+                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 "
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
@@ -449,6 +446,6 @@ export default function ViewSalePage() {
                     </div>
                 )}
             </AnimatePresence>
-        </ProtectedView>
+        </PageContainer>
     )
 };

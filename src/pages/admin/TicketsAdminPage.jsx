@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getTickets } from '../../api/ticket.js';
-import ProtectedView from "../../components/ProtectedView";
 import { Link } from 'react-router-dom';
 import formatDate from '../../utils/formatDate.js';
 import { FaEye, FaTrash, FaTicketAlt } from 'react-icons/fa';
+import PageContainer from "../../components/layout/PageContainer.jsx";
 
 export default function TicketsAdminPage() {
     const [tickets, setTickets] = useState([]);
@@ -34,8 +34,8 @@ export default function TicketsAdminPage() {
     };
 
     return (
-        <ProtectedView>
-            <div className="p-4 bg-light min-vh-100">
+        <PageContainer>
+<div className="p-4 bg-light min-vh-100">
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <h1 className="fw-bold text-dark">🎫 Gestión de Tickets</h1>
                     <Link className="btn btn-outline-secondary" to="/admin/dashboard">
@@ -107,6 +107,6 @@ export default function TicketsAdminPage() {
                     </div>
                 </div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 }

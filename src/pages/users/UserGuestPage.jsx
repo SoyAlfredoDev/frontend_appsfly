@@ -1,4 +1,3 @@
-import NavBarComponent from "../../components/NavBarComponent";
 import { renderToStaticMarkup } from 'react-dom/server';
 import InputFloatingComponent from '../../components/inputs/InputFloatingComponent';
 import { useState } from "react";
@@ -12,7 +11,7 @@ import { motion } from "framer-motion";
 import { FaUserPlus, FaEnvelope, FaUserTag, FaPaperPlane, FaArrowLeft } from "react-icons/fa";
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import ProtectedView from "../../components/ProtectedView";
+import PageContainer from "../../components/layout/PageContainer.jsx";
 
 const MySwal = withReactContent(Swal);
 
@@ -98,10 +97,8 @@ export default function UserGuestPage() {
     };
 
     return (
-        <ProtectedView>
-            <NavBarComponent />
-            
-            <div className="min-h-screen bg-gray-50/50 p-6 md:p-12 mt-[35px]">
+        <PageContainer>
+            <div className="">
                 <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -206,6 +203,6 @@ export default function UserGuestPage() {
                     </div>
                 </motion.div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 }

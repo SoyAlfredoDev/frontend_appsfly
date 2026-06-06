@@ -1,5 +1,3 @@
-import NavBarComponent from '../components/NavBarComponent.jsx';
-import ProtectedView from "../components/ProtectedView";
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getCustomerById } from '../api/customers.js';
@@ -12,6 +10,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { FaUser, FaHistory, FaCreditCard, FaArrowLeft, FaEdit, FaPhone, FaIdCard, FaEnvelope } from 'react-icons/fa';
 
 import AddCustomerModal from '../components/modals/AddCustomerModal.jsx';
+import PageContainer from "../components/layout/PageContainer.jsx";
 
 export default function CustomerViewPage() {
     const [loading, setLoading] = useState(true);
@@ -62,11 +61,9 @@ export default function CustomerViewPage() {
     };
 
     return (
-        <ProtectedView>
-            <NavBarComponent />
-
+        <PageContainer>
             <Motion.div 
-                className="min-h-screen bg-gray-50/50 p-6 md:p-12 mt-[35px]"
+                className=""
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
@@ -269,6 +266,6 @@ export default function CustomerViewPage() {
                     />
                 </div>
             </Motion.div>
-        </ProtectedView>
+        </PageContainer>
     );
 }

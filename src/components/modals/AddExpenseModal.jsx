@@ -4,8 +4,10 @@ import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
 import { createExpense } from '../../api/expense.js'
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { FaPlus, FaTimes, FaCloudUploadAlt, FaFileImage } from "react-icons/fa";
+import { useToast } from '../../context/ToastContext.jsx';
 
-export default function AddExpenseModal({ onExpenseAdded }) { // Added prop to notify parent on success
+export default function AddExpenseModal({ onExpenseAdded }) {
+    const toast = useToast();
     // ----------------------------------------------------------------------
     // 1. STATE MANAGEMENT
     // ----------------------------------------------------------------------
@@ -83,7 +85,7 @@ export default function AddExpenseModal({ onExpenseAdded }) { // Added prop to n
 
         } catch (error) {
             console.error('Error durante la subida:', error);
-            alert('Error al subir la imagen. Intenta de nuevo.');
+            toast.error('Error de imagen', 'No se pudo subir la imagen. Intenta de nuevo.');
             return null;
         }
     };
@@ -114,7 +116,7 @@ export default function AddExpenseModal({ onExpenseAdded }) { // Added prop to n
         try {
             // 1. VALIDATION
             if (data.expenseDescription.trim() === "" || !data.expenseAmount || parseFloat(data.expenseAmount) <= 0) {
-                alert("Por favor, complete la Descripción y el Monto.");
+                toast.info('Campos incompletos', 'Por favor, complete la Descripción y el Monto.');
                 setLoading(false);
                 return;
             };
@@ -126,7 +128,7 @@ export default function AddExpenseModal({ onExpenseAdded }) { // Added prop to n
                 const uploadResult = await cloudinaryUpload();
 
                 if (!uploadResult || !uploadResult.secure_url) {
-                    alert("La subida de la imagen falló. Cancelando el envío del gasto.");
+                    toast.error('Error de imagen', 'La subida de la imagen falló. Cancelando el envío del gasto.');
                     setLoading(false);
                     return;
                 }
@@ -143,7 +145,7 @@ export default function AddExpenseModal({ onExpenseAdded }) { // Added prop to n
 
             if (res && res.status === 201) {
                 // Success
-                alert("Gasto agregado exitosamente.");
+                toast.success('Gasto registrado', 'El gasto se agregó exitosamente.');
                 
                 // Reset form
                 setData({
@@ -161,11 +163,11 @@ export default function AddExpenseModal({ onExpenseAdded }) { // Added prop to n
                 if (onExpenseAdded) onExpenseAdded();
 
             } else {
-                alert("Error al agregar el gasto. Por favor, intente nuevamente.");
+                toast.error('Error', 'No se pudo agregar el gasto. Por favor, intente nuevamente.');
             };
         } catch (error) {
             console.error("Error general al procesar el gasto:", error);
-            alert("Error al agregar el gasto. Por favor, intente nuevamente.");
+            toast.error('Error', 'No se pudo agregar el gasto. Por favor, intente nuevamente.');
         } finally {
             setLoading(false);
         }

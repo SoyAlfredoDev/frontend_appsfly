@@ -1,13 +1,12 @@
 import { useAuth } from "../context/authContext";
 import { renderToStaticMarkup } from 'react-dom/server';
-import NavBarComponent from "../components/NavBarComponent";
-import ProtectedView from "../components/ProtectedView";
 import { FcOk } from "react-icons/fc";
 import { FaUser, FaBuilding, FaPhone, FaEnvelope, FaIdCard, FaWhatsapp, FaMapMarkerAlt, FaBriefcase, FaUserCircle } from "react-icons/fa";
 import { sendEmailRequest } from '../api/email.js';
 import { RegisterEmail } from '../email-models/RegisterEmail';
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import PageContainer from "../components/layout/PageContainer.jsx";
 
 export default function ProfilePage() {
     const { user, business, businessSelected } = useAuth();
@@ -45,9 +44,8 @@ export default function ProfilePage() {
     };
 
     return (
-        <ProtectedView>
-            <div className="min-h-screen bg-gray-50/50">
-                <NavBarComponent />
+        <PageContainer>
+<div className="min-h-screen bg-gray-50/50">
                 <motion.div 
                     initial="hidden" 
                     animate="visible" 
@@ -244,6 +242,6 @@ export default function ProfilePage() {
                     </div>
                 </motion.div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 }

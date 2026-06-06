@@ -4,12 +4,11 @@ import { motion as Motion } from "framer-motion";
 import { FaEye, FaArrowLeft, FaChartLine, FaHistory, FaLayerGroup, FaMoneyBillWave, FaShoppingCart, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
-import NavBarComponent from "../components/NavBarComponent";
-import ProtectedView from "../components/ProtectedView";
 import { getProductWithAnalyticsRequest } from "../api/product";
 import formatCurrency from "../utils/formatCurrency";
 import formatDate from "../utils/formatDate";
 import { useToast } from "../context/ToastContext";
+import PageContainer from "../components/layout/PageContainer.jsx";
 
 export default function ProductsServicesViewPage() {
     const { id } = useParams();
@@ -162,18 +161,16 @@ export default function ProductsServicesViewPage() {
     };
 
     if (loading) return (
-        <ProtectedView>
-            <NavBarComponent />
+        <PageContainer>
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 
     return (
-        <ProtectedView>
-            <NavBarComponent />
-            <div className="min-h-screen bg-gray-50 p-6 md:p-12 mt-[35px] font-sans">
+        <PageContainer>
+            <div className="min-h-screen bg-gray-50 p-6 md:p-12  font-sans">
                 <Motion.div 
                     className="max-w-7xl mx-auto space-y-8"
                     variants={containerVariants}
@@ -376,6 +373,6 @@ export default function ProductsServicesViewPage() {
                     </Motion.div>
                 </Motion.div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 }

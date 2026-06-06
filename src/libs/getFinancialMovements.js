@@ -4,13 +4,14 @@ import { getPayments } from '../api/payment.js';
 export const getFinancialMovements = async () => {
     try {
         // Cargar datos en paralelo
-        const [expenses, payments] = await Promise.all([
+        const [expensesRes, payments] = await Promise.all([
             getExpenses(),
             getPayments()
         ]);
+        const expensesList = expensesRes.data?.expenses ?? expensesRes.data ?? [];
         // Formatear datos
-        if (!expenses?.status === 200 || !payments?.status === 200) return { 'error': 'Error fetching data' };
-        const expenseFormatted = expenses.data.map(expense => ({
+        if (expensesRes?.status !== 200 || payments?.status !== 200) return { 'error': 'Error fetching data' };
+        const expenseFormatted = expensesList.map(expense => ({
             financeId: expense.expenseId,
             financeDate: expense.createdAt?.split('T')[0] || null,
             financePaymentMethod: String(expense.expensePaymentMethod) || null,

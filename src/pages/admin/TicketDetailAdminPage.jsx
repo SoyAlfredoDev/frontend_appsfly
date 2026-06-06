@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getTicketById } from '../../api/ticket.js';
-import ProtectedView from "../../components/ProtectedView";
 import formatDate from '../../utils/formatDate.js';
 import { FaUser, FaHeadset, FaPaperPlane, FaArrowLeft, FaCheckCircle, FaClock } from 'react-icons/fa';
+import PageContainer from "../../components/layout/PageContainer.jsx";
 
 export default function TicketDetailAdminPage() {
     const { id } = useParams();
@@ -27,30 +27,30 @@ export default function TicketDetailAdminPage() {
     }, [id]);
 
     if (loading) return (
-        <ProtectedView>
-            <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <PageContainer>
+<div className="d-flex justify-content-center align-items-center min-vh-100">
                 <div className="spinner-border text-primary" role="status">
                     <span className="visually-hidden">Cargando...</span>
                 </div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 
     if (error) return (
-        <ProtectedView>
-            <div className="alert alert-danger m-4">{error}</div>
-        </ProtectedView>
+        <PageContainer>
+<div className="alert alert-danger m-4">{error}</div>
+        </PageContainer>
     );
 
     if (!ticket) return (
-        <ProtectedView>
-            <div className="alert alert-warning m-4">Ticket no encontrado.</div>
-        </ProtectedView>
+        <PageContainer>
+<div className="alert alert-warning m-4">Ticket no encontrado.</div>
+        </PageContainer>
     );
 
     return (
-        <ProtectedView>
-            <div className="p-4 bg-light min-vh-100">
+        <PageContainer>
+<div className="p-4 bg-light min-vh-100">
                 <div className="mb-4">
                     <Link to="/admin/tickets" className="btn btn-link text-decoration-none text-secondary ps-0 mb-2">
                         <FaArrowLeft className="me-2" /> Volver a Tickets
@@ -155,6 +155,6 @@ export default function TicketDetailAdminPage() {
                     </div>
                 </div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 }

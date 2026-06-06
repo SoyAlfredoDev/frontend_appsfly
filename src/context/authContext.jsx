@@ -113,13 +113,27 @@ export const AuthProvider = ({ children }) => {
 
     // Signin process
     const signin = async (userForm) => {
+        let res;
         try {
-            const res = await loginRequest(userForm);
-            const data = res.data.user;
-            localStorage.setItem('token', res.data.token);
+            res = await loginRequest(userForm);
+        } catch (error) {
+            console.log("Error in signin", error);
+            throw error;
+        }
+
+        const data = res.data?.user;
+        if (!data?.userId) {
+            const invalidResponseError = new Error("Invalid login response");
+            invalidResponseError.response = { status: 500 };
+            throw invalidResponseError;
+        }
+
+        localStorage.setItem('token', res.data.token);
+        setUser(data);
+        setIsAuthenticated(true);
+
+        try {
             await checkIfUserIsSuperAdmin();
-            setUser(data);
-            setIsAuthenticated(true);
             await searchUserGuestExists(data.userEmail);
 
             const business = await searchBusinessByUserId(data.userId);
@@ -128,11 +142,11 @@ export const AuthProvider = ({ children }) => {
                 await searchBusinessByBusinessId(business.userBusinessBusinessId);
             }
             checkIfUserIsSuperAdmin();
-            return data;
-        } catch (error) {
-            console.log("Error in signin", error );
-
+        } catch (postLoginError) {
+            console.error("Error loading post-login data:", postLoginError);
         }
+
+        return data;
     };
 
     // Logout process

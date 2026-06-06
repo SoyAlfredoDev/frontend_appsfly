@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import ProtectedView from "../../components/ProtectedView";
 import { getAdminKpis } from "../../api/admin";
 import { getBusiness } from '../../api/business.js';
 import formatName from '../../utils/formatName.js';
@@ -18,6 +17,7 @@ import {
 import { Line, Doughnut } from 'react-chartjs-2';
 import { FaUsers, FaBuilding, FaTicketAlt, FaMoneyBillWave, FaCheckCircle, FaExclamationCircle, FaArrowRight } from 'react-icons/fa';
 import { motion } from "framer-motion";
+import PageContainer from "../../components/layout/PageContainer.jsx";
 
 ChartJS.register(
     CategoryScale,
@@ -59,23 +59,23 @@ export default function DashboardAdminPage() {
 
     if (loading) {
         return (
-            <ProtectedView>
-                <div className="flex justify-center items-center min-h-screen bg-surface">
+            <PageContainer>
+<div className="flex justify-center items-center min-h-screen bg-surface">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                 </div>
-            </ProtectedView>
+            </PageContainer>
         );
     }
 
     if (error) {
         return (
-            <ProtectedView>
-                <div className="p-6 bg-surface min-h-screen flex justify-center items-start">
+            <PageContainer>
+<div className="p-6 bg-surface min-h-screen flex justify-center items-start">
                     <div className="bg-red-50 text-red-600 p-4 rounded-xl shadow-sm border border-red-100 max-w-2xl w-full text-center font-medium">
                         {error}
                     </div>
                 </div>
-            </ProtectedView>
+            </PageContainer>
         );
     }
 
@@ -130,8 +130,8 @@ export default function DashboardAdminPage() {
     };
 
     return (
-        <ProtectedView>
-            <div className="min-h-screen bg-surface p-6 md:p-8 lg:p-10 font-sans">
+        <PageContainer>
+<div className="min-h-screen bg-surface p-6 md:p-8 lg:p-10 font-sans">
                 {/* Header */}
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                     <div>
@@ -398,6 +398,6 @@ export default function DashboardAdminPage() {
                     </div>
                 </motion.div>
             </div>
-        </ProtectedView>
+        </PageContainer>
     );
 }
