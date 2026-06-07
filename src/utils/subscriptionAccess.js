@@ -87,10 +87,8 @@ export function isOperationalTenantPath(pathname) {
 export function shouldBlockTenantOperations({
     hasBusiness,
     hasActiveSubscription,
-    isSuperAdmin,
     pathname,
 }) {
-    if (isSuperAdmin) return false;
     if (!hasBusiness) return false;
     if (hasActiveSubscription) return false;
     return !isSubscriptionExemptPath(pathname, { hasBusiness });
@@ -100,7 +98,6 @@ export function isTenantSubscriptionBlocked(auth) {
     return shouldBlockTenantOperations({
         hasBusiness: auth.hasBusiness,
         hasActiveSubscription: auth.hasActiveSubscription,
-        isSuperAdmin: auth.isSuperAdmin,
         pathname: auth.pathname ?? "",
     });
 }

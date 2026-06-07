@@ -23,15 +23,14 @@ export default function useTenantSubscriptionBlock() {
             shouldBlockTenantOperations({
                 hasBusiness,
                 hasActiveSubscription,
-                isSuperAdmin,
                 pathname: location.pathname,
             }),
-        [hasBusiness, hasActiveSubscription, isSuperAdmin, location.pathname],
+        [hasBusiness, hasActiveSubscription, location.pathname],
     );
 
     const subscriptionLocked = useMemo(
-        () => hasBusiness && !hasActiveSubscription && !isSuperAdmin,
-        [hasBusiness, hasActiveSubscription, isSuperAdmin],
+        () => hasBusiness && !hasActiveSubscription,
+        [hasBusiness, hasActiveSubscription],
     );
 
     return {

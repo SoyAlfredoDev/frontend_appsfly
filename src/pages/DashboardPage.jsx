@@ -2,12 +2,23 @@ import UserNewDashboardPage from "./dashboard/UserNewDashboardPage";
 import UserGuestPendient from "./users/UserGuestPendient.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import UsersDashboardPage from "./dashboard/UsersDashboardPage.jsx";
+import SubscriptionWelcomePage from "./dashboard/SubscriptionWelcomePage.jsx";
+import SubscriptionExpiredPage from "./dashboard/SubscriptionExpiredPage.jsx";
 import PageContainer from "../components/layout/PageContainer.jsx";
+import { getSubscriptionAccessState } from "../utils/subscriptionAccess.js";
 
 export default function DashboardPage() {
-    const { hasBusiness, userGuestExists, hasActiveSubscription } = useAuth();
+    const { hasBusiness, userGuestExists, hasActiveSubscription, subscriptions } = useAuth();
     const showSidebar = !hasBusiness && userGuestExists;
     const mainColSpan = showSidebar ? "lg:col-span-8 xl:col-span-9" : "lg:col-span-12";
+
+    if (hasBusiness && !hasActiveSubscription) {
+        const access = getSubscriptionAccessState(subscriptions);
+        if (access === "none") {
+            return <SubscriptionWelcomePage embedded />;
+        }
+        return <SubscriptionExpiredPage embedded />;
+    }
 
     return (
         <PageContainer>

@@ -53,7 +53,7 @@ export default function TenantContentGate() {
             {blocked ? (
                 <motion.div
                     key={isFirstTime ? "subscription-welcome" : "subscription-expired"}
-                    initial={{ opacity: 0 }}
+                    initial={false}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
