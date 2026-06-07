@@ -139,11 +139,17 @@ export default function PaymentModalComponent({
                     ) : (
                         <>
                             {isMercadoPagoTestMode() && (
-                                <p className="mb-3 text-[11px] text-center text-amber-800 bg-amber-50 border border-amber-100 rounded-lg py-2 px-3">
-                                    Modo prueba — titular: <strong>APRO</strong> · tarjeta:{" "}
-                                    <strong>5031 7557 3453 0604</strong> · CVV <strong>123</strong> · vence{" "}
-                                    <strong>11/30</strong>
-                                </p>
+                                <div className="mb-3 space-y-2">
+                                    <p className="text-[11px] text-center text-amber-800 bg-amber-50 border border-amber-100 rounded-lg py-2 px-3">
+                                        <strong>Modo prueba</strong> — paga con{" "}
+                                        <strong>tarjeta</strong> (no con tu cuenta Mercado Pago real).
+                                    </p>
+                                    <p className="text-[11px] text-center text-slate-600 bg-slate-50 border border-slate-100 rounded-lg py-2 px-3">
+                                        Titular: <strong>APRO</strong> ·{" "}
+                                        <strong>5031 7557 3453 0604</strong> · CVV <strong>123</strong> ·{" "}
+                                        vence <strong>11/30</strong>
+                                    </p>
+                                </div>
                             )}
 
                             <div className="relative min-h-[220px]">

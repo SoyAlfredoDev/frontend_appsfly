@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Payment } from "@mercadopago/sdk-react";
 import { processSubscriptionPayment } from "../../api/mercadopago/mpService.js";
-import { MP_PAYMENT_BRICK_CUSTOMIZATION, MP_BRICK_UI_PHASE } from "./mpBrickConfig.js";
+import { getPaymentBrickCustomization, MP_BRICK_UI_PHASE } from "./mpBrickConfig.js";
 import { isMercadoPagoTestMode } from "../../config/mercadopago/mpConfig.js";
 import { getMercadoPagoStatusMessage } from "../../config/mercadopago/mpStatusMessages.js";
 
@@ -33,6 +33,8 @@ export default function MercadoPagoPaymentBrick({
     const brickSessionKey = preferenceId && subscriptionPaymentId
         ? `${preferenceId}-${subscriptionPaymentId}`
         : "mp-brick-pending";
+
+    const brickCustomization = useMemo(() => getPaymentBrickCustomization(), []);
 
     const notifyErrorOnce = useCallback(
         (err) => {
@@ -136,7 +138,7 @@ export default function MercadoPagoPaymentBrick({
                 <Payment
                     key={brickSessionKey}
                     initialization={initialization}
-                    customization={MP_PAYMENT_BRICK_CUSTOMIZATION}
+                    customization={brickCustomization}
                     onSubmit={handleSubmit}
                     onReady={handleReady}
                     onError={handleError}
