@@ -22,16 +22,14 @@ export default function MercadoPagoPaymentBrick({
     const [inlineError, setInlineError] = useState(null);
     const errorNotifiedRef = useRef(false);
 
-    const initialization = useMemo(
-        () => ({
-            amount: Math.round(Number(amount)),
-            preferenceId,
-        }),
-        [amount, preferenceId],
-    );
+    const initialization = useMemo(() => {
+        const init = { amount: Math.round(Number(amount)) };
+        if (preferenceId) init.preferenceId = preferenceId;
+        return init;
+    }, [amount, preferenceId]);
 
-    const brickSessionKey = preferenceId && subscriptionPaymentId
-        ? `${preferenceId}-${subscriptionPaymentId}`
+    const brickSessionKey = subscriptionPaymentId
+        ? `recurring-${subscriptionPaymentId}`
         : "mp-brick-pending";
 
     const brickCustomization = useMemo(() => getPaymentBrickCustomization(), []);
@@ -78,7 +76,9 @@ export default function MercadoPagoPaymentBrick({
                     return;
                 }
 
-                const statusDetail = res.data?.mpPayment?.status_detail;
+                const statusDetail =
+                    res.data?.mpPreapproval?.status_detail
+                    || res.data?.mpPayment?.status_detail;
                 const message = getMercadoPagoStatusMessage(statusDetail, {
                     testMode: isMercadoPagoTestMode(),
                 });
@@ -105,7 +105,7 @@ export default function MercadoPagoPaymentBrick({
         [subscriptionPaymentId, onApproved, notifyErrorOnce, onProcessingStart],
     );
 
-    if (!preferenceId || !amount) {
+    if (!amount || !subscriptionPaymentId) {
         return null;
     }
 

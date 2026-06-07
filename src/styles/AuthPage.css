@@ -1,4 +1,4 @@
-/* Login — capa premium AppsFly (#021f41 / #01c676 / #094fd1) */
+/* Auth pages — capa premium AppsFly (#021f41 / #01c676 / #094fd1) */
 
 .login-page {
     position: relative;
@@ -75,6 +75,10 @@
         0 0 0 1px rgba(255, 255, 255, 0.04),
         0 25px 50px -12px rgba(2, 31, 65, 0.55),
         0 12px 24px -8px rgba(9, 79, 209, 0.12);
+}
+
+.login-card--wide {
+    max-width: 42rem;
 }
 
 @media (min-width: 640px) {
@@ -175,4 +179,35 @@
     background: #f8fafc;
     border-color: #cbd5e1;
     color: #021f41;
+}
+
+.login-status-icon {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.login-status-icon__circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 9999px;
+    font-size: 1.75rem;
+}
+
+.login-status-icon__circle--loading {
+    background: rgba(1, 198, 118, 0.1);
+    color: #01c676;
+}
+
+.login-status-icon__circle--success {
+    background: rgba(1, 198, 118, 0.15);
+    color: #01a866;
+}
+
+.login-status-icon__circle--error {
+    background: #fef2f2;
+    color: #dc2626;
 }

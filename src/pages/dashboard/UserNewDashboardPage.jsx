@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { sendEmailRequest } from "../../api/email.js";
-import { RegisterEmail } from "../../email-models/RegisterEmail";
+import { RegisterEmail } from "../../emails/users/auth/RegisterEmail.jsx";
 import { useAuth } from "../../context/authContext.jsx";
 import { useState } from "react";
 import { FaBuilding, FaRocket, FaExclamationTriangle, FaEnvelope } from "react-icons/fa";
@@ -11,7 +11,7 @@ import RestrictedAccessShell from "../../components/layout/RestrictedAccessShell
 
 const MySwal = withReactContent(Swal);
 
-export default function UserNewDashboardPage({ embedded = false }) {
+export default function UserNewDashboardPage({ embedded = false, hasPendingInvites = false }) {
     const { user } = useAuth();
     const [btnConfirmEmail, setBtnConfirmEmail] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
@@ -125,8 +125,19 @@ export default function UserNewDashboardPage({ embedded = false }) {
                 </Link>
 
                 <p className="text-center text-xs text-slate-400 leading-relaxed">
-                    ¿Necesitas unirte a un negocio existente?{" "}
-                    <span className="text-slate-500">Contacta a tu administrador.</span>
+                    {hasPendingInvites ? (
+                        <>
+                            Tienes invitaciones pendientes a la derecha. Acéptalas para unirte a un
+                            negocio existente.
+                        </>
+                    ) : (
+                        <>
+                            ¿Necesitas unirte a un negocio existente?{" "}
+                            <span className="text-slate-500">
+                                Pide a tu administrador que te invite por correo.
+                            </span>
+                        </>
+                    )}
                 </p>
             </div>
         </RestrictedAccessShell>

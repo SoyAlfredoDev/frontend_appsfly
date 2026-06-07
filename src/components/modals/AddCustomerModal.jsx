@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { v4 as uuidv4 } from 'uuid';
 import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
+import ImageUploadField from '../inputs/ImageUploadField.jsx';
 import IsRequiredComponent from '../IsRequiredComponent.jsx';
 import { createCustomer, updateCustomer } from '../../api/customers.js';
 import { useAuth } from '../../context/authContext.jsx';
 import { FaPlus, FaTimes, FaSave } from "react-icons/fa";
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../../context/ToastContext.jsx';
+import { uploadImageToCloudinary, CLOUDINARY_FOLDERS } from '../../utils/cloudinaryUpload.js';
 
 import { PRIMARY_BTN } from '../../utils/expenseUiPatterns.js';
 
@@ -32,6 +35,9 @@ export default function AddCustomerModal({
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const isOpen = isControlled ? externalIsOpen : internalIsOpen;
     const [isLoading, setIsLoading] = useState(false);
+    const [imageFile, setImageFile] = useState(null);
+    const [existingImageUrl, setExistingImageUrl] = useState(null);
+    const [imageCleared, setImageCleared] = useState(false);
 
     const [formData, setFormData] = useState({
         customerFirstName: "",
@@ -87,6 +93,9 @@ export default function AddCustomerModal({
                     customerComment: customerToEdit.customerComment || "",
                     createdByUserId: customerToEdit.createdByUserId || user?.userId
                 });
+                setExistingImageUrl(customerToEdit.customerImageUrl || null);
+                setImageCleared(false);
+                setImageFile(null);
             } else {
                 handleResetForm();
             }
@@ -110,13 +119,30 @@ export default function AddCustomerModal({
         setIsLoading(true);
 
         try {
+            let customerImageUrl = null;
+
+            if (imageFile) {
+                const uploadId = customerToEdit?.customerId ?? uuidv4();
+                customerImageUrl = await uploadImageToCloudinary(imageFile, {
+                    folder: CLOUDINARY_FOLDERS.CUSTOMER_PROFILE,
+                    publicId: `customer-${uploadId}`,
+                });
+            } else if (!imageCleared && existingImageUrl) {
+                customerImageUrl = existingImageUrl;
+            }
+
+            const payload = {
+                ...formData,
+                customerImageUrl: customerImageUrl || null,
+            };
+
             let resultId;
             if (customerToEdit) {
-                await updateCustomer(customerToEdit.customerId, formData);
+                await updateCustomer(customerToEdit.customerId, payload);
                 resultId = customerToEdit.customerId;
                 toast.success('¡Cliente Actualizado!', 'El cliente se ha actualizado correctamente.');
             } else {
-                const customerCreated = await createCustomer(formData);
+                const customerCreated = await createCustomer(payload);
                 resultId = customerCreated.data.customer.customerId;
                 toast.success('¡Cliente Creado!', 'El cliente se ha registrado correctamente.');
             }
@@ -126,7 +152,10 @@ export default function AddCustomerModal({
             handleResetForm();
         } catch (error) {
             console.error(error);
-            toast.error('Error', 'No se pudo procesar la solicitud. Verifica los datos e inténtalo de nuevo.');
+            const msg = error.message?.includes("Cloudinary")
+                ? error.message
+                : 'No se pudo procesar la solicitud. Verifica los datos e inténtalo de nuevo.';
+            toast.error('Error', msg);
         } finally {
             setIsLoading(false);
         }
@@ -146,6 +175,9 @@ export default function AddCustomerModal({
                 createdByUserId: user?.userId || "",
             });
         }
+        setImageFile(null);
+        setExistingImageUrl(null);
+        setImageCleared(false);
     };
 
     const setIsOpen = (val) => {
@@ -162,7 +194,7 @@ export default function AddCustomerModal({
 
     const modalTitle = title || (customerToEdit ? 'Editar Cliente' : 'Nuevo Cliente');
     const submitButtonText = isLoading
-        ? 'Guardando...'
+        ? (imageFile ? 'Subiendo imagen...' : 'Guardando...')
         : customerToEdit
             ? 'Actualizar Cliente'
             : 'Crear Cliente';
@@ -316,6 +348,23 @@ export default function AddCustomerModal({
                                             rows={3}
                                         />
                                     </div>
+
+                                    <ImageUploadField
+                                        file={imageFile}
+                                        onFileChange={(file) => {
+                                            setImageFile(file);
+                                            if (file) setImageCleared(false);
+                                        }}
+                                        onRemove={() => {
+                                            setImageFile(null);
+                                            setImageCleared(true);
+                                            setExistingImageUrl(null);
+                                        }}
+                                        existingImageUrl={!imageCleared && !imageFile ? existingImageUrl : null}
+                                        disabled={isLoading}
+                                        label="Foto de perfil (opcional)"
+                                        previewShape="rounded-lg"
+                                    />
 
                                     <IsRequiredComponent />
                                 </form>

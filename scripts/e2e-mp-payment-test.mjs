@@ -20,9 +20,8 @@ const { PrismaClient } = await import(
 const prisma = new PrismaClient();
 
 const API = process.env.BACKEND_URL || "http://localhost:3000";
-const MP_PUBLIC_KEY =
-    process.env.VITE_MERCADO_PAGO_PUBLIC_KEY?.trim()
-    || process.env.MERCADO_PAGO_PUBLIC_KEY?.trim();
+const MP_PUBLIC_KEY = process.env.VITE_MERCADO_PAGO_PUBLIC_KEY?.trim() ?? "";
+const MP_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN?.trim() ?? "";
 
 const SANDBOX_CARD = {
     cardNumber: "5031753573450604",
@@ -136,7 +135,12 @@ async function main() {
     console.log("=== E2E Mercado Pago (SDK + API) ===\n");
 
     if (!MP_PUBLIC_KEY?.startsWith("TEST-")) {
-        throw new Error(`Public Key TEST requerida. Actual: ${MP_PUBLIC_KEY?.slice(0, 12) || "vacía"}`);
+        throw new Error(
+            `Define VITE_MERCADO_PAGO_PUBLIC_KEY (TEST) en frontend/.env. Actual: ${MP_PUBLIC_KEY?.slice(0, 12) || "vacía"}`,
+        );
+    }
+    if (!MP_ACCESS_TOKEN) {
+        throw new Error("Define MERCADO_PAGO_ACCESS_TOKEN en backend/.env");
     }
 
     const forceExpire = process.argv.includes("--force-expire");

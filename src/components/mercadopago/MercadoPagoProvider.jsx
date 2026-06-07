@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import { initMercadoPago } from "@mercadopago/sdk-react";
-import { MP_LOCALE, MP_PUBLIC_KEY, isMercadoPagoConfigured } from "../../config/mercadopago/mpConfig.js";
+import {
+    MP_LOCALE,
+    getMercadoPagoPublicKey,
+    isMercadoPagoConfigured,
+} from "../../config/mercadopago/mpConfig.js";
 
 let sdkInitialized = false;
 
@@ -15,7 +19,8 @@ export default function MercadoPagoProvider({ children }) {
         if (!isMercadoPagoConfigured() || sdkInitialized || initAttempted.current) return;
         initAttempted.current = true;
 
-        initMercadoPago(MP_PUBLIC_KEY, { locale: MP_LOCALE });
+        const publicKey = getMercadoPagoPublicKey();
+        initMercadoPago(publicKey, { locale: MP_LOCALE });
         sdkInitialized = true;
     }, []);
 

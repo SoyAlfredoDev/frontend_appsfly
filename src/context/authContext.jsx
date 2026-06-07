@@ -1,6 +1,6 @@
 import { useContext, useState, createContext, useEffect, useMemo, useCallback } from "react";
 import { registerRequest, loginRequest, logoutRequest, authVerifyRequest } from "../api/auth.js";
-import { userGuestExistsRequest } from "../api/userGuest.js";
+import { getMyPendingInvitesRequest } from "../api/userGuest.js";
 import { getUserBusinessById } from '../api/userBusiness.js';
 import { getUserByIdRequest, userIsSuperAdminRequest } from "../api/user.js";
 import { getSubscriptionsByBusinessIdRequest } from "../api/subscription.js";
@@ -64,9 +64,11 @@ export const AuthProvider = ({ children }) => {
         [subscriptions],
     );
 
-    const refreshSubscriptions = useCallback(async () => {
+    const refreshSubscriptions = useCallback(async (overrideBusinessId) => {
         const businessId =
-            businessSelected?.userBusinessBusinessId ?? businessSelected?.businessId;
+            overrideBusinessId ??
+            businessSelected?.userBusinessBusinessId ??
+            businessSelected?.businessId;
         if (!businessId) {
             setSubscriptions([]);
             return [];
@@ -83,15 +85,48 @@ export const AuthProvider = ({ children }) => {
         }
     }, [businessSelected]);
 
-    // Check if the user has pending guest invitations
-    const searchUserGuestExists = async (email) => {
+    /** Recarga negocio, suscripciones y datos del tenant tras crear negocio o cambiar contexto. */
+    const reloadTenantContext = useCallback(async (userId) => {
+        if (!userId) return null;
         try {
-            const res = await userGuestExistsRequest(email);
-            if (res.data.length > 0) {
-                setUserGuestExists(res.data);
+            const userBusiness = await getUserBusinessById(userId);
+            const list = userBusiness.data ?? [];
+            const exists = list.length > 0;
+            const selected = list[0] ?? null;
+
+            setHasBusiness(exists);
+            setBusinessSelected(selected);
+
+            if (selected?.userBusinessBusinessId) {
+                await getSubscriptionsByBusinessId(selected.userBusinessBusinessId);
+                await searchBusinessByBusinessId(selected.userBusinessBusinessId);
+            } else {
+                setSubscriptions([]);
+                setBusiness(null);
             }
+
+            return selected;
+        } catch (error) {
+            console.error("Error reloading tenant context:", error);
+            return null;
+        }
+    }, []);
+
+    // Check if the user has pending guest invitations
+    const searchUserGuestExists = async () => {
+        try {
+            const res = await getMyPendingInvitesRequest();
+            const list = Array.isArray(res.data) ? res.data : [];
+            if (list.length > 0) {
+                setUserGuestExists(list);
+            } else {
+                setUserGuestExists(false);
+            }
+            return list;
         } catch (error) {
             console.log("Error in searchUserGuestExists:", error);
+            setUserGuestExists(false);
+            return [];
         }
     };
 
@@ -160,7 +195,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('token', res.data.token);
             setUser(data);
             setIsAuthenticated(true);
-            await searchUserGuestExists(data.userEmail);
+            await searchUserGuestExists();
             // Get the business linked to the new user
             const business = await searchBusinessByUserId(data.userId);
             // Use the business directly (not businessSelected)
@@ -197,7 +232,7 @@ export const AuthProvider = ({ children }) => {
 
         try {
             await checkIfUserIsSuperAdmin();
-            await searchUserGuestExists(data.userEmail);
+            await searchUserGuestExists();
 
             const business = await searchBusinessByUserId(data.userId);
             if (business) {
@@ -256,7 +291,7 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true);
 
                 // 3) Verificar invitado (guest)
-                await searchUserGuestExists(userData.userEmail);
+                await searchUserGuestExists();
 
                 // 4) Buscar negocio asociado
                 const business = await searchBusinessByUserId(userData.userId);
@@ -309,9 +344,10 @@ export const AuthProvider = ({ children }) => {
                 isFirstTimeSubscriber,
                 isExpiredSubscriber,
                 refreshSubscriptions,
+                reloadTenantContext,
                 searchUserGuestExists,
                 isSuperAdmin,
-                business
+                business,
 
             }}
         >

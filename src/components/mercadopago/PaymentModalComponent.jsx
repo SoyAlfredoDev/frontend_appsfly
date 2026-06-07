@@ -24,7 +24,7 @@ export default function PaymentModalComponent({
     onProcessingStart,
 }) {
     const isLocked = loading || processing || success;
-    const brickReady = Boolean(preferenceId && paymentId && amount != null);
+    const brickReady = Boolean(paymentId && amount != null);
     const [brickMounted, setBrickMounted] = useState(false);
 
     useEffect(() => {
@@ -95,15 +95,21 @@ export default function PaymentModalComponent({
                             >
                                 {success ? "¡Pago confirmado!" : "Pago Seguro con Mercado Pago"}
                             </h2>
-                            {planName && !success && (
+                                {planName && !success && (
                                 <p className="mt-1 text-xs sm:text-sm text-slate-500">
                                     {planName}
                                     {amount != null && (
                                         <span className="font-semibold text-dark">
                                             {" "}
-                                            · {formatCurrency(amount, "es-CL", currency)}
+                                            · {formatCurrency(amount, "es-CL", currency)}/mes
                                         </span>
                                     )}
+                                </p>
+                            )}
+                            {!success && (
+                                <p className="mt-2 text-[11px] text-slate-500 leading-relaxed">
+                                    Suscripción mensual recurrente. Mercado Pago cobrará este monto cada mes de forma
+                                    automática hasta que la canceles desde tu perfil.
                                 </p>
                             )}
                         </div>

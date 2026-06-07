@@ -29,10 +29,10 @@ export default function PromoFreeTrialButton({
             type="button"
             onClick={handleClick}
             disabled={loading || disabled}
-            className={`group w-full py-2 px-3 rounded-lg font-bold text-xs text-white shadow-md shadow-green-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 ${
+            className={`group w-full py-2 px-3 rounded-lg font-bold text-xs text-white shadow-md shadow-primary/20 transition-all duration-200 flex items-center justify-center gap-1.5 ${
                 loading || disabled
-                    ? "bg-gray-100 cursor-not-allowed text-gray-400 shadow-none"
-                    : "bg-[#01c676] hover:bg-[#00b067] hover:-translate-y-0.5"
+                    ? "bg-slate-100 cursor-not-allowed text-slate-400 shadow-none"
+                    : "bg-primary hover:bg-primary-hover hover:-translate-y-0.5"
             }`}
         >
             {loading ? (

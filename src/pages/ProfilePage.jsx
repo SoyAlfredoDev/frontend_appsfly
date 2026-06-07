@@ -3,10 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { FcOk } from "react-icons/fc";
 import { FaUser, FaBuilding, FaPhone, FaEnvelope, FaIdCard, FaWhatsapp, FaMapMarkerAlt, FaBriefcase, FaUserCircle } from "react-icons/fa";
 import { sendEmailRequest } from '../api/email.js';
-import { RegisterEmail } from '../email-models/RegisterEmail';
+import { RegisterEmail } from '../emails/users/auth/RegisterEmail.jsx';
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "../components/layout/PageContainer.jsx";
+import SubscriptionBillingCard from "../components/profile/SubscriptionBillingCard.jsx";
 
 export default function ProfilePage() {
     const { user, business, businessSelected } = useAuth();
@@ -53,7 +54,6 @@ export default function ProfilePage() {
                     className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20"
                 >
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* --- TARJETA DE USUARIO --- */}
                         <motion.div variants={itemVariants} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 flex flex-col h-full">
                             <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-4">
                                 <div className="flex items-center gap-3">
@@ -240,6 +240,13 @@ export default function ProfilePage() {
                             </div>
                         </motion.div>
                     </div>
+
+                    <motion.div variants={itemVariants} className="mt-6">
+                        <SubscriptionBillingCard
+                            businessId={businessSelected?.userBusinessBusinessId ?? business?.businessId}
+                            isAdmin={businessSelected?.userBusinessRole === "ADMIN"}
+                        />
+                    </motion.div>
                 </motion.div>
             </div>
         </PageContainer>

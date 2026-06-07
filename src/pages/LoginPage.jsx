@@ -1,20 +1,37 @@
-import { useNavigate, Link } from "react-router-dom";
-import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaArrowLeft, FaSpinner } from "react-icons/fa";
 import InputFloatingComponent from "../components/inputs/InputFloatingComponent";
+import AuthPageLayout from "../components/auth/AuthPageLayout.jsx";
+import AuthPageCard from "../components/auth/AuthPageCard.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { getLoginErrorMessage, isServerUnavailableError } from "../utils/apiErrors.js";
-import "./LoginPage.css";
-
-const LOGO_SRC = "/logo_appsfly.png";
 
 export default function LoginPage() {
     const { signin } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const toast = useToast();
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (location.state?.registered) {
+            toast.success(
+                "Registro completado",
+                "Inicia sesión con tu correo y contraseña. Revisa tu bandeja para confirmar el email.",
+            );
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+        if (location.state?.invitationAccepted) {
+            toast.success(
+                "Invitación aceptada",
+                "Inicia sesión nuevamente para acceder al negocio.",
+            );
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, location.pathname, navigate, toast]);
 
     const [formData, setFormData] = useState({
         userEmail: "",
@@ -67,144 +84,87 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="login-page">
-            <div className="login-page__ambient" aria-hidden="true" />
+        <AuthPageLayout>
+            <AuthPageCard
+                title="Bienvenido"
+                subtitle="Ingresa a tu cuenta para continuar"
+                footer={
+                    <p className="mt-8 text-center text-xs text-slate-500 font-sans">
+                        ¿No tienes una cuenta?{" "}
+                        <Link
+                            to="/register"
+                            className="login-link text-xs focus:outline-none focus-visible:underline"
+                        >
+                            Regístrate aquí
+                        </Link>
+                    </p>
+                }
+            >
+                <form onSubmit={handleOnSubmit} className="space-y-6">
+                    <InputFloatingComponent
+                        label="Correo electrónico"
+                        type="email"
+                        name="userEmail"
+                        value={formData.userEmail}
+                        onChange={handleInputChange}
+                        required
+                        autoComplete="email"
+                        inputMode="email"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        maxLength={254}
+                        disabled={loading}
+                    />
 
-            <div className="login-page__grid">
-                <aside className="login-brand-panel" aria-hidden="true">
-                    <Link to="/" className="inline-block">
-                        <img
-                            src="/logo-appsfly-white.png"
-                            alt=""
-                            className="h-9 w-auto object-contain opacity-95"
+                    <div className="space-y-2">
+                        <InputFloatingComponent
+                            label="Contraseña"
+                            type="password"
+                            name="userPassword"
+                            value={formData.userPassword}
+                            onChange={handleInputChange}
+                            required
+                            autoComplete="current-password"
+                            showPasswordToggle
+                            maxLength={128}
+                            disabled={loading}
                         />
-                    </Link>
-
-                    <div className="max-w-sm">
-                        <div className="login-brand-panel__accent-line" />
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-4">
-                            Plataforma B2B
-                        </p>
-                        <h1 className="text-3xl xl:text-[2rem] font-bold font-display text-white leading-tight">
-                            Operaciones claras.
-                            <span className="block text-primary mt-1">Decisiones rápidas.</span>
-                        </h1>
-                        <p className="mt-4 text-sm text-white/70 leading-relaxed font-sans">
-                            Ventas, inventario, gastos y reportes en un solo ecosistema.
-                            Accede con tu cuenta corporativa.
-                        </p>
+                        <div className="flex justify-end">
+                            <Link
+                                to="/forgot-password"
+                                className="login-link text-xs focus:outline-none focus-visible:underline"
+                            >
+                                ¿Olvidaste tu contraseña?
+                            </Link>
+                        </div>
                     </div>
 
-                    <p className="text-xs text-white/40 font-sans">
-                        © {new Date().getFullYear()} AppsFly. Todos los derechos reservados.
-                    </p>
-                </aside>
+                    <div className="space-y-3 pt-1">
+                        <motion.button
+                            type="submit"
+                            disabled={loading}
+                            whileHover={loading ? undefined : { scale: 1.02 }}
+                            whileTap={loading ? undefined : { scale: 0.98 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 24 }}
+                            className="login-submit-btn"
+                        >
+                            {loading ? (
+                                <>
+                                    <FaSpinner className="animate-spin h-4 w-4" aria-hidden="true" />
+                                    <span>Iniciando sesión...</span>
+                                </>
+                            ) : (
+                                "Iniciar sesión"
+                            )}
+                        </motion.button>
 
-                <main className="login-form-column">
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
-                        className="w-full flex justify-center"
-                    >
-                        <div className="login-card">
-                            <div className="login-card__logo-wrap">
-                                <Link to="/" className="inline-block">
-                                    <img
-                                        src={LOGO_SRC}
-                                        className="login-card__logo"
-                                        alt="AppsFly"
-                                    />
-                                </Link>
-                            </div>
-
-                            <div className="text-center mb-8">
-                                <h2 className="text-2xl font-bold text-dark font-display tracking-tight">
-                                    Bienvenido
-                                </h2>
-                                <p className="text-slate-500 text-sm mt-2 font-sans">
-                                    Ingresa a tu cuenta para continuar
-                                </p>
-                            </div>
-
-                            <form onSubmit={handleOnSubmit} className="space-y-6">
-                                <InputFloatingComponent
-                                    label="Correo electrónico"
-                                    type="email"
-                                    name="userEmail"
-                                    value={formData.userEmail}
-                                    onChange={handleInputChange}
-                                    required
-                                    autoComplete="email"
-                                    inputMode="email"
-                                    autoCapitalize="none"
-                                    spellCheck={false}
-                                    maxLength={254}
-                                    disabled={loading}
-                                />
-
-                                <div className="space-y-2">
-                                    <InputFloatingComponent
-                                        label="Contraseña"
-                                        type="password"
-                                        name="userPassword"
-                                        value={formData.userPassword}
-                                        onChange={handleInputChange}
-                                        required
-                                        autoComplete="current-password"
-                                        showPasswordToggle
-                                        maxLength={128}
-                                        disabled={loading}
-                                    />
-                                    <div className="flex justify-end">
-                                        <Link
-                                            to="/forgot-password"
-                                            className="login-link text-xs focus:outline-none focus-visible:underline"
-                                        >
-                                            ¿Olvidaste tu contraseña?
-                                        </Link>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 pt-1">
-                                    <motion.button
-                                        type="submit"
-                                        disabled={loading}
-                                        whileHover={loading ? undefined : { scale: 1.02 }}
-                                        whileTap={loading ? undefined : { scale: 0.98 }}
-                                        transition={{ type: "spring", stiffness: 400, damping: 24 }}
-                                        className="login-submit-btn"
-                                    >
-                                        {loading ? (
-                                            <>
-                                                <FaSpinner className="animate-spin h-4 w-4" aria-hidden="true" />
-                                                <span>Iniciando sesión...</span>
-                                            </>
-                                        ) : (
-                                            "Iniciar sesión"
-                                        )}
-                                    </motion.button>
-
-                                    <Link to="/" className="login-ghost-btn">
-                                        <FaArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                                        Volver al inicio
-                                    </Link>
-                                </div>
-                            </form>
-
-                            <p className="mt-8 text-center text-xs text-slate-500 font-sans">
-                                ¿No tienes una cuenta?{" "}
-                                <Link
-                                    to="/register"
-                                    className="login-link text-xs focus:outline-none focus-visible:underline"
-                                >
-                                    Regístrate aquí
-                                </Link>
-                            </p>
-                        </div>
-                    </motion.div>
-                </main>
-            </div>
-        </div>
+                        <Link to="/" className="login-ghost-btn">
+                            <FaArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            Volver al inicio
+                        </Link>
+                    </div>
+                </form>
+            </AuthPageCard>
+        </AuthPageLayout>
     );
 }

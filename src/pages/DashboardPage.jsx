@@ -9,8 +9,9 @@ import { getSubscriptionAccessState } from "../utils/subscriptionAccess.js";
 
 export default function DashboardPage() {
     const { hasBusiness, userGuestExists, hasActiveSubscription, subscriptions } = useAuth();
-    const showSidebar = !hasBusiness && userGuestExists;
-    const mainColSpan = showSidebar ? "lg:col-span-8 xl:col-span-9" : "lg:col-span-12";
+    const hasPendingInvites = Array.isArray(userGuestExists) && userGuestExists.length > 0;
+    const showInvitesPanel = hasPendingInvites;
+    const mainColSpan = showInvitesPanel ? "lg:col-span-8 xl:col-span-9" : "lg:col-span-12";
 
     if (hasBusiness && !hasActiveSubscription) {
         const access = getSubscriptionAccessState(subscriptions);
@@ -27,11 +28,11 @@ export default function DashboardPage() {
                     {hasBusiness && hasActiveSubscription ? (
                         <UsersDashboardPage />
                     ) : !hasBusiness ? (
-                        <UserNewDashboardPage embedded />
+                        <UserNewDashboardPage embedded hasPendingInvites={hasPendingInvites} />
                     ) : null}
                 </div>
 
-                {showSidebar && (
+                {showInvitesPanel && (
                     <div className="col-span-1 lg:col-span-4 xl:col-span-3 space-y-6">
                         <UserGuestPendient />
                     </div>

@@ -34,6 +34,8 @@ import {
 import { getClosureStatus, closeAllPendingClosures } from "../../api/dailySales.js";
 import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineItem.jsx";
+import ImageUploadField from "../../components/inputs/ImageUploadField.jsx";
+import { uploadImageToCloudinary, CLOUDINARY_FOLDERS } from "../../utils/cloudinaryUpload.js";
 import {
   PRIMARY_BTN,
   PRIMARY_BTN_BLOCK,
@@ -121,6 +123,7 @@ export default function NewSalePage() {
 
   // UI states
   const [isLoading, setIsLoading] = useState(false);
+  const [saleImageFile, setSaleImageFile] = useState(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [customerSearch, setCustomerSearch] = useState("");
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
@@ -457,8 +460,21 @@ export default function NewSalePage() {
 
     setIsLoading(true);
     try {
+      let saleImageUrl = null;
+      if (saleImageFile) {
+        saleImageUrl = await uploadImageToCloudinary(saleImageFile, {
+          folder: CLOUDINARY_FOLDERS.SALE_RECEIPT,
+          publicId: `sale-${saleId}`,
+        });
+      }
+
+      const salePayload = {
+        ...dataSale,
+        saleImageUrl: saleImageUrl || null,
+      };
+
       const res = await createSaleGeneral(
-        dataSale,
+        salePayload,
         dataTable,
         dataSalePayments,
       );
@@ -480,11 +496,15 @@ export default function NewSalePage() {
         setDataTable([createEmptyRow()]);
         setTotal(0);
         setTotalPayments(0);
-        setAmountDue(0);
         setDataSalePayments([]);
+        setSaleImageFile(null);
       }
     } catch (error) {
       console.error("Error creating sale:", error);
+      if (error.message?.includes("Cloudinary")) {
+        toast.error("Error de imagen", error.message);
+        return;
+      }
       const apiError = error.response?.data;
       if (apiError?.error === "BLOQUEO_CIERRE_PENDIENTE" || apiError?.error === "DAY_CLOSED") {
         applyClosureStatus({
@@ -886,6 +906,13 @@ export default function NewSalePage() {
                 }
               />
             </div>
+            <ImageUploadField
+              file={saleImageFile}
+              onFileChange={setSaleImageFile}
+              disabled={isLoading || isSalesBlocked}
+              label="Comprobante visual (opcional)"
+              previewShape="rounded-lg"
+            />
             {total > 0 && (
               <div className="flex justify-between text-xs pt-1 border-t border-gray-100">
                 <span className="text-primary font-medium">Abonado: {formatCurrency(totalPayments)}</span>
@@ -1104,6 +1131,15 @@ export default function NewSalePage() {
                   }))
                 }
               />
+              <div className="mt-4">
+                <ImageUploadField
+                  file={saleImageFile}
+                  onFileChange={setSaleImageFile}
+                  disabled={isLoading || isSalesBlocked}
+                  label="Comprobante visual (opcional)"
+                  previewShape="rounded-lg"
+                />
+              </div>
             </div>
 
             <div className="flex-1 p-6 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col min-h-[120px]">
@@ -1179,7 +1215,7 @@ export default function NewSalePage() {
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Procesando...</span>
+                    <span>{saleImageFile ? "Subiendo imagen..." : "Procesando..."}</span>
                   </>
                 ) : (
                   <>
@@ -1214,7 +1250,7 @@ export default function NewSalePage() {
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Procesando...
+                  {saleImageFile ? "Subiendo imagen..." : "Procesando..."}
                 </>
               ) : (
                 <>

@@ -10,6 +10,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { FaUser, FaHistory, FaCreditCard, FaArrowLeft, FaEdit, FaPhone, FaIdCard, FaEnvelope } from 'react-icons/fa';
 
 import AddCustomerModal from '../components/modals/AddCustomerModal.jsx';
+import ImagePreviewModal from '../components/modals/ImagePreviewModal.jsx';
 import PageContainer from "../components/layout/PageContainer.jsx";
 
 export default function CustomerViewPage() {
@@ -18,6 +19,7 @@ export default function CustomerViewPage() {
     const [sales, setSales] = useState([]);
     const [payments, setPayments] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
     const { id } = useParams();
     const navigate = useNavigate();
     const methodsPaymets = [
@@ -28,16 +30,37 @@ export default function CustomerViewPage() {
     ];
 
     const getData = async () => {
+        setLoading(true);
         try {
-            const customerFound = await getCustomerById(id);
-            const salesFound = await getSalesByCustomerIdRequest(id);
-            const paymentsFound = await getPaymentByCustomerId(id);
-            setSales(salesFound.data);
-            setPayments(paymentsFound.data);
-            setCustomer(customerFound.data);
-            setLoading(false);
+            const [customerResult, salesResult, paymentsResult] = await Promise.allSettled([
+                getCustomerById(id),
+                getSalesByCustomerIdRequest(id),
+                getPaymentByCustomerId(id),
+            ]);
+
+            if (customerResult.status === "fulfilled") {
+                setCustomer(customerResult.value.data);
+            } else {
+                console.error("Error loading customer:", customerResult.reason);
+            }
+
+            if (salesResult.status === "fulfilled") {
+                setSales(Array.isArray(salesResult.value.data) ? salesResult.value.data : []);
+            } else {
+                console.error("Error loading sales:", salesResult.reason);
+                setSales([]);
+            }
+
+            if (paymentsResult.status === "fulfilled") {
+                setPayments(Array.isArray(paymentsResult.value.data) ? paymentsResult.value.data : []);
+            } else {
+                console.error("Error loading payments:", paymentsResult.reason);
+                setPayments([]);
+            }
         } catch (error) {
-            console.log(error);
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -149,12 +172,33 @@ export default function CustomerViewPage() {
                                     </div>
                                 </div>
 
-                                {/* Columna 3: Avatar Placeholder */}
+                                {/* Columna 3: Imagen del cliente */}
                                 <div className="flex justify-center md:justify-end">
-                                    <div className="w-32 h-32 bg-gray-100 rounded-full flex flex-col items-center justify-center text-gray-400 border-4 border-white shadow-lg">
-                                        <FaUser size={40} className="mb-2" />
-                                        <span className="text-xs font-medium">SIN FOTO</span>
-                                    </div>
+                                    {loading ? (
+                                        <div className="w-32 h-32 bg-gray-100 rounded-lg animate-pulse border border-gray-200" />
+                                    ) : customer?.customerImageUrl ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsImagePreviewOpen(true)}
+                                            className="group relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 shadow-md bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                                            title="Ver imagen en grande"
+                                            aria-label="Ver imagen del cliente en grande"
+                                        >
+                                            <img
+                                                src={customer.customerImageUrl}
+                                                alt={`Imagen de ${formatName(customer?.customerFirstName) ?? "cliente"}`}
+                                                className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                            />
+                                            <span className="absolute inset-x-0 bottom-0 py-1 text-[10px] font-medium text-white text-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Ampliar
+                                            </span>
+                                        </button>
+                                    ) : (
+                                        <div className="w-32 h-32 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-300">
+                                            <FaUser size={32} className="mb-2 opacity-60" />
+                                            <span className="text-xs font-medium">Sin imagen</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -263,6 +307,15 @@ export default function CustomerViewPage() {
                         onClose={() => setIsModalOpen(false)}
                         customerToEdit={customer}
                         onCreated={getData}
+                    />
+
+                    <ImagePreviewModal
+                        isOpen={isImagePreviewOpen}
+                        onClose={() => setIsImagePreviewOpen(false)}
+                        imageUrl={customer?.customerImageUrl}
+                        title={`Imagen — ${formatName(customer?.customerFirstName) ?? ""} ${formatName(customer?.customerLastName) ?? ""}`.trim()}
+                        alt={`Imagen de ${formatName(customer?.customerFirstName) ?? "cliente"}`}
+                        downloadFilename={`cliente-${customer?.customerId ?? "imagen"}`}
                     />
                 </div>
             </Motion.div>

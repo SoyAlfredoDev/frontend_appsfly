@@ -27,7 +27,7 @@ export default function usePromoFreeTrialSubscription({ refreshSubscriptions, on
                 });
 
                 if (res.status === 201) {
-                    await refreshSubscriptions?.();
+                    await refreshSubscriptions?.(businessId);
                     onSuccess?.(res.data);
                     setTimeout(() => navigate("/dashboard"), 2000);
                     return res.data;

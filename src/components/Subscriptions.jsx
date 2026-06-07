@@ -92,8 +92,8 @@ export default function Subscription({ embedded = false, compact = false, offerT
 
     const handlePromoSuccess = () => {
         toast.success(
-            "Suscripción exitosa",
-            "Tu prueba gratuita fue registrada y auditada correctamente.",
+            "Prueba activada",
+            "Tu trial de 2 meses está activo. Revisa tu correo — te enviamos la bienvenida con los detalles.",
         );
     };
 
@@ -239,8 +239,8 @@ export default function Subscription({ embedded = false, compact = false, offerT
                                     <ul className="space-y-1">
                                         {features.map((feature, idx) => (
                                             <li key={idx} className="flex items-center gap-2">
-                                                <div className="shrink-0 bg-green-100 rounded-full p-0.5">
-                                                    <FaCheck className="h-2 w-2 text-[#01c676]" />
+                                                <div className="shrink-0 bg-primary/10 rounded-full p-0.5">
+                                                    <FaCheck className="h-2 w-2 text-primary" />
                                                 </div>
                                                 <span className="text-[11px] text-gray-600 font-medium">
                                                     {feature}
@@ -258,8 +258,8 @@ export default function Subscription({ embedded = false, compact = false, offerT
                                         buttonId="mp-subscription-checkout"
                                         buttonLabel={
                                             compact
-                                                ? "Contratar plan comercial"
-                                                : "Pagar con Mercado Pago"
+                                                ? "Suscripción mensual"
+                                                : "Activar suscripción mensual"
                                         }
                                         refreshSubscriptions={refreshSubscriptions}
                                         onSuccess={() => {

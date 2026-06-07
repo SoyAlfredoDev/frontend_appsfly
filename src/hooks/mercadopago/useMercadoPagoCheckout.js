@@ -54,6 +54,7 @@ export default function useMercadoPagoCheckout() {
         amount: checkoutData?.amount ?? null,
         currency: checkoutData?.currency ?? "CLP",
         planName: checkoutData?.planName ?? null,
+        billingType: checkoutData?.billingType ?? "MONTHLY_RECURRING",
         startCheckout,
         clearCheckout,
         isConfigured: isMercadoPagoConfigured(),

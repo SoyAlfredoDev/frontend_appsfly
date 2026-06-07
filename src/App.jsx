@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AuthProvider } from "./context/authContext.jsx";
 import { PaymentModalProvider } from "./context/paymentModalContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
@@ -52,6 +54,7 @@ import UsersPage from "./pages/users/UsersPage.jsx";
 import UserGuestPage from "./pages/users/UserGuestPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ConfirmAccountPage from "./pages/users/ConfirmAccountPage.jsx";
+import LogoutPage from "./pages/LogoutPage.jsx";
 
 /* Finance */
 import TransactionsPage from "./pages/TransactionsPage.jsx";
@@ -85,6 +88,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/logout" element={<LogoutPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route
                 path="/reset-password/:token"
@@ -144,6 +148,8 @@ function App() {
               <Route path="*" element={<HomePage />} />
             </Routes>
             </PaymentModalProvider>
+            <Analytics />
+            <SpeedInsights />
           </BrowserRouter>
         </ConfirmationProvider>
       </ToastProvider>
