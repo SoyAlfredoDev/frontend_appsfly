@@ -9,4 +9,5 @@ export const updateUserConfirmEmailRequest = (id) => axios.put(`/users/updateCon
 export const countUsersRequest = () => axios.get('/users/count');
 export const sendConfirmEmailRequest = (userId) =>
     axios.post(`/users/${userId}/send-confirm-email`);
+export const forgotPasswordRequest = (userEmail) => axios.post('/forgot-password', { userEmail });
 export const resetPasswordRequest = (token, newPassword) => axios.post(`/reset-password`, { token, newPassword});
