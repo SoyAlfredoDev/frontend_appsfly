@@ -1,14 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/authContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import { v4 as uuidv4 } from "uuid";
-import { createSubscriptionRequest } from "../api/subscription.js";
 import { getPlansRequest } from "../api/plans.js";
-import { useNavigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { FaCheck, FaStar, FaArrowRight, FaCreditCard } from "react-icons/fa";
-import SelectFloatingComponent from "./inputs/SelectFloatingComponent.jsx";
+import { FaCheck, FaStar, FaCreditCard } from "react-icons/fa";
 import { FREE_TRIAL_PLAN_ID } from "../utils/subscriptionAccess.js";
+import { getMercadoPagoStatusMessage } from "../config/mercadopago/mpStatusMessages.js";
+import { isMercadoPagoTestMode } from "../config/mercadopago/mpConfig.js";
+import {
+    MercadoPagoCheckoutButton,
+    PromoFreeTrialButton,
+} from "./mercadopago/index.js";
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -19,13 +21,6 @@ const itemVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0 },
 };
-
-const PAYMENT_OPTIONS = [
-    { value: "0", label: "Tarjeta de Débito" },
-    { value: "1", label: "Tarjeta de Crédito" },
-    { value: "2", label: "Transferencia Bancaria" },
-    { value: "3", label: "Otro" },
-];
 
 const TRIAL_PLAN = {
     planId: FREE_TRIAL_PLAN_ID,
@@ -46,18 +41,16 @@ const FALLBACK_PAID_PLAN = {
 
 /**
  * @param {'trial' | 'paid'} offerType
- * - trial: promoción P001 solo para negocios sin historial
- * - paid: plan de pago obligatorio (sin P001)
+ * - trial: promoción P001 — sin Mercado Pago
+ * - paid: plan comercial — Checkout Pro Mercado Pago Chile
  */
 export default function Subscription({ embedded = false, compact = false, offerType = "trial" }) {
     const { businessSelected, refreshSubscriptions, canClaimFreeTrial } = useAuth();
-    const navigate = useNavigate();
-    const [subscribingId, setSubscribingId] = useState(null);
     const [paidPlan, setPaidPlan] = useState(null);
-    const [paymentMethod, setPaymentMethod] = useState("2");
     const toast = useToast();
 
     const isPaidOffer = offerType === "paid";
+    const businessId = businessSelected?.userBusinessBusinessId;
 
     useEffect(() => {
         if (!isPaidOffer) return;
@@ -79,9 +72,7 @@ export default function Subscription({ embedded = false, compact = false, offerT
         };
     }, [isPaidOffer]);
 
-    const plan = isPaidOffer
-        ? paidPlan ?? FALLBACK_PAID_PLAN
-        : TRIAL_PLAN;
+    const plan = isPaidOffer ? paidPlan ?? FALLBACK_PAID_PLAN : TRIAL_PLAN;
 
     const features = isPaidOffer
         ? (() => {
@@ -99,57 +90,23 @@ export default function Subscription({ embedded = false, compact = false, offerT
           })()
         : TRIAL_PLAN.features;
 
-    const handleSubscribe = async (selectedPlan) => {
-        if (subscribingId) return;
-
-        if (!isPaidOffer && !canClaimFreeTrial) {
-            toast.error(
-                "Promoción no disponible",
-                "La prueba gratuita solo aplica para negocios nuevos sin historial de suscripción.",
-            );
-            return;
-        }
-
-        if (isPaidOffer && !paymentMethod) {
-            toast.error("Método de pago requerido", "Selecciona cómo deseas pagar tu plan.");
-            return;
-        }
-
-        try {
-            setSubscribingId(selectedPlan.planId);
-            const newSubscription = {
-                subscriptionId: uuidv4(),
-                subscriptionBusinessId: businessSelected?.userBusinessBusinessId,
-                subscriptionPlanId: selectedPlan.planId,
-                subscriptionPaymentMethod: isPaidOffer ? paymentMethod : null,
-            };
-            const res = await createSubscriptionRequest(newSubscription);
-            if (res.status === 201) {
-                await refreshSubscriptions();
-                toast.success(
-                    isPaidOffer ? "Plan activado" : "Suscripción exitosa",
-                    isPaidOffer
-                        ? "Tu acceso operativo ha sido restaurado."
-                        : "Tu cuenta ha sido actualizada correctamente.",
-                );
-                setTimeout(() => navigate("/dashboard"), 2000);
-            } else {
-                setSubscribingId(null);
-                toast.error(
-                    "Error al procesar la suscripción",
-                    res.data?.message ?? "Reinicia la página e intente nuevamente.",
-                );
-            }
-        } catch (error) {
-            setSubscribingId(null);
-            console.error(error);
-            toast.error(
-                "Error al procesar la suscripción",
-                error.response?.data?.message ??
-                    "Error al procesar la suscripción, reinicia la página e intente nuevamente.",
-            );
-        }
+    const handlePromoSuccess = () => {
+        toast.success(
+            "Suscripción exitosa",
+            "Tu prueba gratuita fue registrada y auditada correctamente.",
+        );
     };
+
+    const handlePaymentError = useCallback((error) => {
+        const statusDetail = error.statusDetail || error.message;
+        const fromApi = error.response?.data?.message;
+        const message = fromApi && !String(fromApi).startsWith("cc_")
+            ? fromApi
+            : getMercadoPagoStatusMessage(statusDetail, {
+                testMode: isMercadoPagoTestMode(),
+            });
+        toast.error("Error al procesar la suscripción", message);
+    }, [toast]);
 
     const rootClass = embedded
         ? compact
@@ -216,8 +173,7 @@ export default function Subscription({ embedded = false, compact = false, offerT
                             {isPaidOffer ? (
                                 <>
                                     Tu periodo anterior finalizó. Contrata el plan de pago para recuperar
-                                    ventas, inventario y reportes de{" "}
-                                    <strong>AppsFly</strong>.
+                                    ventas, inventario y reportes de <strong>AppsFly</strong>.
                                 </>
                             ) : (
                                 <>
@@ -229,14 +185,13 @@ export default function Subscription({ embedded = false, compact = false, offerT
 
                         {isPaidOffer && compact && (
                             <Motion.div variants={itemVariants} className="mt-2 max-w-xs">
-                                <SelectFloatingComponent
-                                    label="Método de pago"
-                                    name="paymentMethod"
-                                    value={paymentMethod}
-                                    onChange={(e) => setPaymentMethod(e.target.value)}
-                                    options={PAYMENT_OPTIONS}
-                                    className="!mb-0"
-                                />
+                                <div className="rounded-lg border border-blue-100 bg-blue-50/80 px-3 py-2 flex items-center gap-2">
+                                    <FaCreditCard className="text-secondary shrink-0 text-sm" />
+                                    <p className="text-[11px] text-slate-700 leading-snug">
+                                        Pago seguro con Checkout Bricks de{" "}
+                                        <strong>Mercado Pago Chile</strong>.
+                                    </p>
+                                </div>
                             </Motion.div>
                         )}
                     </div>
@@ -295,31 +250,36 @@ export default function Subscription({ embedded = false, compact = false, offerT
                                     </ul>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={() => handleSubscribe(plan)}
-                                    disabled={!!subscribingId || (!isPaidOffer && !canClaimFreeTrial)}
-                                    className={`group w-full py-2 px-3 rounded-lg font-bold text-xs text-white shadow-md shadow-green-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                                        subscribingId || (!isPaidOffer && !canClaimFreeTrial)
-                                            ? "bg-gray-100 cursor-not-allowed text-gray-400 shadow-none"
-                                            : "bg-[#01c676] hover:bg-[#00b067] hover:-translate-y-0.5"
-                                    }`}
-                                >
-                                    {subscribingId === plan.planId ? (
-                                        <>Procesando...</>
-                                    ) : isPaidOffer ? (
-                                        <>
-                                            <FaCreditCard />
-                                            Contratar plan
-                                            <FaArrowRight className="text-[10px] transition-transform group-hover:translate-x-1" />
-                                        </>
-                                    ) : (
-                                        <>
-                                            Obtener 2 meses gratis
-                                            <FaArrowRight className="text-[10px] transition-transform group-hover:translate-x-1" />
-                                        </>
-                                    )}
-                                </button>
+                                {isPaidOffer ? (
+                                    <MercadoPagoCheckoutButton
+                                        plan={plan}
+                                        businessId={businessId}
+                                        compact={compact}
+                                        buttonId="mp-subscription-checkout"
+                                        buttonLabel={
+                                            compact
+                                                ? "Contratar plan comercial"
+                                                : "Pagar con Mercado Pago"
+                                        }
+                                        refreshSubscriptions={refreshSubscriptions}
+                                        onSuccess={() => {
+                                            toast.success(
+                                                "Plan activado",
+                                                "Tu suscripción recurrente fue procesada correctamente.",
+                                            );
+                                        }}
+                                        onError={handlePaymentError}
+                                    />
+                                ) : (
+                                    <PromoFreeTrialButton
+                                        businessId={businessId}
+                                        planId={plan.planId}
+                                        disabled={!canClaimFreeTrial}
+                                        refreshSubscriptions={refreshSubscriptions}
+                                        onSuccess={handlePromoSuccess}
+                                        onError={handlePaymentError}
+                                    />
+                                )}
                             </div>
                         </Motion.div>
                     </div>

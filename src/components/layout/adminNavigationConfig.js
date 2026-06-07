@@ -6,10 +6,14 @@ import {
     FaArrowLeft,
     FaCog,
     FaCreditCard,
+    FaUsers,
+    FaMoneyBillWave,
 } from "react-icons/fa";
 
 export const ADMIN_NAV_ITEMS = [
     { name: "Dashboard", path: "/admin/dashboard", icon: FaChartLine },
+    { name: "Usuarios", path: "/admin/users", icon: FaUsers },
+    { name: "Pagos", path: "/admin/payments", icon: FaMoneyBillWave },
     { name: "Suscripciones", path: "/admin/subscriptions", icon: FaCreditCard },
     { name: "Tickets globales", path: "/admin/tickets", icon: FaTicketAlt },
     { name: "Empresas", path: "/admin/businesses", icon: FaBuilding },

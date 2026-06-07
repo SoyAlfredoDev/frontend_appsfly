@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/authContext.jsx";
+import { PaymentModalProvider } from "./context/paymentModalContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 import { ConfirmationProvider } from "./context/ConfirmationContext.jsx";
 import AppLayout from "./components/layout/AppLayout.jsx";
@@ -68,6 +69,9 @@ import SubscriptionsAdminPage from "./pages/admin/SubscriptionsAdminPage.jsx";
 import BusinessesAdminPage from "./pages/admin/BusinessesAdminPage.jsx";
 import BusinessDetailAdminPage from "./pages/admin/BusinessDetailAdminPage.jsx";
 import PlansAdminPage from "./pages/admin/PlansAdminPage.jsx";
+import UsersAdminPage from "./pages/admin/UsersAdminPage.jsx";
+import PaymentsAdminPage from "./pages/admin/PaymentsAdminPage.jsx";
+import SubscriptionPaymentReturnPage from "./pages/dashboard/SubscriptionPaymentReturnPage.jsx";
 
 function App() {
   return (
@@ -75,6 +79,7 @@ function App() {
       <ToastProvider>
         <ConfirmationProvider>
           <BrowserRouter>
+            <PaymentModalProvider>
             <Routes>
               {/* Public */}
               <Route path="/" element={<HomePage />} />
@@ -117,6 +122,7 @@ function App() {
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/business/register" element={<RegisterBusinessPage />} />
                 </Route>
+                <Route path="/subscription/payment/return" element={<SubscriptionPaymentReturnPage />} />
               </Route>
 
               {/* Zona administrativa global */}
@@ -124,7 +130,9 @@ function App() {
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
                   <Route path="/admin/dashboard" element={<DashboardAdminPage />} />
+                  <Route path="/admin/users" element={<UsersAdminPage />} />
                   <Route path="/admin/subscriptions" element={<SubscriptionsAdminPage />} />
+                  <Route path="/admin/payments" element={<PaymentsAdminPage />} />
                   <Route path="/admin/businesses" element={<BusinessesAdminPage />} />
                   <Route path="/admin/businesses/:id" element={<BusinessDetailAdminPage />} />
                   <Route path="/admin/plans" element={<PlansAdminPage />} />
@@ -135,6 +143,7 @@ function App() {
 
               <Route path="*" element={<HomePage />} />
             </Routes>
+            </PaymentModalProvider>
           </BrowserRouter>
         </ConfirmationProvider>
       </ToastProvider>

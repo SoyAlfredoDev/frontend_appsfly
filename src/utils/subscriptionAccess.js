@@ -66,8 +66,14 @@ export function isBusinessRegisterPath(pathname) {
     return pathname === "/business/register" || pathname.startsWith("/business/register/");
 }
 
+export function isSubscriptionPaymentReturnPath(pathname) {
+    return pathname === "/subscription/payment/return"
+        || pathname.startsWith("/subscription/payment/return");
+}
+
 export function isSubscriptionExemptPath(pathname, { hasBusiness = false } = {}) {
     if (isProfilePath(pathname)) return true;
+    if (isSubscriptionPaymentReturnPath(pathname)) return true;
     if (!hasBusiness && isBusinessRegisterPath(pathname)) return true;
     return false;
 }

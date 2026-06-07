@@ -81,7 +81,7 @@ export default function SubscriptionExpiredPage({ embedded = false, fullScreen =
                         className="btn-primary flex-1 justify-center no-underline !py-2.5 !text-sm"
                         onClick={(e) => {
                             e.preventDefault();
-                            document.getElementById("renovar-plan")?.scrollIntoView({ behavior: "smooth" });
+                            document.getElementById("mp-subscription-checkout")?.click();
                         }}
                     >
                         <FaCreditCard className="text-sm" />

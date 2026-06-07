@@ -129,6 +129,7 @@ export default function DashboardAdminPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     <KpiComponent
+                        to="/admin/businesses"
                         title="Empresas registradas"
                         icon={<FaBuilding />}
                         value={loading ? null : (kpis?.totalBusinesses ?? 0)}
@@ -137,6 +138,7 @@ export default function DashboardAdminPage() {
                         isCurrency={false}
                     />
                     <KpiComponent
+                        to="/admin/users"
                         title="Usuarios globales"
                         icon={<FaUsers />}
                         value={loading ? null : (kpis?.totalUsers ?? 0)}
@@ -149,6 +151,7 @@ export default function DashboardAdminPage() {
                         isCurrency={false}
                     />
                     <KpiComponent
+                        to="/admin/payments"
                         title="Ingresos del mes"
                         icon={<FaMoneyBillWave />}
                         value={loading ? null : (kpis?.monthlyRevenue ?? 0)}
@@ -157,6 +160,7 @@ export default function DashboardAdminPage() {
                         isCurrency
                     />
                     <KpiComponent
+                        to="/admin/tickets"
                         title="Tickets abiertos"
                         icon={<FaTicketAlt />}
                         value={loading ? null : (kpis?.pendingTickets ?? 0)}

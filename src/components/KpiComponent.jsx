@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaExclamationCircle } from "react-icons/fa";
 
@@ -8,10 +9,13 @@ export default function KpiComponent({
   footer,
   loading,
   isCurrency = true,
+  to,
 }) {
-  return (
+  const card = (
     <motion.div
-      className="card overflow-hidden flex flex-col h-full"
+      className={`card overflow-hidden flex flex-col h-full${
+        to ? " cursor-pointer hover:border-primary/25 transition-colors" : ""
+      }`}
       whileHover={{ y: -2, boxShadow: "0 8px 24px rgba(2, 31, 65, 0.1)" }}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -45,5 +49,13 @@ export default function KpiComponent({
         {footer}
       </div>
     </motion.div>
+  );
+
+  if (!to) return card;
+
+  return (
+    <Link to={to} className="no-underline block h-full">
+      {card}
+    </Link>
   );
 }
