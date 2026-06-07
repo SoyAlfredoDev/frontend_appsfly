@@ -1,9 +1,7 @@
 import { useAuth } from "../context/authContext";
-import { renderToStaticMarkup } from 'react-dom/server';
+import { sendConfirmEmailRequest } from '../api/user.js';
 import { FcOk } from "react-icons/fc";
 import { FaUser, FaBuilding, FaPhone, FaEnvelope, FaIdCard, FaWhatsapp, FaMapMarkerAlt, FaBriefcase, FaUserCircle } from "react-icons/fa";
-import { sendEmailRequest } from '../api/email.js';
-import { RegisterEmail } from '../emails/users/auth/RegisterEmail.jsx';
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "../components/layout/PageContainer.jsx";
@@ -17,17 +15,16 @@ export default function ProfilePage() {
         console.log('businessSelected', business);
     }, []);
 
-    const handleConfirmEmail = () => {
-        const baseURL = import.meta.env.VITE_FRONTEND_URL;
-        const emailData = {
-            to: user.userEmail,
-            subject: 'Confirmación de registro - AppsFly',
-            html: renderToStaticMarkup(<RegisterEmail firstName={user.userFirstName} lastName={user.userLastName} confirmationLink={`${baseURL}/users/${user.userId}/confirm-email`} />),
-        };
-        sendEmailRequest(emailData);
-        setBtnConfirmEmail(true);
-        alert('Se ha enviado un correo de confirmación. Importante: revisa tu carpeta de spam.');
-    }
+    const handleConfirmEmail = async () => {
+        try {
+            await sendConfirmEmailRequest(user.userId);
+            setBtnConfirmEmail(true);
+            alert('Se ha enviado un correo de confirmación. Importante: revisa tu carpeta de spam.');
+        } catch (error) {
+            console.error(error);
+            alert('No se pudo enviar el correo de confirmación. Intenta más tarde.');
+        }
+    };
 
     const containerVariants = {
         hidden: { opacity: 0 },

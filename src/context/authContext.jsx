@@ -203,7 +203,7 @@ export const AuthProvider = ({ children }) => {
                 await getSubscriptionsByBusinessId(business.userBusinessBusinessId);
             }
             setTenantAccessReady(true);
-            return data;
+            return { ...data, emailSent: res.data.emailSent !== false };
         } catch (error) {
             return { error: error.response.data.error }
         }

@@ -1,7 +1,5 @@
 import { Link } from "react-router-dom";
-import { renderToStaticMarkup } from "react-dom/server";
-import { sendEmailRequest } from "../../api/email.js";
-import { RegisterEmail } from "../../emails/users/auth/RegisterEmail.jsx";
+import { sendConfirmEmailRequest } from "../../api/user.js";
 import { useAuth } from "../../context/authContext.jsx";
 import { useState } from "react";
 import { FaBuilding, FaRocket, FaExclamationTriangle, FaEnvelope } from "react-icons/fa";
@@ -19,20 +17,7 @@ export default function UserNewDashboardPage({ embedded = false, hasPendingInvit
     const handleConfirmEmail = async () => {
         setSendingEmail(true);
         try {
-            const baseURL = import.meta.env.VITE_FRONTEND_URL;
-            const emailData = {
-                to: user.userEmail,
-                subject: "Confirmación de registro - AppsFly",
-                html: renderToStaticMarkup(
-                    <RegisterEmail
-                        firstName={user.userFirstName}
-                        lastName={user.userLastName}
-                        confirmationLink={`${baseURL}/users/${user.userId}/confirm-email`}
-                    />,
-                ),
-            };
-
-            await sendEmailRequest(emailData);
+            await sendConfirmEmailRequest(user.userId);
             setBtnConfirmEmail(true);
 
             MySwal.fire({

@@ -1,5 +1,8 @@
 import axios from "./axios.js";
 
+export const getInvitePreviewRequest = (userGuestId) =>
+    axios.get(`/userGuest/invite/${userGuestId}/preview`);
+
 export const createUserGuest = (data) => axios.post("/userGuest", data);
 export const getUserGuestsRequest = () => axios.get("/userGuest");
 export const getMyPendingInvitesRequest = () => axios.get("/userGuest/pending/me");

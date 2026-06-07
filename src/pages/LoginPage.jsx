@@ -1,4 +1,4 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaArrowLeft, FaSpinner } from "react-icons/fa";
@@ -13,6 +13,7 @@ export default function LoginPage() {
     const { signin } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams] = useSearchParams();
     const toast = useToast();
     const [loading, setLoading] = useState(false);
 
@@ -32,6 +33,13 @@ export default function LoginPage() {
             navigate(location.pathname, { replace: true, state: {} });
         }
     }, [location.state, location.pathname, navigate, toast]);
+
+    useEffect(() => {
+        const emailParam = searchParams.get("email")?.trim().toLowerCase();
+        if (emailParam) {
+            setFormData((prev) => ({ ...prev, userEmail: emailParam }));
+        }
+    }, [searchParams]);
 
     const [formData, setFormData] = useState({
         userEmail: "",

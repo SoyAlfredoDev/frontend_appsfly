@@ -7,5 +7,6 @@ export const getUserByIdRequest = (id) => axios.get(`/users/${id}`);
 export const userIsSuperAdminRequest = () => axios.get('/users/isSuperAdmin');
 export const updateUserConfirmEmailRequest = (id) => axios.put(`/users/updateConfirmEmail/${id}`);
 export const countUsersRequest = () => axios.get('/users/count');
-export const forgotPasswordRequest = (userEmail) => axios.post('/forgot-password', { userEmail });
+export const sendConfirmEmailRequest = (userId) =>
+    axios.post(`/users/${userId}/send-confirm-email`);
 export const resetPasswordRequest = (token, newPassword) => axios.post(`/reset-password`, { token, newPassword});

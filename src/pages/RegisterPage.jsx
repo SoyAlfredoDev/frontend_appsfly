@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaArrowLeft, FaSpinner } from "react-icons/fa";
 import InputFloatingComponent from "../components/inputs/InputFloatingComponent";
@@ -12,8 +11,7 @@ import validateRut from "../libs/validateRut.js";
 import { useAuth } from "../context/authContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { v4 as uuidv4 } from "uuid";
-import { sendEmailRequest } from "../api/email.js";
-import { RegisterEmail } from "../emails/users/auth/RegisterEmail.jsx";
+import { getInvitePreviewRequest } from "../api/userGuest.js";
 
 const validateForm = (data) => ({
     userFirstName: data.userFirstName.trim() !== "",
@@ -32,8 +30,11 @@ const validateForm = (data) => ({
 export default function RegisterPage() {
     const { signup, logout } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const toast = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    const [inviteLoading, setInviteLoading] = useState(false);
+    const [invitationContext, setInvitationContext] = useState(null);
     const [formData, setFormData] = useState({
         userId: uuidv4(),
         userFirstName: "",
@@ -71,10 +72,48 @@ export default function RegisterPage() {
         { id: "+58", name: "Venezuela" },
     ];
 
-    const baseURL = import.meta.env.VITE_FRONTEND_URL;
+    useEffect(() => {
+        const inviteId = searchParams.get("invite");
+        const emailParam = searchParams.get("email")?.trim().toLowerCase() || null;
+
+        if (!inviteId && !emailParam) return;
+
+        const applyInvitationEmail = (email, meta = {}) => {
+            setFormData((prev) => ({ ...prev, userEmail: email }));
+            setInvitationContext({
+                email,
+                userGuestId: meta.userGuestId ?? inviteId ?? null,
+                businessName: meta.businessName ?? null,
+            });
+        };
+
+        if (inviteId) {
+            setInviteLoading(true);
+            getInvitePreviewRequest(inviteId)
+                .then((res) => {
+                    applyInvitationEmail(res.data.userGuestEmail, res.data);
+                })
+                .catch(() => {
+                    if (emailParam) {
+                        applyInvitationEmail(emailParam, { userGuestId: inviteId });
+                    } else {
+                        setError("No se pudo validar la invitación. Verifica el enlace del correo.");
+                    }
+                })
+                .finally(() => setInviteLoading(false));
+            return;
+        }
+
+        if (emailParam) {
+            applyInvitationEmail(emailParam);
+        }
+    }, [searchParams]);
+
+    const isEmailLocked = Boolean(invitationContext?.email);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        if (name === "userEmail" && isEmailLocked) return;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
@@ -119,7 +158,11 @@ export default function RegisterPage() {
         }
         setError(null);
         try {
-            const res = await signup(formData);
+            const payload = {
+                ...formData,
+                userGuestId: invitationContext?.userGuestId ?? undefined,
+            };
+            const res = await signup(payload);
             if (res.error === 1) {
                 setValidations((prev) => ({ ...prev, userEmail: false }));
                 setError("El correo electrónico ya está en uso.");
@@ -134,30 +177,26 @@ export default function RegisterPage() {
                 setError("Las contraseñas no coinciden.");
                 setIsLoading(false);
                 return;
+            } else if (res?.error === 3) {
+                setError("La invitación no es válida o ya expiró.");
+                setIsLoading(false);
+                return;
+            } else if (res?.error === 4) {
+                setValidations((prev) => ({ ...prev, userEmail: false }));
+                setError("Debes registrarte con el correo al que se envió la invitación.");
+                setIsLoading(false);
+                return;
             }
             if (res.userId) {
-                toast.success(
-                    "Su registro se completó exitosamente",
-                    "Revisa tu correo y luego inicia sesión",
-                );
-                const emailData = {
-                    to: formData.userEmail,
-                    subject: "Confirmación de registro",
-                    html: renderToStaticMarkup(
-                        <RegisterEmail
-                            firstName={formData.userFirstName}
-                            lastName={formData.userLastName}
-                            confirmationLink={`${baseURL}/users/${res.userId}/confirm-email`}
-                        />,
-                    ),
-                };
-                try {
-                    await sendEmailRequest(emailData);
-                } catch (emailErr) {
-                    console.error("Error enviando correo de confirmación:", emailErr);
+                if (res.emailSent === false) {
                     toast.info(
                         "Cuenta creada",
                         "No pudimos enviar el correo de confirmación. Puedes reenviarlo desde el panel tras iniciar sesión.",
+                    );
+                } else {
+                    toast.success(
+                        "Su registro se completó exitosamente",
+                        "Revisa tu correo y luego inicia sesión",
                     );
                 }
                 await logout();
@@ -187,14 +226,22 @@ export default function RegisterPage() {
         >
             <AuthPageCard
                 wide
-                title="Crear cuenta nueva"
-                subtitle="Gestiona tu negocio de forma simple"
+                title={invitationContext ? "Crear cuenta con invitación" : "Crear cuenta nueva"}
+                subtitle={
+                    invitationContext?.businessName
+                        ? `Regístrate para unirte a ${invitationContext.businessName}`
+                        : "Gestiona tu negocio de forma simple"
+                }
                 headerSpacing="mb-6"
                 footer={
                     <p className="mt-6 text-center text-xs text-slate-500 font-sans">
                         ¿Ya tienes cuenta?{" "}
                         <Link
-                            to="/login"
+                            to={
+                                invitationContext?.email
+                                    ? `/login?email=${encodeURIComponent(invitationContext.email)}`
+                                    : "/login"
+                            }
                             className="login-link text-xs focus:outline-none focus-visible:underline"
                         >
                             Inicia sesión
@@ -203,6 +250,16 @@ export default function RegisterPage() {
                 }
             >
                 {error && <AuthAlert variant="error">{error}</AuthAlert>}
+
+                {invitationContext && (
+                    <AuthAlert variant="info">
+                        Tu correo está fijado por la invitación recibida
+                        {invitationContext.businessName
+                            ? ` para unirte a ${invitationContext.businessName}`
+                            : ""}
+                        . Debes registrarte con ese email para aceptar la invitación.
+                    </AuthAlert>
+                )}
 
                 <form onSubmit={handleOnSubmit} className="space-y-3" noValidate>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -297,7 +354,8 @@ export default function RegisterPage() {
                         onBlur={handleOnBlur}
                         autoComplete="email"
                         isValid={validations.userEmail}
-                        disabled={isLoading}
+                        readOnly={isEmailLocked}
+                        disabled={isLoading || inviteLoading || isEmailLocked}
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
