@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { v4 as uuidv4 } from 'uuid';
-import { motion as Motion, AnimatePresence } from 'framer-motion';
+import { v4 as uuidv4 } from "uuid";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaPlus, FaTimes, FaSave } from "react-icons/fa";
 import InputFloatingComponent from "../inputs/InputFloatingComponent.jsx";
-import { createTransaction } from "../../api/transaction";
+import { createTransaction } from "../../api/transaction.js";
 import { useToast } from "../../context/ToastContext.jsx";
+import { PAYMENT_METHODS } from "../../utils/transactionUtils.js";
 import {
   PRIMARY_BTN,
 } from "../../utils/expenseUiPatterns.js";
@@ -30,14 +31,11 @@ export default function AddTransactionModal({
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState({
     transactionId,
-    transactionDate: new Date().toISOString().split("T")[0],
-    transactionType: 'ADJUSTMENT',
-    transactionMethod: 0,
-    transactionTable: null,
-    transactionRecordId: transactionId,
-    transactionOldValue: null,
+    transactionType: "ADJUSTMENT",
+    transactionMethod: "2",
+    direction: "IN",
     transactionNewValue: 100000,
-    transactionDescription: '',
+    transactionDescription: "",
   });
 
   const openModal = () => {
@@ -54,14 +52,11 @@ export default function AddTransactionModal({
       const id = uuidv4();
       setData({
         transactionId: id,
-        transactionDate: new Date().toISOString().split("T")[0],
-        transactionType: 'ADJUSTMENT',
-        transactionMethod: 0,
-        transactionTable: null,
-        transactionRecordId: id,
-        transactionOldValue: null,
+        transactionType: "ADJUSTMENT",
+        transactionMethod: "2",
+        direction: "IN",
         transactionNewValue: 100000,
-        transactionDescription: '',
+        transactionDescription: "",
       });
     }
   }, [isOpen]);
@@ -72,17 +67,30 @@ export default function AddTransactionModal({
   };
 
   const handleSave = async () => {
+    const amount = Number(data.transactionNewValue);
+    if (!amount || amount <= 0) {
+      toast.info("Monto requerido", "Ingresa un monto mayor a cero.");
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const res = await createTransaction(data);
+      const res = await createTransaction({
+        transactionId: data.transactionId,
+        transactionType: data.transactionType,
+        transactionMethod: data.transactionMethod,
+        transactionDescription: data.transactionDescription,
+        amount,
+        direction: data.direction,
+      });
       if (res.status === 200 || res.status === 201) {
-        toast.success('Transacción agregada', 'La transacción se registró correctamente.');
+        toast.success("Transacción agregada", "La transacción se registró correctamente.");
         onCreated?.();
         closeModal();
       }
     } catch (error) {
       console.error("Error creating transaction:", error);
-      toast.error('Error', 'No se pudo registrar la transacción.');
+      toast.error("Error", "No se pudo registrar la transacción.");
     } finally {
       setIsLoading(false);
     }
@@ -113,13 +121,20 @@ export default function AddTransactionModal({
 
             <div className="p-6 space-y-4 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputFloatingComponent
-                  label="Fecha"
-                  type="date"
-                  name="transactionDate"
-                  value={data.transactionDate}
-                  onChange={handleInputChange}
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Movimiento
+                  </label>
+                  <select
+                    className="w-full h-11 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                    name="direction"
+                    value={data.direction}
+                    onChange={handleInputChange}
+                  >
+                    <option value="IN">Entrada (+)</option>
+                    <option value="OUT">Salida (−)</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Tipo</label>
                   <select
@@ -128,7 +143,7 @@ export default function AddTransactionModal({
                     value={data.transactionType}
                     disabled
                   >
-                    <option value="ADJUSTMENT">Ajuste</option>
+                    <option value="ADJUSTMENT">Ajuste manual</option>
                   </select>
                 </div>
               </div>
@@ -141,10 +156,11 @@ export default function AddTransactionModal({
                     value={data.transactionMethod}
                     onChange={handleInputChange}
                   >
-                    <option value="0">Tarjeta de Débito</option>
-                    <option value="1">Tarjeta de Crédito</option>
-                    <option value="2">Efectivo</option>
-                    <option value="3">Transferencia Bancaria</option>
+                    {PAYMENT_METHODS.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <InputFloatingComponent

@@ -207,10 +207,23 @@ export default function ProductsServicesViewPage() {
                            </div>
                            <div className="w-px h-10 bg-gray-200"></div>
                            <div>
-                                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold">Stock</p>
-                                <p className={`text-2xl font-bold font-display ${product?.productStock > 10 ? 'text-primary' : 'text-amber-500'}`}>
-                                    {product?.productStock}
+                                <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold">Stock disponible</p>
+                                <p className={`text-2xl font-bold font-display tabular-nums ${
+                                    (product?.productStock ?? 0) <= 0
+                                        ? product?.productAllowZeroStock
+                                            ? 'text-amber-500'
+                                            : 'text-red-500'
+                                        : (product?.productStock ?? 0) <= 10
+                                          ? 'text-amber-500'
+                                          : 'text-primary'
+                                }`}>
+                                    {product?.productStock ?? 0}
                                 </p>
+                                {product?.productAllowZeroStock && (
+                                    <p className="text-[10px] text-amber-600 font-medium mt-0.5">
+                                        Venta permitida en stock cero
+                                    </p>
+                                )}
                            </div>
                         </div>
                     </Motion.div>

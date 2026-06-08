@@ -46,7 +46,7 @@ export default function ProviderPage() {
         setIsLoading(true);
         try {
             const result = await getProviders();
-            setProviders(result.data);
+            setProviders(Array.isArray(result.data) ? result.data : []);
         } catch (error) {
             console.log(error);
             toast.error("Error", "No se pudieron cargar los proveedores.");

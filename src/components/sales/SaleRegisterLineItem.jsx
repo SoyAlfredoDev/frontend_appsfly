@@ -16,11 +16,14 @@ function ProductSelect({ productsServices, value, onChange, compact = false }) {
       <optgroup label="Productos">
         {productsServices
           .filter((p) => p.productId)
-          .map((p) => (
-            <option key={p.productId} value={p.productId}>
-              {p.productName}
-            </option>
-          ))}
+          .map((p) => {
+            const stock = Number(p.productStock ?? p.quantityOnHand ?? 0);
+            return (
+              <option key={p.productId} value={p.productId}>
+                {p.productName} (Stock: {stock})
+              </option>
+            );
+          })}
       </optgroup>
       <optgroup label="Servicios">
         {productsServices

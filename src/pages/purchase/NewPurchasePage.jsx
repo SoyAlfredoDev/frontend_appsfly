@@ -18,10 +18,13 @@ import { useNavigate } from "react-router-dom";
 import formatCurrency from "../../utils/formatCurrency.js";
 import { getProviders } from "../../api/providers.js";
 import { getProducts } from "../../api/product.js";
+import { createPurchaseCompleteRequest } from "../../api/purchase.js";
+import { useToast } from "../../context/ToastContext.jsx";
 import PageContainer from "../../components/layout/PageContainer.jsx";
 
 export default function NewPurchasePage() {
   const navigate = useNavigate();
+  const toast = useToast();
 
   // --- States ---
   const [isLoading, setIsLoading] = useState(false);
@@ -159,14 +162,13 @@ export default function NewPurchasePage() {
     setItems((prevItems) =>
       prevItems.map((item) => {
         if (item.id === id) {
+          const unitCost = Number(product.productPrice ?? product.productCost ?? product.cost ?? 0);
           return {
             ...item,
-            productId: product.productId || product.id, // Adaptation based on probable ID field
+            productId: product.productId || product.id,
             productName: product.productName || product.name || "",
-            unitCost: Number(product.productCost || product.cost || 0),
-            totalLine:
-              Number(product.productCost || product.cost || 0) *
-              Number(item.quantity),
+            unitCost,
+            totalLine: unitCost * Number(item.quantity),
           };
         }
         return item;
@@ -206,12 +208,58 @@ export default function NewPurchasePage() {
   };
 
   const handleSubmit = async () => {
-    console.log("Submitting Purchase:", {
-      ...purchaseData,
-      items,
-      payments,
-      totals,
-    });
+    if (!purchaseData.providerId) {
+      toast.info("Proveedor requerido", "Selecciona un proveedor para continuar.");
+      return;
+    }
+    if (!purchaseData.documentNumber?.trim()) {
+      toast.info("Documento requerido", "Ingresa el número de documento o factura.");
+      return;
+    }
+
+    const validItems = items.filter(
+      (item) => item.productId && Number(item.quantity) > 0,
+    );
+
+    if (validItems.length === 0) {
+      toast.info("Productos requeridos", "Agrega al menos un producto con cantidad válida.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const purchaseId = uuidv4();
+      const payload = {
+        purchaseId,
+        purchaseProviderId: purchaseData.providerId,
+        purchaseRealNumber: purchaseData.documentNumber.trim(),
+        purchaseComment: purchaseData.note?.trim() || null,
+        purchaseTotal: totals.subtotal,
+        items: validItems.map((item) => ({
+          id: uuidv4(),
+          productId: item.productId,
+          quantity: Number(item.quantity),
+          unitCost: Number(item.unitCost),
+          totalLine: Number(item.totalLine),
+        })),
+      };
+
+      const result = await createPurchaseCompleteRequest(payload);
+
+      toast.success(
+        `Compra #${result.data?.purchase?.purchaseNumber ?? ""}`.trim(),
+        "La compra se registró y el stock se actualizó correctamente.",
+      );
+      navigate("/purchase");
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "No se pudo registrar la compra.";
+      toast.error("Error", message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Helper to filter products
@@ -222,10 +270,9 @@ export default function NewPurchasePage() {
       .filter(
         (p) =>
           (p.productName && p.productName.toLowerCase().includes(lowerQuery)) ||
-          (p.productCode && p.productCode.toLowerCase().includes(lowerQuery)) ||
-          (p.sku && p.sku.toLowerCase().includes(lowerQuery)),
+          (p.productSKU && p.productSKU.toLowerCase().includes(lowerQuery)),
       )
-      .slice(0, 5); // Limit to 5 results for performance and UI
+      .slice(0, 5);
   };
 
   return (
@@ -370,11 +417,9 @@ export default function NewPurchasePage() {
                                           <span className="font-medium text-gray-700">
                                             {p.productName}
                                           </span>
-                                          {p.productCode && (
-                                            <span className="text-xs text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">
-                                              {p.productCode}
-                                            </span>
-                                          )}
+                                          <span className="text-xs text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">
+                                            Stock: {Number(p.productStock ?? p.quantityOnHand ?? 0)}
+                                          </span>
                                         </button>
                                       ),
                                     )
@@ -611,16 +656,17 @@ export default function NewPurchasePage() {
               {/* BLOCK 4: ACTIONS */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
-                  onClick={() => navigate("/purchases")}
+                  onClick={() => navigate("/purchase")}
                   className="px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-100 transition-colors"
                 >
                   CANCELAR
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  disabled={isLoading}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <FaSave /> GUARDAR
+                  <FaSave /> {isLoading ? "GUARDANDO..." : "GUARDAR"}
                 </button>
               </div>
             </div>

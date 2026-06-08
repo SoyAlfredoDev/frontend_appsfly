@@ -26,6 +26,7 @@ export default function AddProductModal({ onCreated, title }) {
         unit: "UNIT",
         price: 0,
         priceFixed: true,
+        allowZeroStock: false,
     };
 
     const [formData, setFormData] = useState(initialFormState);
@@ -297,6 +298,29 @@ export default function AddProductModal({ onCreated, title }) {
                                             </label>
                                         </div>
                                     </div>
+
+                                    {formData.typeSelect === 'PRODUCT' && (
+                                        <div className="flex items-start gap-3 p-4 bg-amber-50/60 rounded-lg border border-amber-100">
+                                            <label className="relative inline-flex items-start cursor-pointer gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    name="allowZeroStock"
+                                                    id="allowZeroStock"
+                                                    checked={formData.allowZeroStock}
+                                                    onChange={handleInputBoxChange}
+                                                    className="mt-1 rounded text-primary focus:ring-primary border-gray-300"
+                                                />
+                                                <div>
+                                                    <span className="text-sm font-medium text-gray-800 block">
+                                                        Permitir venta con stock en cero
+                                                    </span>
+                                                    <span className="text-xs text-gray-500 mt-1 block leading-relaxed">
+                                                        Si está activo, el producto podrá venderse aunque no haya unidades disponibles. Si está desactivado, las ventas se bloquearán cuando el stock sea cero o negativo.
+                                                    </span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    )}
 
                                     {error && (
                                         <Motion.div

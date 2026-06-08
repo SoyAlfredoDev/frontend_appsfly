@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import RouteSeo from "./components/seo/RouteSeo.jsx";
 import { AuthProvider } from "./context/authContext.jsx";
 import { PaymentModalProvider } from "./context/paymentModalContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
@@ -31,6 +32,7 @@ import CustomerViewPage from "./pages/CustomerViewPage.jsx";
 /* Products & Services */
 import ProductsServicesPage from "./pages/ProductsServicesPage.jsx";
 import ProductsServicesViewPage from "./pages/ProductsServicesViewPage.jsx";
+import InventoryPage from "./pages/InventoryPage.jsx";
 
 /* Sales */
 import SalesPage from "./pages/Sales/SalesPage.jsx";
@@ -41,6 +43,7 @@ import ViewSalePage from "./pages/Sales/ViewSalePage.jsx";
 import PurchasePage from "./pages/purchase/PurchasePage.jsx";
 import ProviderPage from "./pages/purchase/ProviderPage.jsx";
 import NewPurchasePage from "./pages/purchase/NewPurchasePage.jsx";
+import ViewPurchasePage from "./pages/purchase/ViewPurchasePage.jsx";
 
 /* Daily Sales */
 import PageDailySales from "./pages/PageDailySales.jsx";
@@ -62,6 +65,9 @@ import ExpensesPage from "./pages/ExpensesPage.jsx";
 import FinancePage from "./pages/FinancePage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 
+/* Campaigns */
+import CampaignsAsmrPage from "./pages/campaigns/CampaignsAsmrPage.jsx";
+
 /* Support */
 import SupportPage from "./pages/support/SupportPage.jsx";
 
@@ -82,6 +88,7 @@ function App() {
       <ToastProvider>
         <ConfirmationProvider>
           <BrowserRouter>
+            <RouteSeo />
             <PaymentModalProvider>
             <Routes>
               {/* Public */}
@@ -105,8 +112,10 @@ function App() {
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/customers" element={<CustomerPage />} />
                   <Route path="/customers/:id" element={<CustomerViewPage />} />
+                  <Route path="/campaigns-asmr" element={<CampaignsAsmrPage />} />
                   <Route path="/products_services" element={<ProductsServicesPage />} />
                   <Route path="/products/:id" element={<ProductsServicesViewPage />} />
+                  <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/sales/register" element={<NewSalePage />} />
                   <Route path="/sales/dailySales/view/:id" element={<ViewDailySalePage />} />
                   <Route path="/sales/dailySales" element={<PageDailySales />} />
@@ -115,6 +124,7 @@ function App() {
                   <Route path="/purchase" element={<PurchasePage />} />
                   <Route path="/providers" element={<ProviderPage />} />
                   <Route path="/purchase/register" element={<NewPurchasePage />} />
+                  <Route path="/purchase/view/:id" element={<ViewPurchasePage />} />
                   <Route path="/daily-sales/view/:id" element={<ViewDailySalePage />} />
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/users/userGuest" element={<UserGuestPage />} />

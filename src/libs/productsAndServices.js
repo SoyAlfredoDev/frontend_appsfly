@@ -3,20 +3,32 @@ import { getServices } from "../api/service";
 
 export const getProductsAndServices = async (config) => {
     try {
-        const [products_, services_] = await Promise.all([
+        const [productsResult, servicesResult] = await Promise.allSettled([
             getProducts(config),
             getServices(config),
         ]);
-        const products = products_.data;
-        const services = services_.data;
-        const productsWithType = products.map(product => ({
+
+        const products =
+            productsResult.status === "fulfilled" ? productsResult.value.data ?? [] : [];
+        const services =
+            servicesResult.status === "fulfilled" ? servicesResult.value.data ?? [] : [];
+
+        if (productsResult.status === "rejected") {
+            console.error(">>>>>> getProductsAndServices.js (products):", productsResult.reason);
+        }
+        if (servicesResult.status === "rejected") {
+            console.error(">>>>>> getProductsAndServices.js (services):", servicesResult.reason);
+        }
+
+        const productsWithType = products.map((product) => ({
             ...product,
-            type: "PRODUCT"
+            type: "PRODUCT",
         }));
-        const servicesWithType = services.map(service => ({
+        const servicesWithType = services.map((service) => ({
             ...service,
-            type: "SERVICE"
+            type: "SERVICE",
         }));
+
         return [...productsWithType, ...servicesWithType];
     } catch (error) {
         console.error(">>>>>> getProductsAndServices.js:", error);

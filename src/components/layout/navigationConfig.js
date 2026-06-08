@@ -11,12 +11,16 @@ import {
   FaExchangeAlt,
   FaCalendarCheck,
   FaFileAlt,
+  FaBoxes,
+  FaBullhorn,
 } from "react-icons/fa";
 
 export const NAV_ITEMS = [
   { name: "Dashboard", path: "/dashboard", icon: FaChartLine },
   { name: "Clientes", path: "/customers", icon: FaUsers },
+  { name: "Campaña ASMR", path: "/campaigns-asmr", icon: FaBullhorn },
   { name: "Productos", path: "/products_services", icon: FaBoxOpen },
+  { name: "Inventario", path: "/inventory", icon: FaBoxes },
   { name: "Ventas", path: "/sales", icon: FaShoppingCart },
   { name: "Cierres Diarios", path: "/sales/dailySales", icon: FaCalendarCheck },
   { name: "Compras", path: "/purchase", icon: FaTruck },

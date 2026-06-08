@@ -11,10 +11,15 @@ export const createSaleGeneral = async (dataSaleGeneral, dataSaleDetail, dataPay
         for (const saleDetail of dataSaleDetail) {
             try {
                 await createSaleDetailUtils(saleDetail, saleId, saleCustomerId)
-                //console.log('Sale detail created successfully:', saleDetailCreated);
             } catch (error) {
                 console.error('Error creating sale detail:', error);
-                throw error; // Re-throw the error to handle it in the outer try-catch
+                if (error.response?.data?.code === 'INSUFFICIENT_STOCK') {
+                    const err = new Error(error.response.data.message);
+                    err.code = 'INSUFFICIENT_STOCK';
+                    err.response = error.response;
+                    throw err;
+                }
+                throw error;
             }
         }
 

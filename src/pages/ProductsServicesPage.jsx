@@ -113,6 +113,34 @@ export default function ProductsServicesPage() {
             cell: info => <span className="text-gray-600 text-sm">{info.getValue()}</span>
         },
         {
+            header: "Stock",
+            accessorFn: row => {
+                if (row?.type !== "PRODUCT") return null;
+                return Number(row?.productStock ?? row?.quantityOnHand ?? 0);
+            },
+            cell: info => {
+                const row = info.row.original;
+                if (row?.type !== "PRODUCT") {
+                    return <span className="text-gray-300 text-sm">—</span>;
+                }
+                const qty = info.getValue() ?? 0;
+                const allowZero = row?.productAllowZeroStock === true;
+                const badgeClass =
+                    qty <= 0
+                        ? allowZero
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-red-100 text-red-700"
+                        : qty <= 10
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-emerald-100 text-emerald-700";
+                return (
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold tabular-nums ${badgeClass}`}>
+                        {qty}
+                    </span>
+                );
+            },
+        },
+        {
             header: "Precio",
             accessorFn: row => row?.productPrice ?? row?.servicePrice ?? "",
             cell: info => {

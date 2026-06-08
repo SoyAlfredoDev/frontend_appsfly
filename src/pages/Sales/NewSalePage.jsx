@@ -10,6 +10,7 @@ import NewCustomerModal from "../../components/modals/AddCustomerModal.jsx";
 import formatName from "../../utils/formatName.js";
 import formatCurrency from "../../utils/formatCurrency.js";
 import { createSaleGeneral } from "../../utils/createSale.js";
+import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/validateSaleStock.js";
 import { v4 as uuidv4 } from "uuid";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
@@ -444,6 +445,15 @@ export default function NewSalePage() {
       }
     }
 
+    const stockErrors = validateSaleStockLines(dataTable, productsServices);
+    if (stockErrors.length > 0) {
+      toast.error(
+        'Stock insuficiente',
+        formatSaleStockErrors(stockErrors),
+      );
+      return;
+    }
+
     const customerLabel = selectedCustomer
       ? `${selectedCustomer.customerFirstName} ${selectedCustomer.customerLastName}`
       : '—';
@@ -514,6 +524,10 @@ export default function NewSalePage() {
           message: apiError.message,
         });
         toast.error("Operación bloqueada", apiError.message);
+        return;
+      }
+      if (apiError?.code === "INSUFFICIENT_STOCK" || error.code === "INSUFFICIENT_STOCK") {
+        toast.error("Stock insuficiente", apiError?.message || error.message || "No hay unidades disponibles.");
         return;
       }
       toast.error(
@@ -996,11 +1010,14 @@ export default function NewSalePage() {
                             <optgroup label="Productos">
                               {productsServices
                                 .filter((p) => p.productId)
-                                .map((p) => (
-                                  <option key={p.productId} value={p.productId}>
-                                    {p.productName}
-                                  </option>
-                                ))}
+                                .map((p) => {
+                                  const stock = Number(p.productStock ?? p.quantityOnHand ?? 0);
+                                  return (
+                                    <option key={p.productId} value={p.productId}>
+                                      {p.productName} (Stock: {stock})
+                                    </option>
+                                  );
+                                })}
                             </optgroup>
                             <optgroup label="Servicios">
                               {productsServices

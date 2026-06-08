@@ -1,4 +1,12 @@
-import axios from "./axios.js"
+import axios from "./axios.js";
 
-export const createTransaction = transaction => axios.post('/transactions', transaction);
-export const getTransactions = () => axios.get('/transactions');
+export const getTransactions = (config) => axios.get("/transactions", config);
+
+export const getTransactionById = (id, config) =>
+    axios.get(`/transactions/${id}`, config);
+
+export const getTransactionsSummary = (config) =>
+    axios.get("/transactions/summary", config);
+
+export const createTransaction = (transaction) =>
+    axios.post("/transactions", transaction);
