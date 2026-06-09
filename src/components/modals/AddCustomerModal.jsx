@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { v4 as uuidv4 } from 'uuid';
 import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
 import ImageUploadField from '../inputs/ImageUploadField.jsx';
 import IsRequiredComponent from '../IsRequiredComponent.jsx';
@@ -9,7 +8,7 @@ import { useAuth } from '../../context/authContext.jsx';
 import { FaPlus, FaTimes, FaSave } from "react-icons/fa";
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../../context/ToastContext.jsx';
-import { uploadImageToCloudinary, CLOUDINARY_FOLDERS } from '../../utils/cloudinaryUpload.js';
+import { uploadImageToCloudinary, CLOUDINARY_FOLDERS, buildCustomerImagePublicId } from '../../utils/cloudinaryUpload.js';
 
 import { PRIMARY_BTN } from '../../utils/expenseUiPatterns.js';
 
@@ -119,31 +118,44 @@ export default function AddCustomerModal({
         setIsLoading(true);
 
         try {
-            let customerImageUrl = null;
-
-            if (imageFile) {
-                const uploadId = customerToEdit?.customerId ?? uuidv4();
-                customerImageUrl = await uploadImageToCloudinary(imageFile, {
-                    folder: CLOUDINARY_FOLDERS.CUSTOMER_PROFILE,
-                    publicId: `customer-${uploadId}`,
-                });
-            } else if (!imageCleared && existingImageUrl) {
-                customerImageUrl = existingImageUrl;
-            }
-
-            const payload = {
-                ...formData,
-                customerImageUrl: customerImageUrl || null,
-            };
-
             let resultId;
+
             if (customerToEdit) {
+                let customerImageUrl = null;
+
+                if (imageFile) {
+                    customerImageUrl = await uploadImageToCloudinary(imageFile, {
+                        folder: CLOUDINARY_FOLDERS.CUSTOMER_PROFILE,
+                        publicId: buildCustomerImagePublicId(customerToEdit.customerId),
+                    });
+                } else if (!imageCleared && existingImageUrl) {
+                    customerImageUrl = existingImageUrl;
+                }
+
+                const payload = {
+                    ...formData,
+                    customerImageUrl: customerImageUrl || null,
+                };
+
                 await updateCustomer(customerToEdit.customerId, payload);
                 resultId = customerToEdit.customerId;
                 toast.success('¡Cliente Actualizado!', 'El cliente se ha actualizado correctamente.');
             } else {
-                const customerCreated = await createCustomer(payload);
+                const createPayload = { ...formData, customerImageUrl: null };
+                const customerCreated = await createCustomer(createPayload);
                 resultId = customerCreated.data.customer.customerId;
+
+                if (imageFile) {
+                    const customerImageUrl = await uploadImageToCloudinary(imageFile, {
+                        folder: CLOUDINARY_FOLDERS.CUSTOMER_PROFILE,
+                        publicId: buildCustomerImagePublicId(resultId),
+                    });
+                    await updateCustomer(resultId, {
+                        ...formData,
+                        customerImageUrl,
+                    });
+                }
+
                 toast.success('¡Cliente Creado!', 'El cliente se ha registrado correctamente.');
             }
 

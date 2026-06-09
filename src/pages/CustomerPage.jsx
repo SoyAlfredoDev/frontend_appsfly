@@ -217,7 +217,10 @@ export default function CustomerPage() {
 
             <AddCustomerModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingCustomer(null);
+                }}
                 customerToEdit={editingCustomer}
                 onCreated={fetchCustomers}
             />
