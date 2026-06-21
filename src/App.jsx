@@ -80,6 +80,14 @@ import BusinessDetailAdminPage from "./pages/admin/BusinessDetailAdminPage.jsx";
 import PlansAdminPage from "./pages/admin/PlansAdminPage.jsx";
 import UsersAdminPage from "./pages/admin/UsersAdminPage.jsx";
 import PaymentsAdminPage from "./pages/admin/PaymentsAdminPage.jsx";
+import EmailCampaignsAdminPage from "./pages/admin/emailCampaigns/EmailCampaignsAdminPage.jsx";
+import EmailCampaignViewAdminPage from "./pages/admin/emailCampaigns/EmailCampaignViewAdminPage.jsx";
+import EmailCampaignHistoryAdminPage from "./pages/admin/emailCampaigns/EmailCampaignHistoryAdminPage.jsx";
+import EmailCampaignHistoryDetailAdminPage from "./pages/admin/emailCampaigns/EmailCampaignHistoryDetailAdminPage.jsx";
+import EmailCampaignDetailAdminPage from "./pages/admin/emailCampaigns/EmailCampaignDetailAdminPage.jsx";
+import EmailProspectsAdminPage from "./pages/admin/emailProspects/EmailProspectsAdminPage.jsx";
+import ProspectUnsubscribePage from "./pages/ProspectUnsubscribePage.jsx";
+import NotificationsAdminPage from "./pages/admin/NotificationsAdminPage.jsx";
 import SubscriptionPaymentReturnPage from "./pages/dashboard/SubscriptionPaymentReturnPage.jsx";
 
 function App() {
@@ -105,6 +113,7 @@ function App() {
               <Route path="/politicas" element={<PrivacyPage />} />
               <Route path="/about-us" element={<AboutUsPage />} />
               <Route path="/users/:id/confirm-email" element={<ConfirmAccountPage />} />
+              <Route path="/prospect-unsubscribe/:token" element={<ProspectUnsubscribePage />} />
 
               {/* Authenticated tenant shell */}
               <Route element={<AppLayout />}>
@@ -152,6 +161,14 @@ function App() {
                   <Route path="/admin/plans" element={<PlansAdminPage />} />
                   <Route path="/admin/tickets" element={<TicketsAdminPage />} />
                   <Route path="/admin/tickets/:id" element={<TicketDetailAdminPage />} />
+                  <Route path="/admin/email-campaigns" element={<EmailCampaignsAdminPage />} />
+                  <Route path="/admin/email-campaigns/history" element={<EmailCampaignHistoryAdminPage />} />
+                  <Route path="/admin/email-campaigns/new" element={<EmailCampaignDetailAdminPage />} />
+                  <Route path="/admin/email-campaigns/:id/history" element={<EmailCampaignHistoryDetailAdminPage />} />
+                  <Route path="/admin/email-campaigns/:id/settings" element={<EmailCampaignDetailAdminPage />} />
+                  <Route path="/admin/email-campaigns/:id" element={<EmailCampaignViewAdminPage />} />
+                  <Route path="/admin/email-prospects" element={<EmailProspectsAdminPage />} />
+                  <Route path="/admin/notifications" element={<NotificationsAdminPage />} />
                 </Route>
               </Route>
 

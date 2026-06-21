@@ -5,6 +5,7 @@ import { FaBars, FaTimes, FaSignOutAlt, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../context/authContext.jsx";
 import formatName from "../utils/formatName.js";
 import { ADMIN_EXIT_ITEM, ADMIN_NAV_ITEMS } from "./layout/adminNavigationConfig.js";
+import AdminNotificationsBell from "./admin/AdminNotificationsBell.jsx";
 
 function AdminNavLinks({ items, isActive, onNavigate, variant = "sidebar" }) {
     return items.map((item) => {
@@ -70,7 +71,7 @@ export default function NavBarAdminComponent() {
     return (
         <>
             <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[260px] flex-col bg-dark border-r border-white/5">
-                <div className="flex h-16 items-center gap-2 border-b border-white/10 px-5 shrink-0">
+                <div className="flex h-16 items-center justify-between border-b border-white/10 px-5 shrink-0">
                     <Link to="/admin/dashboard" className="no-underline group">
                         <img
                             src="/logo-appsfly-white.png"
@@ -78,6 +79,7 @@ export default function NavBarAdminComponent() {
                             className="w-28 h-auto object-contain"
                         />
                     </Link>
+                    <AdminNotificationsBell />
                 </div>
 
                 <div className="px-4 py-3 border-b border-white/5">
@@ -122,14 +124,17 @@ export default function NavBarAdminComponent() {
                         <FaShieldAlt className="text-primary text-sm" />
                         <span className="text-lg font-bold font-display text-white">Admin</span>
                     </Link>
-                    <button
-                        type="button"
-                        onClick={() => setMobileOpen((prev) => !prev)}
-                        className="rounded-lg p-2 text-white hover:bg-white/10 transition-colors"
-                        aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
-                    >
-                        {mobileOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <AdminNotificationsBell />
+                        <button
+                            type="button"
+                            onClick={() => setMobileOpen((prev) => !prev)}
+                            className="rounded-lg p-2 text-white hover:bg-white/10 transition-colors"
+                            aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+                        >
+                            {mobileOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+                        </button>
+                    </div>
                 </div>
             </header>
 
