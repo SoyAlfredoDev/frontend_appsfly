@@ -13,6 +13,7 @@ import {
 import { Link } from "react-router-dom";
 import { FaEye, FaBox, FaFilter } from "react-icons/fa";
 import ExpensePageLayout, { ExpenseAnimatedSection } from "../components/ui/ExpensePageLayout.jsx";
+import useTenantPermissions from "../hooks/useTenantPermissions.js";
 import ExpenseTableCard, {
   ExpenseTableScroll,
   ExpenseTableLoading,
@@ -25,6 +26,7 @@ import {
 } from "../utils/expenseUiPatterns.js";
 
 export default function ProductsServicesPage() {
+    const { can } = useTenantPermissions();
     const [globalFilter, setGlobalFilter] = useState("");
     const [sorting, setSorting] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -186,8 +188,12 @@ export default function ProductsServicesPage() {
     return (
         <ExpensePageLayout
             title="Productos y Servicios"
-            subtitle="Gestión de inventario y catálogo de servicios"
-            actions={<AddProductModal title="Nuevo Item" onCreated={fetchProducts} />}
+            subtitle={
+                can("products:write")
+                    ? "Gestión de inventario y catálogo de servicios"
+                    : "Consulta de catálogo para ventas"
+            }
+            actions={can("products:write") ? <AddProductModal title="Nuevo Item" onCreated={fetchProducts} /> : null}
         >
             <div className="flex flex-col lg:flex-row gap-6">
                 <ExpenseAnimatedSection className="lg:w-64 flex-shrink-0">
@@ -245,7 +251,9 @@ export default function ProductsServicesPage() {
                             </div>
                         </div>
 
-                        <CategoryModal onCategoryAdded={fetchCategories} />
+                        {can("products:write") && (
+                            <CategoryModal onCategoryAdded={fetchCategories} />
+                        )}
                     </div>
                 </ExpenseAnimatedSection>
 

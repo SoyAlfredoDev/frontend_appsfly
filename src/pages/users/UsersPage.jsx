@@ -37,7 +37,9 @@ import {
     FaUserShield,
     FaUserTie,
     FaUsers,
+    FaInfoCircle,
 } from "react-icons/fa";
+import TenantRolesInfoModal from "../../components/users/TenantRolesInfoModal.jsx";
 
 const INVITE_STATUSES = new Set(["PENDIENT", "REJECTED"]);
 
@@ -47,6 +49,7 @@ export default function UsersPage() {
     const [loading, setLoading] = useState(true);
     const [actionId, setActionId] = useState(null);
     const [globalFilter, setGlobalFilter] = useState("");
+    const [rolesInfoOpen, setRolesInfoOpen] = useState(false);
     const { businessSelected, business } = useAuth();
     const toast = useToast();
     const confirm = useConfirm();
@@ -167,11 +170,22 @@ export default function UsersPage() {
             title="Usuarios"
             subtitle={subtitle}
             actions={
-                businessId ? (
-                    <Link to="/users/userGuest" className={PRIMARY_BTN}>
-                        <FaUserPlus /> Invitar usuario
-                    </Link>
-                ) : null
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setRolesInfoOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white text-secondary border border-secondary/25 rounded-lg hover:bg-secondary/5 transition-colors shadow-sm text-sm font-medium"
+                        title="Ver permisos por rol"
+                    >
+                        <FaInfoCircle />
+                        Roles y permisos
+                    </button>
+                    {businessId ? (
+                        <Link to="/users/userGuest" className={PRIMARY_BTN}>
+                            <FaUserPlus /> Invitar usuario
+                        </Link>
+                    ) : null}
+                </div>
             }
         >
             {!businessId && !loading ? (
@@ -334,6 +348,10 @@ export default function UsersPage() {
                     </ExpenseTableScroll>
                 </ExpenseTableCard>
             )}
+            <TenantRolesInfoModal
+                isOpen={rolesInfoOpen}
+                onClose={() => setRolesInfoOpen(false)}
+            />
         </ExpensePageLayout>
     );
 }

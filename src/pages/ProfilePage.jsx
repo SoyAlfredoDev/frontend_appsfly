@@ -1,251 +1,192 @@
-import { useAuth } from "../context/authContext";
-import { sendConfirmEmailRequest } from '../api/user.js';
+import { useAuth } from "../context/authContext.jsx";
+import { sendConfirmEmailRequest } from "../api/user.js";
 import { FcOk } from "react-icons/fc";
-import { FaUser, FaBuilding, FaPhone, FaEnvelope, FaIdCard, FaWhatsapp, FaMapMarkerAlt, FaBriefcase, FaUserCircle } from "react-icons/fa";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import PageContainer from "../components/layout/PageContainer.jsx";
+import {
+    FaUser,
+    FaBuilding,
+    FaPhone,
+    FaEnvelope,
+    FaIdCard,
+    FaWhatsapp,
+    FaMapMarkerAlt,
+    FaBriefcase,
+    FaUserCircle,
+    FaShieldAlt,
+} from "react-icons/fa";
+import { useState } from "react";
+import ExpensePageLayout, { ExpenseAnimatedSection } from "../components/ui/ExpensePageLayout.jsx";
+import ProfileSectionCard, { ProfileFieldRow } from "../components/profile/ProfileSectionCard.jsx";
 import SubscriptionBillingCard from "../components/profile/SubscriptionBillingCard.jsx";
+import { useToast } from "../context/ToastContext.jsx";
+
+const ROLE_LABELS = {
+    ADMIN: "Administrador",
+    USER: "Usuario",
+};
+
+function RoleBadge({ role }) {
+    const isAdmin = role === "ADMIN";
+    return (
+        <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                isAdmin
+                    ? "bg-secondary/10 text-secondary border border-secondary/20"
+                    : "bg-slate-100 text-slate-600 border border-slate-200"
+            }`}
+        >
+            {isAdmin && <FaShieldAlt className="text-[10px]" />}
+            {ROLE_LABELS[role] ?? role ?? "—"}
+        </span>
+    );
+}
+
+function BusinessStatusBadge({ status }) {
+    const active = status === "ACTIVE";
+    return (
+        <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                active
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-red-50 text-red-600 border border-red-100"
+            }`}
+        >
+            <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-primary" : "bg-red-500"}`} />
+            {active ? "Activo" : "Inactivo"}
+        </span>
+    );
+}
 
 export default function ProfilePage() {
     const { user, business, businessSelected } = useAuth();
+    const toast = useToast();
     const [btnConfirmEmail, setBtnConfirmEmail] = useState(false);
 
-    useEffect(() => {
-        console.log('businessSelected', business);
-    }, []);
+    const isAdmin = businessSelected?.userBusinessRole === "ADMIN";
+    const businessId = businessSelected?.userBusinessBusinessId ?? business?.businessId;
 
     const handleConfirmEmail = async () => {
         try {
             await sendConfirmEmailRequest(user.userId);
             setBtnConfirmEmail(true);
-            alert('Se ha enviado un correo de confirmación. Importante: revisa tu carpeta de spam.');
+            toast.success(
+                "Correo enviado",
+                "Revisa tu bandeja de entrada y la carpeta de spam para confirmar tu email.",
+            );
         } catch (error) {
             console.error(error);
-            alert('No se pudo enviar el correo de confirmación. Intenta más tarde.');
+            toast.error("Error", "No se pudo enviar el correo de confirmación. Intenta más tarde.");
         }
-    };
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 }
     };
 
     return (
-        <PageContainer>
-<div className="min-h-screen bg-gray-50/50">
-                <motion.div 
-                    initial="hidden" 
-                    animate="visible" 
-                    variants={containerVariants}
-                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20"
-                >
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <motion.div variants={itemVariants} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 flex flex-col h-full">
-                            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-white/20 p-2 rounded-full text-white backdrop-blur-sm">
-                                        <FaUser size={20} />
-                                    </div>
-                                    <h5 className="text-lg font-bold text-white tracking-wide">Información Personal</h5>
-                                </div>
-                            </div>
-                            <div className="p-5 flex-grow">
-                                <div className="space-y-3">
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-emerald-50 text-emerald-600 p-1.5 rounded-md">
-                                            <FaUserCircle size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Nombre Completo</span>
-                                            <p className="text-sm font-bold text-gray-800">
-                                                {user?.userFirstName} {user?.userLastName}
-                                            </p>
-                                        </div>
-                                    </div>
+        <ExpensePageLayout
+            title="Mi perfil"
+            subtitle="Datos personales, negocio y suscripción AppsFly"
+        >
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <ExpenseAnimatedSection>
+                    <ProfileSectionCard
+                        title="Información personal"
+                        subtitle="Datos de tu cuenta en AppsFly"
+                        icon={FaUserCircle}
+                    >
+                        <ProfileFieldRow icon={FaUser} label="Nombre completo">
+                            {user?.userFirstName} {user?.userLastName}
+                        </ProfileFieldRow>
 
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-emerald-50 text-emerald-600 p-1.5 rounded-md">
-                                            <FaIdCard size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Documento</span>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-xs font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{user?.userDocumentType}</span>
-                                                <span className="text-sm font-bold text-gray-800">{user?.userDocumentNumber}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <ProfileFieldRow icon={FaIdCard} label="Documento">
+                            <span className="inline-flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                    {user?.userDocumentType}
+                                </span>
+                                <span>{user?.userDocumentNumber}</span>
+                            </span>
+                        </ProfileFieldRow>
 
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-emerald-50 text-emerald-600 p-1.5 rounded-md">
-                                            <FaEnvelope size={18} />
-                                        </div>
-                                        <div className="flex-grow">
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Correo Electrónico</span>
-                                            <div className="flex items-center flex-wrap gap-2">
-                                                <span className="text-sm font-bold text-gray-800">{user?.userEmail}</span>
-                                                {user?.userConfirmEmail ? (
-                                                    <span title="Verificado" className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
-                                                        <FcOk /> Aprobado
-                                                    </span>
-                                                ) : (
-                                                    <button 
-                                                        onClick={handleConfirmEmail}
-                                                        disabled={btnConfirmEmail}
-                                                        className="ml-auto text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {btnConfirmEmail ? 'Enviado...' : 'Verificar'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-emerald-50 text-emerald-600 p-1.5 rounded-md">
-                                            <FaPhone size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Teléfono</span>
-                                            <p className="text-sm font-bold text-gray-800">
-                                                {user?.userCodePhoneNumber} {user?.userPhoneNumber}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        {/* --- TARJETA DE NEGOCIO --- */}
-                        <motion.div variants={itemVariants} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 flex flex-col h-full">
-                            <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-white/20 p-2 rounded-full text-white backdrop-blur-sm">
-                                            <FaBuilding size={20} />
-                                        </div>
-                                        <div>
-                                            <h5 className="text-lg font-bold text-white tracking-wide">Mi Negocio</h5>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${business?.businessStatus === 'ACTIVE' ? 'bg-green-400/20 text-green-300' : 'bg-red-400/20 text-red-300'}`}>
-                                                    <span className={`w-1 h-1 rounded-full mr-1 ${business?.businessStatus === 'ACTIVE' ? 'bg-green-400' : 'bg-red-400'}`}></span>
-                                                    {business?.businessStatus === 'ACTIVE' ? 'Activo' : 'Inactivo'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span className="bg-white/10 text-white border border-white/20 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider backdrop-blur-sm">
-                                        {businessSelected?.userBusinessRole === 'ADMIN' && 'ADMIN'}
-                                        {businessSelected?.userBusinessRole === 'USER' && 'USER'}
+                        <ProfileFieldRow icon={FaEnvelope} label="Correo electrónico">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span>{user?.userEmail}</span>
+                                {user?.userConfirmEmail ? (
+                                    <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-semibold">
+                                        <FcOk /> Verificado
                                     </span>
-                                </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmEmail}
+                                        disabled={btnConfirmEmail}
+                                        className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+                                    >
+                                        {btnConfirmEmail ? "Enviado…" : "Verificar email"}
+                                    </button>
+                                )}
                             </div>
-                            <div className="p-5 flex-grow">
-                                <div className="space-y-3">
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-slate-100 text-slate-600 p-1.5 rounded-md">
-                                            <FaBuilding size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Razón Social</span>
-                                            <p className="text-sm font-bold text-gray-900 leading-tight">
-                                                {business?.businessName}
-                                            </p>
-                                        </div>
-                                    </div>
+                        </ProfileFieldRow>
 
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-slate-100 text-slate-600 p-1.5 rounded-md">
-                                            <FaIdCard size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">NIT / RUT</span>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-xs font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{business?.businessDocumentType || 'ID'}</span>
-                                                <span className="text-sm font-bold text-gray-800">{business?.businessDocumentNumber}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <ProfileFieldRow icon={FaPhone} label="Teléfono">
+                            {user?.userCodePhoneNumber} {user?.userPhoneNumber}
+                        </ProfileFieldRow>
+                    </ProfileSectionCard>
+                </ExpenseAnimatedSection>
 
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-slate-100 text-slate-600 p-1.5 rounded-md">
-                                            <FaBriefcase size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Rubro</span>
-                                            <p className="text-sm font-medium text-gray-800 capitalize">
-                                                {business?.businessType}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-green-50 text-green-600 p-1.5 rounded-md">
-                                            <FaWhatsapp size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">WhatsApp Business</span>
-                                            <div className="">
-                                                <a 
-                                                    target="_blank" 
-                                                    href={`https://wa.me/${business?.businessCodeWhatsappNumber}${business?.businessWhatsappNumber}`} 
-                                                    className="text-sm font-bold text-gray-800 hover:text-green-600 transition-colors inline-flex items-center gap-1"
-                                                    rel="noreferrer"
-                                                >
-                                                    {business?.businessCodeWhatsappNumber} {business?.businessWhatsappNumber}
-                                                    <span className="text-[10px] text-gray-400 font-normal ml-0.5">↗</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-slate-100 text-slate-600 p-1.5 rounded-md">
-                                            <FaEnvelope size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Email de Contacto</span>
-                                            <p className="text-sm font-medium text-gray-800">
-                                                {business?.businessEmail}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                        <div className="mt-0.5 bg-slate-100 text-slate-600 p-1.5 rounded-md">
-                                            <FaMapMarkerAlt size={18} />
-                                        </div>
-                                        <div>
-                                            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">País</span>
-                                            <p className="text-sm font-medium text-gray-800 capitalize">
-                                                {business?.businessCountry}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+                <ExpenseAnimatedSection>
+                    <ProfileSectionCard
+                        title="Mi negocio"
+                        subtitle={business?.businessName ?? "Negocio asociado"}
+                        icon={FaBuilding}
+                        badge={
+                            <div className="flex flex-wrap items-center gap-2">
+                                <BusinessStatusBadge status={business?.businessStatus} />
+                                <RoleBadge role={businessSelected?.userBusinessRole} />
                             </div>
-                        </motion.div>
-                    </div>
+                        }
+                    >
+                        <ProfileFieldRow icon={FaBuilding} label="Razón social">
+                            {business?.businessName ?? "—"}
+                        </ProfileFieldRow>
 
-                    <motion.div variants={itemVariants} className="mt-6">
-                        <SubscriptionBillingCard
-                            businessId={businessSelected?.userBusinessBusinessId ?? business?.businessId}
-                            isAdmin={businessSelected?.userBusinessRole === "ADMIN"}
-                        />
-                    </motion.div>
-                </motion.div>
+                        <ProfileFieldRow icon={FaIdCard} label="NIT / RUT">
+                            <span className="inline-flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                    {business?.businessDocumentType || "ID"}
+                                </span>
+                                <span>{business?.businessDocumentNumber ?? "—"}</span>
+                            </span>
+                        </ProfileFieldRow>
+
+                        <ProfileFieldRow icon={FaBriefcase} label="Rubro">
+                            <span className="capitalize">{business?.businessType ?? "—"}</span>
+                        </ProfileFieldRow>
+
+                        <ProfileFieldRow icon={FaWhatsapp} label="WhatsApp Business">
+                            {business?.businessCodeWhatsappNumber && business?.businessWhatsappNumber ? (
+                                <a
+                                    target="_blank"
+                                    href={`https://wa.me/${business.businessCodeWhatsappNumber}${business.businessWhatsappNumber}`}
+                                    className="text-secondary font-semibold hover:underline inline-flex items-center gap-1"
+                                    rel="noreferrer"
+                                >
+                                    {business.businessCodeWhatsappNumber} {business.businessWhatsappNumber}
+                                </a>
+                            ) : (
+                                "—"
+                            )}
+                        </ProfileFieldRow>
+
+                        <ProfileFieldRow icon={FaEnvelope} label="Email de contacto">
+                            {business?.businessEmail ?? "—"}
+                        </ProfileFieldRow>
+
+                        <ProfileFieldRow icon={FaMapMarkerAlt} label="País">
+                            <span className="capitalize">{business?.businessCountry ?? "—"}</span>
+                        </ProfileFieldRow>
+                    </ProfileSectionCard>
+                </ExpenseAnimatedSection>
             </div>
-        </PageContainer>
+
+            <ExpenseAnimatedSection>
+                <SubscriptionBillingCard businessId={businessId} isAdmin={isAdmin} />
+            </ExpenseAnimatedSection>
+        </ExpensePageLayout>
     );
 }

@@ -8,6 +8,7 @@ import {
 } from "../../api/sale.js";
 import { calculateTotalAvailableByPaymentMethod } from "../../utils/financeUtils.js";
 import { useAuth } from "../../context/authContext.jsx";
+import useTenantPermissions from "../../hooks/useTenantPermissions.js";
 import KpiComponent from "../../components/KpiComponent.jsx";
 import DashboardSalesDetailModal from "../../components/dashboard/DashboardSalesDetailModal.jsx";
 import { PageHeader } from "../../components/layout/PageContainer.jsx";
@@ -27,6 +28,7 @@ import {
 
 export default function UsersDashboardPage() {
   const { isSuperAdmin } = useAuth();
+  const { isTenantAdmin, can } = useTenantPermissions();
 
   const [monthlySales, setMonthlySales] = useState(null);
   const [salePendingAmount, setSalePendingAmount] = useState(null);
@@ -51,29 +53,44 @@ export default function UsersDashboardPage() {
       const day = new Date().getDate();
 
       try {
-        const resMonth = await getMonthlySalesNow();
-        setMonthlySales(resMonth.data.saleTotal);
-        setSalePendingAmount(resMonth.data.salePendingAmount);
-      } catch (error) {
-        console.error("Error al obtener las ventas mensuales:", error);
-      }
-      try {
         const resDay = await getDaySales(day, month, year);
         setDaySales(resDay.data);
       } catch (error) {
         console.error("Error al obtener las ventas del dia:", error);
       }
-      try {
-        const totalCash = await calculateTotalAvailableByPaymentMethod(2);
-        setCashAvailable(totalCash);
-      } catch (error) {
-        console.error("Error al obtener el total de efectivo disponible:", error);
-      }
-      try {
-        const countRes = await countSalesMonthRequest(month, year);
-        setCountSalesMonth(countRes.data);
-      } catch (error) {
-        console.error("Error al obtener el conteo de ventas mensuales:", error);
+      if (isTenantAdmin) {
+        try {
+          const resMonth = await getMonthlySalesNow();
+          setMonthlySales(resMonth.data.saleTotal);
+          setSalePendingAmount(resMonth.data.salePendingAmount);
+        } catch (error) {
+          console.error("Error al obtener las ventas mensuales:", error);
+        }
+        try {
+          const totalCash = await calculateTotalAvailableByPaymentMethod(2);
+          setCashAvailable(totalCash);
+        } catch (error) {
+          console.error("Error al obtener el total de efectivo disponible:", error);
+        }
+        try {
+          const countRes = await countSalesMonthRequest(month, year);
+          setCountSalesMonth(countRes.data);
+        } catch (error) {
+          console.error("Error al obtener el conteo de ventas mensuales:", error);
+        }
+      } else {
+        try {
+          const resMonth = await getMonthlySalesNow();
+          setMonthlySales(resMonth.data.saleTotal);
+        } catch (error) {
+          console.error("Error al obtener las ventas mensuales:", error);
+        }
+        try {
+          const countRes = await countSalesMonthRequest(month, year);
+          setCountSalesMonth(countRes.data);
+        } catch (error) {
+          console.error("Error al obtener el conteo de ventas mensuales:", error);
+        }
       }
     } catch (err) {
       console.error("Dashboard error:", err);
@@ -105,7 +122,11 @@ export default function UsersDashboardPage() {
       <motion.div variants={itemVariants}>
         <PageHeader
           title="Dashboard"
-          subtitle="Resumen de ventas, caja y accesos rápidos"
+          subtitle={
+            isTenantAdmin
+              ? "Resumen de ventas, caja y accesos rápidos"
+              : "Resumen operativo de ventas del día"
+          }
         />
       </motion.div>
 
@@ -137,22 +158,26 @@ export default function UsersDashboardPage() {
           loading={loading}
           onClick={() => openSalesDetail("monthSales")}
         />
-        <KpiComponent
-          title="Por Cobrar"
-          icon={<FaHandHoldingUsd />}
-          value={salePendingAmount}
-          footer="Pendientes de pago · Ver detalle"
-          loading={loading}
-          onClick={() => openSalesDetail("pending")}
-        />
-        <KpiComponent
-          title="Efectivo Disponible"
-          icon={<FaMoneyBillWave />}
-          value={cashAvailable}
-          footer="Caja disponible · Ver transacciones"
-          loading={loading}
-          to="/transactions"
-        />
+        {isTenantAdmin && (
+          <>
+            <KpiComponent
+              title="Por Cobrar"
+              icon={<FaHandHoldingUsd />}
+              value={salePendingAmount}
+              footer="Pendientes de pago · Ver detalle"
+              loading={loading}
+              onClick={() => openSalesDetail("pending")}
+            />
+            <KpiComponent
+              title="Efectivo Disponible"
+              icon={<FaMoneyBillWave />}
+              value={cashAvailable}
+              footer="Caja disponible · Ver transacciones"
+              loading={loading}
+              to="/transactions"
+            />
+          </>
+        )}
         <KpiComponent
           title="Nº de Ventas"
           icon={<FaStar />}
@@ -181,24 +206,30 @@ export default function UsersDashboardPage() {
             icon={<FaPlus />}
             tone="primary"
           />
-          <QuickAccessLink
-            to="/sales/dailySales"
-            label="Cierre Diario"
-            icon={<FaCalendarAlt />}
-            tone="secondary"
-          />
-          <QuickAccessLink
-            to="/transactions"
-            label="Transacciones"
-            icon={<FaExchangeAlt />}
-            tone="secondary"
-          />
-          <QuickAccessLink
-            to="/expenses"
-            label="Gastos"
-            icon={<FaReceipt />}
-            tone="neutral"
-          />
+          {can("daily-closures:read") && (
+            <QuickAccessLink
+              to="/sales/dailySales"
+              label="Cierre Diario"
+              icon={<FaCalendarAlt />}
+              tone="secondary"
+            />
+          )}
+          {can("transactions:read") && (
+            <QuickAccessLink
+              to="/transactions"
+              label="Transacciones"
+              icon={<FaExchangeAlt />}
+              tone="secondary"
+            />
+          )}
+          {can("expenses:manage") && (
+            <QuickAccessLink
+              to="/expenses"
+              label="Gastos"
+              icon={<FaReceipt />}
+              tone="neutral"
+            />
+          )}
           <QuickAccessLink
             to="/support"
             label="Soporte"

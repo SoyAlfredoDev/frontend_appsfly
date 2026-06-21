@@ -10,6 +10,7 @@ import {
     FaEye,
 } from "react-icons/fa";
 import ExpensePageLayout, { ExpenseAnimatedSection } from "../components/ui/ExpensePageLayout.jsx";
+import useTenantPermissions from "../hooks/useTenantPermissions.js";
 import InventoryAdjustmentModal from "../components/modals/InventoryAdjustmentModal.jsx";
 import {
     getInventorySummary,
@@ -66,6 +67,7 @@ function StockBadge({ qty, isLowStock }) {
 }
 
 export default function InventoryPage() {
+    const { can } = useTenantPermissions();
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState(null);
     const [stockList, setStockList] = useState([]);
@@ -142,9 +144,15 @@ export default function InventoryPage() {
     return (
         <ExpensePageLayout
             title="Control de Inventario"
-            subtitle="Stock en tiempo real, valorización y trazabilidad de movimientos"
+            subtitle={
+                can("inventory:adjust")
+                    ? "Stock en tiempo real, valorización y trazabilidad de movimientos"
+                    : "Consulta de stock y movimientos"
+            }
             actions={
-                <InventoryAdjustmentModal stockList={stockList} onAdjusted={handleAdjusted} />
+                can("inventory:adjust") ? (
+                    <InventoryAdjustmentModal stockList={stockList} onAdjusted={handleAdjusted} />
+                ) : null
             }
         >
             {/* KPIs */}

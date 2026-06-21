@@ -5,7 +5,8 @@ import { FaBars, FaTimes, FaSignOutAlt, FaUserCircle } from "react-icons/fa";
 import { useAuth } from "../../context/authContext.jsx";
 import useTenantSubscriptionBlock from "../../hooks/useTenantSubscriptionBlock.js";
 import formatName from "../../utils/formatName.js";
-import { NAV_ITEMS } from "./navigationConfig.js";
+import { NAV_ITEMS, filterNavItemsByRole } from "./navigationConfig.js";
+import useTenantPermissions from "../../hooks/useTenantPermissions.js";
 
 const PROFILE_NAV = [{ name: "Mi perfil", path: "/profile", icon: FaUserCircle }];
 
@@ -48,13 +49,15 @@ function NavLinks({ items, isActive, onNavigate, variant = "sidebar" }) {
 export default function SidebarNavigation() {
   const { user, logout } = useAuth();
   const { subscriptionLocked } = useTenantSubscriptionBlock();
+  const { can } = useTenantPermissions();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
-  const filteredItems = subscriptionLocked ? PROFILE_NAV : NAV_ITEMS;
+  const roleNavItems = filterNavItemsByRole(NAV_ITEMS, can);
+  const filteredItems = subscriptionLocked ? PROFILE_NAV : roleNavItems;
 
   const closeMobile = () => setMobileOpen(false);
   const homePath = subscriptionLocked ? "/profile" : "/dashboard";
@@ -88,6 +91,11 @@ export default function SidebarNavigation() {
               <span className="text-white font-semibold">
                 {formatName(user?.userFirstName)}
               </span>
+              {!subscriptionLocked && (
+                <span className="block text-[10px] text-slate-500 mt-0.5 capitalize">
+                  {can("users:manage") ? "Administrador" : "Usuario"}
+                </span>
+              )}
             </p>
           )}
           <button

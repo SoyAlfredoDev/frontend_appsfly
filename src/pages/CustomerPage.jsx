@@ -12,6 +12,7 @@ import { FaEye, FaEdit, FaTrash, FaPlus, FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../context/ConfirmationContext.jsx";
+import useTenantPermissions from "../hooks/useTenantPermissions.js";
 import ExpensePageLayout from "../components/ui/ExpensePageLayout.jsx";
 import ExpenseTableCard, {
   ExpenseTableScroll,
@@ -30,6 +31,7 @@ export default function CustomerPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const confirm = useConfirm();
+    const { can } = useTenantPermissions();
     const [customers, setCustomers] = useState([]);
     const [sorting, setSorting] = useState([]);
     const [globalFilter, setGlobalFilter] = useState("");
@@ -154,9 +156,11 @@ export default function CustomerPage() {
                     <button type="button" className={ACTION_EDIT} onClick={() => handleEditCustomer(row.original.customerId)} title="Editar">
                         <FaEdit />
                     </button>
-                    <button type="button" className={ACTION_DELETE} onClick={() => handleDeleteCustomer(row.original.customerId, row.original.customerFirstName, row.original.customerLastName)} title="Eliminar">
-                        <FaTrash />
-                    </button>
+                    {can("customers:delete") && (
+                      <button type="button" className={ACTION_DELETE} onClick={() => handleDeleteCustomer(row.original.customerId, row.original.customerFirstName, row.original.customerLastName)} title="Eliminar">
+                          <FaTrash />
+                      </button>
+                    )}
                 </div>
             )
         }

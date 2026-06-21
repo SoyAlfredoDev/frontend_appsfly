@@ -8,6 +8,7 @@ import { ToastProvider } from "./context/ToastContext.jsx";
 import { ConfirmationProvider } from "./context/ConfirmationContext.jsx";
 import AppLayout from "./components/layout/AppLayout.jsx";
 import TenantContentGate from "./components/TenantContentGate.jsx";
+import TenantRoleGate from "./components/TenantRoleGate.jsx";
 import AdminLayout from "./components/layout/AdminLayout.jsx";
 import AdminProtectedView from "./components/AdminProtectedView.jsx";
 
@@ -120,6 +121,7 @@ function App() {
               {/* Authenticated tenant shell */}
               <Route element={<AppLayout />}>
                 <Route element={<TenantContentGate />}>
+                  <Route element={<TenantRoleGate />}>
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/customers" element={<CustomerPage />} />
                   <Route path="/customers/:id" element={<CustomerViewPage />} />
@@ -146,6 +148,7 @@ function App() {
                   <Route path="/finance" element={<FinancePage />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/business/register" element={<RegisterBusinessPage />} />
+                  </Route>
                 </Route>
                 <Route path="/subscription/payment/return" element={<SubscriptionPaymentReturnPage />} />
               </Route>
