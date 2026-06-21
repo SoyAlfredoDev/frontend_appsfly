@@ -10,11 +10,27 @@ export default function KpiComponent({
   loading,
   isCurrency = true,
   to,
+  onClick,
 }) {
+  const isClickable = Boolean(to || onClick);
+
   const card = (
     <motion.div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className={`card overflow-hidden flex flex-col h-full${
-        to ? " cursor-pointer hover:border-primary/25 transition-colors" : ""
+        isClickable ? " cursor-pointer hover:border-primary/25 transition-colors" : ""
       }`}
       whileHover={{ y: -2, boxShadow: "0 8px 24px rgba(2, 31, 65, 0.1)" }}
       initial={{ opacity: 0, y: 12 }}

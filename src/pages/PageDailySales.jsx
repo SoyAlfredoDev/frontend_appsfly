@@ -48,7 +48,7 @@ import {
   TD_AMOUNT,
   ACTION_VIEW,
 } from "../utils/expenseUiPatterns.js";
-import { formatClosureDate, formatMoney } from "../utils/dailySalesUi.js";
+import { formatClosureDate, formatMoney, isDailySalesDayInCurrentMonth } from "../utils/dailySalesUi.js";
 
 export default function PageDailySales() {
   const toast = useToast();
@@ -160,12 +160,26 @@ export default function PageDailySales() {
     await handleCreateCloseForDate(today);
   };
 
+  const monthlyDailySales = useMemo(
+    () => dailySales.filter((row) => isDailySalesDayInCurrentMonth(row.dailySalesDay)),
+    [dailySales]
+  );
+
   const summary = useMemo(() => {
-    const totalSales = dailySales.reduce((acc, d) => acc + Number(d.dailySalesTotalSales ?? 0), 0);
-    const totalIncome = dailySales.reduce((acc, d) => acc + Number(d.dailySalesTotalIncome ?? 0), 0);
-    const totalTx = dailySales.reduce((acc, d) => acc + Number(d.dailySalesNumberOfSales ?? 0), 0);
-    return { totalSales, totalIncome, totalTx, count: dailySales.length };
-  }, [dailySales]);
+    const totalSales = monthlyDailySales.reduce(
+      (acc, d) => acc + Number(d.dailySalesTotalSales ?? 0),
+      0
+    );
+    const totalIncome = monthlyDailySales.reduce(
+      (acc, d) => acc + Number(d.dailySalesTotalIncome ?? 0),
+      0
+    );
+    const totalTx = monthlyDailySales.reduce(
+      (acc, d) => acc + Number(d.dailySalesNumberOfSales ?? 0),
+      0
+    );
+    return { totalSales, totalIncome, totalTx, count: monthlyDailySales.length };
+  }, [monthlyDailySales]);
 
   const trendData = useMemo(() => {
     return [...dailySales]
@@ -317,28 +331,28 @@ export default function PageDailySales() {
           <div className={KPI_CARD}>
             <div className={KPI_ICON_PRIMARY}><FaCalendarCheck className="text-xl" /></div>
             <div>
-              <p className={KPI_LABEL}>Cierres registrados</p>
+              <p className={KPI_LABEL}>Cierres del mes</p>
               <p className={KPI_VALUE}>{summary.count}</p>
             </div>
           </div>
           <div className={KPI_CARD}>
             <div className={KPI_ICON_PRIMARY}><FaMoneyBillWave className="text-xl" /></div>
             <div>
-              <p className={KPI_LABEL}>Ventas acumuladas</p>
+              <p className={KPI_LABEL}>Ventas del mes</p>
               <p className={KPI_VALUE}>{formatMoney(summary.totalSales)}</p>
             </div>
           </div>
           <div className={KPI_CARD}>
             <div className={KPI_ICON_SECONDARY}><FaChartLine className="text-xl" /></div>
             <div>
-              <p className={KPI_LABEL}>Total abonado</p>
+              <p className={KPI_LABEL}>Abonado del mes</p>
               <p className={KPI_VALUE}>{formatMoney(summary.totalIncome)}</p>
             </div>
           </div>
           <div className={KPI_CARD}>
             <div className={KPI_ICON_AMBER}><FaReceipt className="text-xl" /></div>
             <div>
-              <p className={KPI_LABEL}>Transacciones</p>
+              <p className={KPI_LABEL}>Transacciones del mes</p>
               <p className={KPI_VALUE}>{summary.totalTx}</p>
             </div>
           </div>

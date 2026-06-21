@@ -9,6 +9,7 @@ import {
 import { calculateTotalAvailableByPaymentMethod } from "../../utils/financeUtils.js";
 import { useAuth } from "../../context/authContext.jsx";
 import KpiComponent from "../../components/KpiComponent.jsx";
+import DashboardSalesDetailModal from "../../components/dashboard/DashboardSalesDetailModal.jsx";
 import { PageHeader } from "../../components/layout/PageContainer.jsx";
 import {
   FaChartLine,
@@ -33,6 +34,10 @@ export default function UsersDashboardPage() {
   const [cashAvailable, setCashAvailable] = useState(null);
   const [countSalesMonth, setCountSalesMonth] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [salesDetail, setSalesDetail] = useState(null);
+
+  const openSalesDetail = (key) => setSalesDetail(DASHBOARD_SALES_VIEWS[key]);
+  const closeSalesDetail = () => setSalesDetail(null);
 
   useEffect(() => {
     loadDashboard();
@@ -112,46 +117,60 @@ export default function UsersDashboardPage() {
           title="Ventas del Día"
           icon={<FaCalendarDay />}
           value={daySales}
-          footer="Ventas realizadas hoy"
+          footer="Ventas realizadas hoy · Ver detalle"
           loading={loading}
+          onClick={() => openSalesDetail("daySales")}
         />
         <KpiComponent
           title="Ingresos del Día"
           icon={<FaChartLine />}
           value={daySales}
-          footer="Ingresos de hoy"
+          footer="Ingresos de hoy · Ver detalle"
           loading={loading}
+          onClick={() => openSalesDetail("dayIncome")}
         />
         <KpiComponent
           title="Ventas del Mes"
           icon={<FaChartLine />}
           value={monthlySales}
-          footer="Acumulado mensual"
+          footer="Acumulado mensual · Ver detalle"
           loading={loading}
+          onClick={() => openSalesDetail("monthSales")}
         />
         <KpiComponent
           title="Por Cobrar"
           icon={<FaHandHoldingUsd />}
           value={salePendingAmount}
-          footer="Pendientes de pago"
+          footer="Pendientes de pago · Ver detalle"
           loading={loading}
+          onClick={() => openSalesDetail("pending")}
         />
         <KpiComponent
           title="Efectivo Disponible"
           icon={<FaMoneyBillWave />}
           value={cashAvailable}
-          footer="Caja disponible"
+          footer="Caja disponible · Ver transacciones"
           loading={loading}
+          to="/transactions"
         />
         <KpiComponent
           title="Nº de Ventas"
           icon={<FaStar />}
           value={countSalesMonth}
-          footer="Ventas del mes actual"
+          footer="Ventas del mes actual · Ver detalle"
           loading={loading}
           isCurrency={false}
+          onClick={() => openSalesDetail("salesCount")}
         />
       </motion.div>
+
+      <DashboardSalesDetailModal
+        isOpen={Boolean(salesDetail)}
+        onClose={closeSalesDetail}
+        title={salesDetail?.title}
+        subtitle={salesDetail?.subtitle}
+        filterView={salesDetail?.filterView}
+      />
 
       <motion.div variants={itemVariants}>
         <h2 className="text-lg font-semibold text-dark mb-4">Accesos rápidos</h2>
@@ -205,6 +224,34 @@ export default function UsersDashboardPage() {
     </motion.div>
   );
 }
+
+const DASHBOARD_SALES_VIEWS = {
+  daySales: {
+    title: "Ventas del día",
+    subtitle: "Todas las ventas registradas hoy",
+    filterView: "today",
+  },
+  dayIncome: {
+    title: "Ingresos del día",
+    subtitle: "Ventas de hoy que generaron ingresos",
+    filterView: "today",
+  },
+  monthSales: {
+    title: "Ventas del mes",
+    subtitle: "Todas las ventas del mes en curso",
+    filterView: "month",
+  },
+  pending: {
+    title: "Por cobrar",
+    subtitle: "Ventas del mes con saldo pendiente",
+    filterView: "pending",
+  },
+  salesCount: {
+    title: "Nº de ventas del mes",
+    subtitle: "Listado de ventas del mes en curso",
+    filterView: "month",
+  },
+};
 
 const toneStyles = {
   primary:

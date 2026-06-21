@@ -38,3 +38,12 @@ export function formatMoney(value) {
     maximumFractionDigits: 0,
   });
 }
+
+export function getCurrentMonthKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function isDailySalesDayInCurrentMonth(dailySalesDay, date = new Date()) {
+  if (!dailySalesDay) return false;
+  return dailySalesDay.startsWith(getCurrentMonthKey(date));
+}
