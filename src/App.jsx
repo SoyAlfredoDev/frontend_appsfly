@@ -88,6 +88,8 @@ import EmailCampaignDetailAdminPage from "./pages/admin/emailCampaigns/EmailCamp
 import EmailProspectsAdminPage from "./pages/admin/emailProspects/EmailProspectsAdminPage.jsx";
 import ProspectUnsubscribePage from "./pages/ProspectUnsubscribePage.jsx";
 import NotificationsAdminPage from "./pages/admin/NotificationsAdminPage.jsx";
+import AgentTasksAdminPage from "./pages/admin/AgentTasksAdminPage.jsx";
+import PlatformOwnerProtectedView from "./components/PlatformOwnerProtectedView.jsx";
 import SubscriptionPaymentReturnPage from "./pages/dashboard/SubscriptionPaymentReturnPage.jsx";
 
 function App() {
@@ -169,6 +171,9 @@ function App() {
                   <Route path="/admin/email-campaigns/:id" element={<EmailCampaignViewAdminPage />} />
                   <Route path="/admin/email-prospects" element={<EmailProspectsAdminPage />} />
                   <Route path="/admin/notifications" element={<NotificationsAdminPage />} />
+                  <Route element={<PlatformOwnerProtectedView />}>
+                    <Route path="/admin/agent-tasks" element={<AgentTasksAdminPage />} />
+                  </Route>
                 </Route>
               </Route>
 

@@ -6,6 +6,7 @@ import { useAuth } from "../context/authContext.jsx";
 import formatName from "../utils/formatName.js";
 import { ADMIN_EXIT_ITEM, ADMIN_NAV_ITEMS } from "./layout/adminNavigationConfig.js";
 import AdminNotificationsBell from "./admin/AdminNotificationsBell.jsx";
+import { usePlatformOwner } from "../hooks/usePlatformOwner.js";
 
 function AdminNavLinks({ items, isActive, onNavigate, variant = "sidebar" }) {
     return items.map((item) => {
@@ -59,8 +60,13 @@ function AdminNavLinks({ items, isActive, onNavigate, variant = "sidebar" }) {
 
 export default function NavBarAdminComponent() {
     const { user, logout } = useAuth();
+    const { isPlatformOwner } = usePlatformOwner();
     const location = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    const navItems = ADMIN_NAV_ITEMS.filter(
+        (item) => !item.ownerOnly || isPlatformOwner,
+    );
 
     const isActive = (path) =>
         location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -90,7 +96,7 @@ export default function NavBarAdminComponent() {
                 </div>
 
                 <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 py-4 space-y-1">
-                    <AdminNavLinks items={ADMIN_NAV_ITEMS} isActive={isActive} />
+                    <AdminNavLinks items={navItems} isActive={isActive} />
                 </nav>
 
                 <div className="border-t border-white/10 p-4 shrink-0 space-y-3">
@@ -178,7 +184,7 @@ export default function NavBarAdminComponent() {
                                     </div>
                                 )}
                                 <AdminNavLinks
-                                    items={ADMIN_NAV_ITEMS}
+                                    items={navItems}
                                     isActive={isActive}
                                     onNavigate={closeMobile}
                                     variant="mobile"

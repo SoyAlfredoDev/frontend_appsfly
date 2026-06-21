@@ -5,6 +5,7 @@ export const validateRutUserExists = (rut) => axios.get(`/users/validateRutExist
 export const getUsersBusinessDB = (config) => axios.get('/db/users', config);
 export const getUserByIdRequest = (id) => axios.get(`/users/${id}`);
 export const userIsSuperAdminRequest = () => axios.get('/users/isSuperAdmin');
+export const userIsPlatformOwnerRequest = () => axios.get('/users/isPlatformOwner');
 export const updateUserConfirmEmailRequest = (id) => axios.put(`/users/updateConfirmEmail/${id}`);
 export const countUsersRequest = () => axios.get('/users/count');
 export const sendConfirmEmailRequest = (userId) =>

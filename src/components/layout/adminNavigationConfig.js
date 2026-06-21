@@ -10,11 +10,13 @@ import {
     FaMoneyBillWave,
     FaEnvelope,
     FaBell,
+    FaRobot,
 } from "react-icons/fa";
 
 export const ADMIN_NAV_ITEMS = [
     { name: "Dashboard", path: "/admin/dashboard", icon: FaChartLine },
     { name: "Notificaciones", path: "/admin/notifications", icon: FaBell },
+    { name: "Tareas agente", path: "/admin/agent-tasks", icon: FaRobot, ownerOnly: true },
     { name: "Usuarios", path: "/admin/users", icon: FaUsers },
     { name: "Pagos", path: "/admin/payments", icon: FaMoneyBillWave },
     { name: "Suscripciones", path: "/admin/subscriptions", icon: FaCreditCard },
