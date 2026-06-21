@@ -62,7 +62,8 @@ export default function AssistantPanel() {
     useEffect(() => {
         if (!isTenantAdmin) {
             setChecking(false);
-            setAvailable(false);
+            setCanAccess(false);
+            setEnabled(false);
             return;
         }
 
