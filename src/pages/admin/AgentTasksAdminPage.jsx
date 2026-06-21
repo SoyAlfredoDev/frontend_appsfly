@@ -3,18 +3,21 @@ import { motion } from "framer-motion";
 import {
     FaRobot,
     FaPlus,
-    FaCopy,
     FaTrash,
     FaPlay,
     FaCheck,
     FaBan,
     FaShieldAlt,
     FaClipboardList,
+    FaComments,
+    FaLaptop,
+    FaMobileAlt,
 } from "react-icons/fa";
 import PageContainer, { PageHeader } from "../../components/layout/PageContainer.jsx";
 import {
     createAgentTaskRequest,
     deleteAgentTaskRequest,
+    getAgentTasksAccessRequest,
     getAgentTasksRequest,
     updateAgentTaskStatusRequest,
 } from "../../api/agentTasks.js";
@@ -44,6 +47,12 @@ const PRIORITY_LABELS = {
     HIGH: "Alta",
 };
 
+const PRIORITY_STYLES = {
+    HIGH: "text-red-600 font-bold",
+    NORMAL: "text-slate-500",
+    LOW: "text-slate-400",
+};
+
 function formatWhen(dateStr) {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleString("es-CL", {
@@ -55,9 +64,14 @@ function formatWhen(dateStr) {
 export default function AgentTasksAdminPage() {
     const toast = useToast();
     const confirm = useConfirm();
+    const [access, setAccess] = useState({
+        canManageQueue: true,
+        hasLocalAccess: true,
+        localTokenRequired: false,
+    });
     const [tasks, setTasks] = useState([]);
     const [stats, setStats] = useState(null);
-    const [cursorPrompt, setCursorPrompt] = useState("");
+    const [executionQueue, setExecutionQueue] = useState(null);
     const [safetyRules, setSafetyRules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -68,20 +82,49 @@ export default function AgentTasksAdminPage() {
         priority: "NORMAL",
     });
 
+    const mobileAddOnly = access.localTokenRequired && !access.hasLocalAccess;
+
+    const loadAccess = useCallback(async () => {
+        try {
+            const res = await getAgentTasksAccessRequest();
+            setAccess({
+                canManageQueue: Boolean(res.data?.canManageQueue),
+                hasLocalAccess: Boolean(res.data?.hasLocalAccess),
+                localTokenRequired: Boolean(res.data?.localTokenRequired),
+            });
+            return res.data;
+        } catch {
+            return null;
+        }
+    }, []);
+
     const load = useCallback(async () => {
         setLoading(true);
         try {
+            const accessInfo = await loadAccess();
+            if (accessInfo?.localTokenRequired && !accessInfo?.canManageQueue) {
+                setTasks([]);
+                setStats(null);
+                setExecutionQueue(null);
+                setSafetyRules([]);
+                return;
+            }
+
             const res = await getAgentTasksRequest();
             setTasks(res.data?.tasks ?? []);
             setStats(res.data?.stats ?? null);
-            setCursorPrompt(res.data?.cursorPrompt ?? "");
+            setExecutionQueue(res.data?.executionQueue ?? null);
             setSafetyRules(res.data?.safetyRules ?? []);
-        } catch {
-            toast.error("Error", "No se pudieron cargar las tareas del agente.");
+        } catch (err) {
+            if (err.response?.status === 403) {
+                await loadAccess();
+            } else {
+                toast.error("Error", "No se pudieron cargar las tareas del agente.");
+            }
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [toast, loadAccess]);
 
     useEffect(() => {
         load();
@@ -103,7 +146,7 @@ export default function AgentTasksAdminPage() {
                     res.data.message ?? "Contenido no permitido por seguridad.",
                 );
             } else {
-                toast.success("Tarea agregada", "Quedó en cola para ejecutar con Cursor.");
+                toast.success("Tarea agregada", "Quedó en cola. Pide al agente ejecutarlas en Cursor.");
             }
             setForm({ title: "", description: "", priority: "NORMAL" });
             await load();
@@ -111,15 +154,6 @@ export default function AgentTasksAdminPage() {
             toast.error("Error", err.response?.data?.message ?? "No se pudo crear la tarea.");
         } finally {
             setSubmitting(false);
-        }
-    };
-
-    const handleCopyPrompt = async () => {
-        try {
-            await navigator.clipboard.writeText(cursorPrompt);
-            toast.success("Copiado", "Pega esto en Cursor para ejecutar las tareas pendientes.");
-        } catch {
-            toast.error("Error", "No se pudo copiar al portapapeles.");
         }
     };
 
@@ -152,21 +186,34 @@ export default function AgentTasksAdminPage() {
         <PageContainer>
             <PageHeader
                 title="Tareas del agente"
-                subtitle="Agrega tareas desde el móvil; en la PC pídele a Cursor que las ejecute."
-                actions={
-                    <button
-                        type="button"
-                        onClick={handleCopyPrompt}
-                        disabled={!cursorPrompt || cursorPrompt.includes("No hay tareas")}
-                        className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-white px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-50"
-                    >
-                        <FaCopy />
-                        Copiar prompt para Cursor
-                    </button>
+                subtitle={
+                    mobileAddOnly
+                        ? "Modo móvil: solo puedes agregar tareas. Gestiona y ejecuta desde tu PC autorizada."
+                        : "Agrega tareas desde el móvil; en la PC pídele al agente en Cursor que las ejecute todas por prioridad."
                 }
             />
 
-            {stats && (
+            {mobileAddOnly && (
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 flex gap-3">
+                    <FaMobileAlt className="text-amber-600 shrink-0 mt-0.5 text-lg" />
+                    <div className="text-sm text-amber-900">
+                        <p className="font-semibold mb-1">Acceso limitado desde este dispositivo</p>
+                        <p>
+                            Puedes <strong>agregar tareas</strong> aquí. Ver la cola, cambiar estados y
+                            ejecutar con Cursor solo funciona en tu PC con el token local configurado.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {!mobileAddOnly && access.localTokenRequired && access.hasLocalAccess && (
+                <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-3 flex items-center gap-2 text-sm text-emerald-800">
+                    <FaLaptop className="shrink-0" />
+                    PC autorizada — acceso completo a la cola del agente.
+                </div>
+            )}
+
+            {!mobileAddOnly && stats && (
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
                     {[
                         ["Pendientes", stats.pending, "text-amber-700"],
@@ -186,10 +233,35 @@ export default function AgentTasksAdminPage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {executionQueue && executionQueue.pendingCount > 0 && !mobileAddOnly && (
+                <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <p className="text-sm font-semibold text-dark flex items-center gap-2 mb-2">
+                        <FaComments className="text-primary" />
+                        Cola de ejecución ({executionQueue.pendingCount})
+                    </p>
+                    <p className="text-sm text-slate-600 mb-3">{executionQueue.summary}</p>
+                    <ol className="text-sm text-slate-700 space-y-2 list-decimal pl-5">
+                        {executionQueue.tasks.map((task) => (
+                            <li key={task.taskId}>
+                                <span className={PRIORITY_STYLES[task.priority] ?? ""}>
+                                    [{PRIORITY_LABELS[task.priority] ?? task.priority}]
+                                </span>{" "}
+                                <strong>{task.title}</strong>
+                                {task.status === "IN_PROGRESS" && (
+                                    <span className="ml-2 text-xs text-blue-600 font-semibold">
+                                        en progreso
+                                    </span>
+                                )}
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            )}
+
+            <div className={`grid grid-cols-1 gap-6 ${mobileAddOnly ? "" : "lg:grid-cols-3"}`}>
                 <motion.form
                     onSubmit={handleSubmit}
-                    className="lg:col-span-1 space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm h-fit"
+                    className={`space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm h-fit ${mobileAddOnly ? "" : "lg:col-span-1"}`}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                 >
@@ -255,13 +327,21 @@ export default function AgentTasksAdminPage() {
                             Reglas de seguridad
                         </p>
                         <ul className="text-xs text-slate-500 space-y-1 list-disc pl-4">
-                            {safetyRules.map((rule) => (
+                            {(safetyRules.length
+                                ? safetyRules
+                                : [
+                                      "No borrar ni truncar la base de datos",
+                                      "No eliminar masivamente usuarios o negocios",
+                                      "No exponer secretos (.env, API keys)",
+                                  ]
+                            ).map((rule) => (
                                 <li key={rule}>{rule}</li>
                             ))}
                         </ul>
                     </div>
                 </motion.form>
 
+                {!mobileAddOnly && (
                 <div className="lg:col-span-2 space-y-4">
                     <div className="flex flex-wrap gap-2">
                         {[
@@ -314,15 +394,20 @@ export default function AgentTasksAdminPage() {
                                                 >
                                                     {STATUS_LABELS[task.status] ?? task.status}
                                                 </span>
-                                                {task.priority !== "NORMAL" && (
-                                                    <span className="text-[10px] font-semibold text-slate-500">
-                                                        {PRIORITY_LABELS[task.priority]}
-                                                    </span>
-                                                )}
+                                                <span
+                                                    className={`text-[10px] font-semibold ${PRIORITY_STYLES[task.priority] ?? ""}`}
+                                                >
+                                                    {PRIORITY_LABELS[task.priority]}
+                                                </span>
                                             </div>
                                             <p className="text-sm text-slate-600 whitespace-pre-wrap">
                                                 {task.description}
                                             </p>
+                                            {task.executionNotes && (
+                                                <p className="text-xs text-emerald-700 mt-2 bg-emerald-50 rounded px-2 py-1">
+                                                    {task.executionNotes}
+                                                </p>
+                                            )}
                                             {task.safetyReason && (
                                                 <p className="text-xs text-red-600 mt-2 flex items-start gap-1">
                                                     <FaBan className="shrink-0 mt-0.5" />
@@ -404,15 +489,24 @@ export default function AgentTasksAdminPage() {
                     <div className="rounded-xl border border-secondary/20 bg-secondary/5 p-4">
                         <p className="text-sm font-semibold text-dark flex items-center gap-2 mb-2">
                             <FaRobot className="text-secondary" />
-                            Cómo usar con Cursor
+                            Cómo ejecutar las tareas
                         </p>
                         <ol className="text-sm text-slate-600 space-y-1 list-decimal pl-4">
                             <li>Desde el teléfono, agrega tareas aquí cuando se te ocurran.</li>
-                            <li>En la PC, pulsa «Copiar prompt para Cursor» y pégalo en el chat.</li>
-                            <li>Marca cada tarea como completada cuando el agente termine.</li>
+                            <li>
+                                En la PC, abre Cursor y escribe:{" "}
+                                <strong className="text-dark">
+                                    «Ejecuta las tareas pendientes del agente»
+                                </strong>
+                            </li>
+                            <li>
+                                El agente las revisará por prioridad (Alta → Normal → Baja), las
+                                implementará y marcará como completadas.
+                            </li>
                         </ol>
                     </div>
                 </div>
+                )}
             </div>
         </PageContainer>
     );
