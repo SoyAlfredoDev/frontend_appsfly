@@ -25,6 +25,7 @@ import {
     deleteEmailProspectRequest,
     downloadProspectImportTemplateRequest,
     getEmailProspectsRequest,
+    getProspectOutreachVariantsRequest,
     importEmailProspectsRequest,
     resubscribeEmailProspectRequest,
 } from "../../../api/emailProspects.js";
@@ -48,6 +49,7 @@ import {
     formatRecordCount,
 } from "../../../utils/expenseUiPatterns.js";
 import formatDate from "../../../utils/formatDate.js";
+import ProspectOutreachVariantsPanel from "../../../components/admin/ProspectOutreachVariantsPanel.jsx";
 
 const SECONDARY_BTN =
     "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50";
@@ -82,6 +84,8 @@ export default function EmailProspectsAdminPage() {
     const [busy, setBusy] = useState(false);
     const [prospectCampaignId, setProspectCampaignId] = useState(null);
     const [sendingOutreach, setSendingOutreach] = useState(false);
+    const [outreachVariants, setOutreachVariants] = useState(null);
+    const [variantsLoading, setVariantsLoading] = useState(true);
 
     const isValidEmailInput = (value) =>
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim().toLowerCase());
@@ -89,9 +93,10 @@ export default function EmailProspectsAdminPage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const [res, campaignsRes] = await Promise.all([
+            const [res, campaignsRes, variantsRes] = await Promise.all([
                 getEmailProspectsRequest(),
                 getEmailCampaignsRequest().catch(() => ({ data: [] })),
+                getProspectOutreachVariantsRequest().catch(() => ({ data: null })),
             ]);
             setProspects(res.data?.prospects ?? []);
             setStats(
@@ -110,11 +115,13 @@ export default function EmailProspectsAdminPage() {
                 (c) => c.campaignKey === SYSTEM_CAMPAIGN_KEY_WEEKLY_PROSPECTS,
             );
             setProspectCampaignId(prospectCampaign?.campaignId ?? null);
+            setOutreachVariants(variantsRes.data ?? null);
         } catch (err) {
             console.error(err);
             toast.error("Error", "No se pudieron cargar los prospectos.");
         } finally {
             setLoading(false);
+            setVariantsLoading(false);
         }
     }, [toast]);
 
@@ -345,6 +352,8 @@ export default function EmailProspectsAdminPage() {
                 />
             </div>
 
+            <ProspectOutreachVariantsPanel data={outreachVariants} loading={variantsLoading} />
+
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex gap-3">
                 <FaInfoCircle className="shrink-0 mt-0.5 text-amber-600" />
                 <div>
@@ -353,6 +362,8 @@ export default function EmailProspectsAdminPage() {
                         La campaña automática corre <strong>lunes, miércoles y viernes</strong> y
                         envía hasta <strong>70 correos por ciclo</strong> (de los 100/día del plan
                         gratuito de Resend; los otros 30 quedan para avisos de plan y reactivación).
+                        Cada lote rota entre <strong>3 mensajes distintos</strong> (propuesta de valor,
+                        oferta 2 meses gratis, equipo multi-usuario) y registra aperturas por variante.
                         Si el servidor estuvo apagado, al encenderse recupera el envío del último
                         día programado perdido. Rota remitente cada <strong>18 envíos</strong> (hola@,
                         novedades@, invitaciones@, contacto@ en appsfly.app). El resto queda en cola

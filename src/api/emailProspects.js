@@ -3,6 +3,9 @@ import axios from "./axios.js";
 export const getEmailProspectsRequest = (params = {}) =>
     axios.get("/admin/email-prospects", { params });
 
+export const getProspectOutreachVariantsRequest = () =>
+    axios.get("/admin/email-prospects/outreach-variants");
+
 export const createEmailProspectRequest = (data) =>
     axios.post("/admin/email-prospects", data);
 
