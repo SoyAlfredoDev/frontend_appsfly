@@ -11,6 +11,7 @@ import {
     FaEyeSlash,
     FaCog,
     FaCalendarAlt,
+    FaMousePointer,
 } from "react-icons/fa";
 import PageContainer, { PageHeader } from "../../../components/layout/PageContainer.jsx";
 import KpiComponent from "../../../components/KpiComponent.jsx";
@@ -90,6 +91,7 @@ export default function EmailCampaignHistoryDetailAdminPage() {
         bounced: 0,
         rejected: 0,
         opened: 0,
+        clicked: 0,
         notOpened: 0,
     };
     const runs = stats?.runs ?? [];
@@ -138,7 +140,7 @@ export default function EmailCampaignHistoryDetailAdminPage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-6">
                 <KpiComponent
                     title="Destinatarios (acum.)"
                     value={totals.recipients}
@@ -168,6 +170,12 @@ export default function EmailCampaignHistoryDetailAdminPage() {
                     value={totals.opened}
                     icon={FaEye}
                     footer="Aperturas registradas"
+                />
+                <KpiComponent
+                    title="Clics registro"
+                    value={totals.clicked ?? 0}
+                    icon={FaMousePointer}
+                    footer="Clic en enlace de alta"
                 />
                 <KpiComponent
                     title="Sin leer"
@@ -201,6 +209,7 @@ export default function EmailCampaignHistoryDetailAdminPage() {
                                     <th className="py-2 pr-4 font-medium">Entregados</th>
                                     <th className="py-2 pr-4 font-medium">Rechazados</th>
                                     <th className="py-2 pr-4 font-medium">Leídos</th>
+                                    <th className="py-2 pr-4 font-medium">Clics</th>
                                     <th className="py-2 font-medium">Sin leer</th>
                                 </tr>
                             </thead>
@@ -228,6 +237,9 @@ export default function EmailCampaignHistoryDetailAdminPage() {
                                         </td>
                                         <td className="py-3 pr-4 text-red-600">{rejected}</td>
                                         <td className="py-3 pr-4">{run.openedCount ?? 0}</td>
+                                        <td className="py-3 pr-4 text-emerald-700 font-medium">
+                                            {run.clickedCount ?? 0}
+                                        </td>
                                         <td className="py-3 text-slate-500">{notOpened}</td>
                                     </tr>
                                     );

@@ -25,8 +25,8 @@ export default function ProspectOutreachVariantsPanel({ data, loading }) {
                         3 mensajes de outreach (A/B/C)
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">
-                        Cada envío usa una variante distinta. Se registra cuál abrió cada prospecto
-                        para optimizar los siguientes ciclos.
+                        Cada envío usa una variante distinta. Se registra apertura y clic en el enlace
+                        de registro para optimizar los siguientes ciclos.
                     </p>
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 max-w-sm">
@@ -36,7 +36,7 @@ export default function ProspectOutreachVariantsPanel({ data, loading }) {
             </div>
 
             {data.totals && (
-                <div className="mb-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="mb-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                         <p className="text-xs text-slate-500">Enviados (total)</p>
                         <p className="text-lg font-semibold text-slate-800">{data.totals.sent ?? 0}</p>
@@ -45,9 +45,13 @@ export default function ProspectOutreachVariantsPanel({ data, loading }) {
                         <p className="text-xs text-slate-500">Abiertos (total)</p>
                         <p className="text-lg font-semibold text-slate-800">{data.totals.opened ?? 0}</p>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 col-span-2 sm:col-span-1">
-                        <p className="text-xs text-slate-500">Tasa apertura global</p>
-                        <p className="text-lg font-semibold text-primary">{data.totals.openRate ?? 0}%</p>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <p className="text-xs text-slate-500">Clics en registro</p>
+                        <p className="text-lg font-semibold text-emerald-700">{data.totals.clicked ?? 0}</p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <p className="text-xs text-slate-500">Tasa clic / envío</p>
+                        <p className="text-lg font-semibold text-primary">{data.totals.clickRate ?? 0}%</p>
                     </div>
                 </div>
             )}
@@ -75,7 +79,7 @@ export default function ProspectOutreachVariantsPanel({ data, loading }) {
                             )}
                         </div>
 
-                        <div className="px-4 py-3 grid grid-cols-3 gap-2 border-b border-gray-100 text-center">
+                        <div className="px-4 py-3 grid grid-cols-4 gap-2 border-b border-gray-100 text-center">
                             <div>
                                 <p className="text-[10px] uppercase tracking-wide text-slate-400">Enviados</p>
                                 <p className="text-sm font-semibold text-slate-700">
@@ -89,9 +93,15 @@ export default function ProspectOutreachVariantsPanel({ data, loading }) {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[10px] uppercase tracking-wide text-slate-400">Apertura</p>
+                                <p className="text-[10px] uppercase tracking-wide text-slate-400">Clics</p>
+                                <p className="text-sm font-semibold text-emerald-700">
+                                    {variant.stats?.clicked ?? 0}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase tracking-wide text-slate-400">Clic %</p>
                                 <p className="text-sm font-semibold text-primary">
-                                    {variant.stats?.openRate ?? 0}%
+                                    {variant.stats?.clickRate ?? 0}%
                                 </p>
                             </div>
                         </div>
