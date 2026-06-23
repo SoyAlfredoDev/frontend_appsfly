@@ -25,6 +25,7 @@ import { PRIMARY_BTN } from "../../utils/expenseUiPatterns.js";
 function typeIcon(type) {
     switch (type) {
         case "CAMPAIGN_FAILED":
+        case "CAMPAIGN_MANUAL_REQUIRED":
             return <FaExclamationTriangle className="text-red-500" />;
         case "CAMPAIGN_SKIPPED":
             return <FaBell className="text-amber-500" />;
@@ -33,6 +34,21 @@ function typeIcon(type) {
         default:
             return <FaEnvelope className="text-primary" />;
     }
+}
+
+function getNotificationActionLink(notification) {
+    const path = notification.payload?.manualActionPath;
+    const label = notification.payload?.manualActionLabel;
+    if (path && label) {
+        return { path, label };
+    }
+    if (notification.campaignId) {
+        return {
+            path: `/admin/email-campaigns/${notification.campaignId}/edit`,
+            label: "Configurar y enviar campaña",
+        };
+    }
+    return null;
 }
 
 function formatWhen(dateStr) {
@@ -163,7 +179,9 @@ export default function NotificationsAdminPage() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {notifications.map((n) => (
+                    {notifications.map((n) => {
+                        const actionLink = getNotificationActionLink(n);
+                        return (
                         <motion.div
                             key={n.notificationId}
                             initial={{ opacity: 0, y: 6 }}
@@ -204,14 +222,24 @@ export default function NotificationsAdminPage() {
                                     <p className="text-xs text-slate-400 mt-2">
                                         {formatWhen(n.createdAt)}
                                     </p>
-                                    {n.campaignId && (
-                                        <Link
-                                            to={`/admin/email-campaigns/${n.campaignId}/history`}
-                                            className="text-xs font-medium text-secondary hover:text-secondary/80 no-underline mt-2 inline-block"
-                                        >
-                                            Ver campaña →
-                                        </Link>
-                                    )}
+                                    <div className="mt-2 flex flex-wrap gap-3">
+                                        {actionLink && (
+                                            <Link
+                                                to={actionLink.path}
+                                                className="text-xs font-semibold text-amber-700 hover:text-amber-900 no-underline inline-flex items-center gap-1"
+                                            >
+                                                {actionLink.label} →
+                                            </Link>
+                                        )}
+                                        {n.campaignId && (
+                                            <Link
+                                                to={`/admin/email-campaigns/${n.campaignId}/history`}
+                                                className="text-xs font-medium text-secondary hover:text-secondary/80 no-underline"
+                                            >
+                                                Ver historial →
+                                            </Link>
+                                        )}
+                                    </div>
                                 </div>
                                 {!n.isRead && (
                                     <button
@@ -225,7 +253,8 @@ export default function NotificationsAdminPage() {
                                 )}
                             </div>
                         </motion.div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </PageContainer>

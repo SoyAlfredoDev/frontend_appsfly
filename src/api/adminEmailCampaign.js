@@ -35,3 +35,4 @@ export const previewEmailCampaignAudienceRequest = (audienceType) =>
 export const SYSTEM_CAMPAIGN_KEY_MONTHLY_SUSPENDED = "monthly-suspended-reactivation";
 export const SYSTEM_CAMPAIGN_KEY_DAILY_PLAN_EXPIRY_5D = "daily-plan-expiry-warning-5d";
 export const SYSTEM_CAMPAIGN_KEY_DAILY_PLAN_EXPIRY_TODAY = "daily-plan-expiry-today";
+export const SYSTEM_CAMPAIGN_KEY_WEEKLY_PROSPECTS = "monthly-prospect-outreach";

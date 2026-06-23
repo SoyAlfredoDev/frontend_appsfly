@@ -24,9 +24,15 @@ export default function ExpenseTableCard({
   toolbarExtra,
   children,
   className = "",
+  disableAnimation = false,
 }) {
+  const Wrapper = disableAnimation ? "div" : Motion.div;
+  const wrapperProps = disableAnimation
+    ? {}
+    : { variants: itemVariants };
+
   return (
-    <Motion.div variants={itemVariants} className={`${TABLE_WRAPPER} ${className}`}>
+    <Wrapper {...wrapperProps} className={`${TABLE_WRAPPER} ${className}`}>
       <div className={TABLE_TOOLBAR}>
         <div>
           <h2 className={TABLE_SECTION_TITLE}>{sectionTitle}</h2>
@@ -51,7 +57,7 @@ export default function ExpenseTableCard({
         </div>
       </div>
       {children}
-    </Motion.div>
+    </Wrapper>
   );
 }
 

@@ -15,6 +15,8 @@ import {
     FaInfoCircle,
     FaChartLine,
     FaUserGraduate,
+    FaPaperPlane,
+    FaCog,
 } from "react-icons/fa";
 import PageContainer, { PageHeader } from "../../../components/layout/PageContainer.jsx";
 import KpiComponent from "../../../components/KpiComponent.jsx";
@@ -26,6 +28,12 @@ import {
     importEmailProspectsRequest,
     resubscribeEmailProspectRequest,
 } from "../../../api/emailProspects.js";
+import {
+    ensureSystemEmailCampaignsRequest,
+    executeEmailCampaignRequest,
+    getEmailCampaignsRequest,
+    SYSTEM_CAMPAIGN_KEY_WEEKLY_PROSPECTS,
+} from "../../../api/adminEmailCampaign.js";
 import { useToast } from "../../../context/ToastContext.jsx";
 import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 import {
@@ -72,6 +80,8 @@ export default function EmailProspectsAdminPage() {
     const [importReport, setImportReport] = useState(null);
     const [formError, setFormError] = useState(null);
     const [busy, setBusy] = useState(false);
+    const [prospectCampaignId, setProspectCampaignId] = useState(null);
+    const [sendingOutreach, setSendingOutreach] = useState(false);
 
     const isValidEmailInput = (value) =>
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim().toLowerCase());
@@ -79,7 +89,10 @@ export default function EmailProspectsAdminPage() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await getEmailProspectsRequest();
+            const [res, campaignsRes] = await Promise.all([
+                getEmailProspectsRequest(),
+                getEmailCampaignsRequest().catch(() => ({ data: [] })),
+            ]);
             setProspects(res.data?.prospects ?? []);
             setStats(
                 res.data?.stats ?? {
@@ -92,6 +105,11 @@ export default function EmailProspectsAdminPage() {
                     conversionRateAfterOutreach: 0,
                 },
             );
+            const campaigns = Array.isArray(campaignsRes.data) ? campaignsRes.data : [];
+            const prospectCampaign = campaigns.find(
+                (c) => c.campaignKey === SYSTEM_CAMPAIGN_KEY_WEEKLY_PROSPECTS,
+            );
+            setProspectCampaignId(prospectCampaign?.campaignId ?? null);
         } catch (err) {
             console.error(err);
             toast.error("Error", "No se pudieron cargar los prospectos.");
@@ -223,6 +241,45 @@ export default function EmailProspectsAdminPage() {
         }
     };
 
+    const handleSendOutreach = async () => {
+        const pending = Math.max(0, (stats.active ?? 0) - (stats.contacted ?? 0));
+        const ok = await confirm({
+            title: "Enviar outreach ahora",
+            message: `¿Disparar la campaña de prospectos manualmente? Se enviarán hasta 70 correos (hay ~${pending.toLocaleString("es-CL")} en cola sin contactar este mes).`,
+            variant: "danger",
+            confirmText: "Enviar outreach",
+            cancelText: "Cancelar",
+        });
+        if (!ok) return;
+
+        setSendingOutreach(true);
+        try {
+            await ensureSystemEmailCampaignsRequest();
+            let campaignId = prospectCampaignId;
+            if (!campaignId) {
+                const campaignsRes = await getEmailCampaignsRequest();
+                const campaigns = Array.isArray(campaignsRes.data) ? campaignsRes.data : [];
+                campaignId = campaigns.find(
+                    (c) => c.campaignKey === SYSTEM_CAMPAIGN_KEY_WEEKLY_PROSPECTS,
+                )?.campaignId;
+            }
+            if (!campaignId) {
+                toast.error("Error", "No se encontró la campaña de prospectos.");
+                return;
+            }
+            await executeEmailCampaignRequest(campaignId);
+            toast.success("Outreach enviado", "Revisa el historial de la campaña para ver resultados.");
+            await load();
+        } catch (err) {
+            toast.error(
+                "No se pudo enviar",
+                err.response?.data?.message ?? "Error al ejecutar la campaña de prospectos.",
+            );
+        } finally {
+            setSendingOutreach(false);
+        }
+    };
+
     const handleDelete = async (prospect) => {
         const ok = await confirm({
             title: "Eliminar prospecto",
@@ -246,7 +303,7 @@ export default function EmailProspectsAdminPage() {
         <PageContainer>
             <PageHeader
                 title="Prospectos de email"
-                subtitle="Lista de contactos que no son clientes AppsFly. Reciben la campaña mensual de outreach (día 15) desde hola@appsfly.app."
+                subtitle="Lista de contactos externos. Campaña automática lun/mié/vie con recuperación si el servidor estuvo apagado."
                 actions={
                     <Link to="/admin/email-campaigns" className={SECONDARY_BTN}>
                         Ver campañas
@@ -293,12 +350,33 @@ export default function EmailProspectsAdminPage() {
                 <div>
                     <p className="font-medium">Límites de envío a prospectos (anti-spam)</p>
                     <p className="mt-1 text-amber-800/90">
-                        La campaña mensual de outreach envía hasta{" "}
-                        <strong>150 correos por ciclo</strong>, rotando remitente cada{" "}
-                        <strong>50 envíos</strong> (hola@, novedades@, invitaciones@, contacto@ en
-                        appsfly.app). El resto queda para el próximo envío. Contactos que ya son
-                        usuarios AppsFly no se importan ni reciben estos correos.
+                        La campaña automática corre <strong>lunes, miércoles y viernes</strong> y
+                        envía hasta <strong>70 correos por ciclo</strong> (de los 100/día del plan
+                        gratuito de Resend; los otros 30 quedan para avisos de plan y reactivación).
+                        Si el servidor estuvo apagado, al encenderse recupera el envío del último
+                        día programado perdido. Rota remitente cada <strong>18 envíos</strong> (hola@,
+                        novedades@, invitaciones@, contacto@ en appsfly.app). El resto queda en cola
+                        para el próximo ciclo.
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={handleSendOutreach}
+                            disabled={sendingOutreach || loading}
+                            className={PRIMARY_BTN}
+                        >
+                            <FaPaperPlane />
+                            {sendingOutreach ? "Enviando…" : "Enviar outreach ahora"}
+                        </button>
+                        {prospectCampaignId && (
+                            <Link
+                                to={`/admin/email-campaigns/${prospectCampaignId}/edit`}
+                                className={SECONDARY_BTN}
+                            >
+                                <FaCog /> Configurar campaña
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </div>
 

@@ -30,6 +30,8 @@ import {
     EMAIL_CAMPAIGN_STATUS_STYLES,
     scheduleModeLabel,
     scheduleDetailLabel,
+    scheduleEligibilityLabel,
+    buildManualExecuteMessage,
     isAutomatedCampaign,
     formatWeeklyRunDays,
     SCHEDULE_MODE_STYLES,
@@ -234,8 +236,8 @@ export default function EmailCampaignDetailAdminPage() {
         const ok = await confirm({
             title: force ? "Forzar envío mensual" : "Enviar campaña ahora",
             message: force
-                ? `¿Forzar el envío aunque no haya pasado un mes desde el último? Se contactará a ~${recipients} administrador(es).`
-                : `¿Enviar esta campaña a ~${recipients} administrador(es) de negocios suspendidos?`,
+                ? `¿Forzar el envío aunque no haya pasado un mes desde el último? Se contactará a ~${recipients.toLocaleString("es-CL")} destinatario(s).`
+                : buildManualExecuteMessage(form, recipients),
             variant: "danger",
             confirmText: force ? "Forzar envío" : "Enviar campaña",
             cancelText: "Cancelar",
@@ -268,6 +270,8 @@ export default function EmailCampaignDetailAdminPage() {
     const monthlyEligible = stats?.monthlyEligibility?.allowed !== false;
     const sendEligible =
         form.scheduleFrequency === "MONTHLY" ? monthlyEligible : true;
+    const schedulePending = stats?.scheduleEligibility?.due === true;
+    const schedulePendingLabel = scheduleEligibilityLabel(stats?.scheduleEligibility);
 
     if (loading) {
         return (
@@ -344,6 +348,19 @@ export default function EmailCampaignDetailAdminPage() {
                 }
             />
 
+            {isSystemCampaign && !isNew && schedulePending && schedulePendingLabel && (
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex gap-3">
+                    <FaInfoCircle className="shrink-0 mt-0.5 text-amber-600" />
+                    <div>
+                        <p className="font-medium">{schedulePendingLabel}</p>
+                        <p className="mt-1 text-amber-800/90">
+                            El servidor intentará enviarla automáticamente. Si prefieres no esperar,
+                            usa <strong>Enviar campaña</strong> arriba para dispararla manualmente ahora.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {isSystemCampaign && !isNew && (
                 <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
                     <p className="text-sm font-semibold text-primary mb-1">
@@ -362,7 +379,7 @@ export default function EmailCampaignDetailAdminPage() {
                         <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                             <FaCalendarAlt />
                             Envío automático:{" "}
-                            {formatWeeklyRunDays(stats.autoSchedule.autoRunWeekdays ?? [1, 3, 0])} a las{" "}
+                            {formatWeeklyRunDays(stats.autoSchedule.autoRunWeekdays ?? [1, 3, 5])} a las{" "}
                             {stats.autoSchedule.hour}:00 ({stats.autoSchedule.timezone})
                             {stats.autoSchedule.maxOneEmailPerProspectPerMonth
                                 ? " · máx. 1 correo/mes por prospecto · 3 variantes de mensaje"

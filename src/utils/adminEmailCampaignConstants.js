@@ -104,7 +104,7 @@ const WEEKDAY_LABELS = {
     6: "sábado",
 };
 
-export function formatWeeklyRunDays(weekdays = [1, 3, 0]) {
+export function formatWeeklyRunDays(weekdays = [1, 3, 5]) {
     return weekdays.map((d) => WEEKDAY_LABELS[d] ?? d).join(", ");
 }
 
@@ -177,7 +177,7 @@ export function scheduleDetailLabel(campaign) {
     }
 
     if (campaign.scheduleFrequency === "WEEKLY") {
-        const weekdays = campaign?.audienceParams?.autoRunWeekdays ?? [1, 3, 0];
+        const weekdays = campaign?.audienceParams?.autoRunWeekdays ?? [1, 3, 5];
         const dayList = formatWeeklyRunDays(weekdays);
         const prospectNote =
             campaign?.audienceType === "PLATFORM_PROSPECTS"
@@ -208,5 +208,44 @@ export function formatCampaignSender(campaign) {
     if (!campaign?.senderEmail) return null;
     const name = campaign.senderName?.trim() || "AppsFly";
     return `${name} <${campaign.senderEmail}>`;
+}
+
+const SCHEDULE_DUE_REASON_LABELS = {
+    CATCH_UP: "Envío pendiente (recuperación automática al encender el servidor)",
+    SCHEDULED_TODAY: "Programada para hoy",
+    DAILY_DUE: "Pendiente del día",
+    MONTHLY_DUE: "Pendiente del mes",
+    FIRST_RUN: "Lista para el primer envío automático",
+};
+
+export function scheduleEligibilityLabel(scheduleEligibility) {
+    if (!scheduleEligibility) return null;
+    if (scheduleEligibility.due) {
+        return SCHEDULE_DUE_REASON_LABELS[scheduleEligibility.reason] ?? "Pendiente de envío automático";
+    }
+    if (scheduleEligibility.reason === "NOT_RUN_HOUR") {
+        return `Esperando hora de envío (${scheduleEligibility.runHour ?? 9}:00 Chile)`;
+    }
+    if (scheduleEligibility.reason === "ALREADY_RAN_TODAY") {
+        return "Ya se ejecutó hoy";
+    }
+    if (scheduleEligibility.reason === "ALREADY_RAN_THIS_MONTH") {
+        return "Ya se ejecutó este mes";
+    }
+    return null;
+}
+
+export function buildManualExecuteMessage(campaign, estimatedRecipients = 0) {
+    const count = Number(estimatedRecipients) || 0;
+    if (campaign?.audienceType === "PLATFORM_PROSPECTS") {
+        return `¿Enviar outreach a ~${count.toLocaleString("es-CL")} prospecto(s) ahora? Se aplicará el límite de 70 correos por ciclo.`;
+    }
+    if (campaign?.scheduleFrequency === "DAILY") {
+        return `¿Enviar esta campaña diaria a ~${count.toLocaleString("es-CL")} destinatario(s) ahora?`;
+    }
+    if (campaign?.scheduleFrequency === "WEEKLY") {
+        return `¿Enviar esta campaña semanal a ~${count.toLocaleString("es-CL")} destinatario(s) ahora?`;
+    }
+    return `¿Enviar esta campaña a ~${count.toLocaleString("es-CL")} destinatario(s)?`;
 }
 

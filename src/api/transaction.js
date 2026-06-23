@@ -8,5 +8,8 @@ export const getTransactionById = (id, config) =>
 export const getTransactionsSummary = (config) =>
     axios.get("/transactions/summary", config);
 
+export const getCashAvailableDetail = (config) =>
+    axios.get("/transactions/cash-detail", config);
+
 export const createTransaction = (transaction) =>
     axios.post("/transactions", transaction);

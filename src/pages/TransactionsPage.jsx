@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { FaPlus, FaExchangeAlt, FaEye, FaArrowDown, FaArrowUp } from "react-icons/fa";
+import { FaPlus, FaExchangeAlt, FaEye, FaArrowDown, FaArrowUp, FaMoneyBillWave } from "react-icons/fa";
 import AddTransactionModal from "../components/modals/AddTransactionModal.jsx";
 import ViewTransactionModal from "../components/transactions/ViewTransactionModal.jsx";
+import TransactionKpiDetailModal from "../components/transactions/TransactionKpiDetailModal.jsx";
+import ClickableKpiCard, {
+  KPI_ICON_PRIMARY,
+  KPI_ICON_SECONDARY,
+  KPI_ICON_AMBER,
+  KPI_LABEL,
+  KPI_VALUE,
+} from "../components/transactions/ClickableKpiCard.jsx";
 import ExpensePageLayout from "../components/ui/ExpensePageLayout.jsx";
 import ExpenseTableCard, {
   ExpenseTableScroll,
@@ -17,12 +25,6 @@ import {
   formatSignedAmount,
 } from "../utils/transactionUtils.js";
 import {
-  KPI_CARD,
-  KPI_ICON_PRIMARY,
-  KPI_ICON_SECONDARY,
-  KPI_ICON_AMBER,
-  KPI_LABEL,
-  KPI_VALUE,
   THEAD,
   TH,
   TD_MUTED,
@@ -38,6 +40,7 @@ export default function TransactionsPage() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewTransaction, setViewTransaction] = useState(null);
+  const [kpiDetailView, setKpiDetailView] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -98,43 +101,37 @@ export default function TransactionsPage() {
         </>
       }
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={KPI_CARD}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <ClickableKpiCard onClick={() => setKpiDetailView("cash")}>
           <div className={KPI_ICON_PRIMARY}>
-            <FaExchangeAlt className="text-xl" />
+            <FaMoneyBillWave className="text-xl" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className={KPI_LABEL}>Efectivo disponible</p>
             <p className={KPI_VALUE}>{formatMoney(summary?.cashAvailable)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Ver detalle · Pagos − gastos en efectivo</p>
           </div>
-        </div>
-        <div className={KPI_CARD}>
+        </ClickableKpiCard>
+        <ClickableKpiCard onClick={() => setKpiDetailView("inMonth")}>
           <div className={KPI_ICON_SECONDARY}>
             <FaArrowDown className="text-xl" />
           </div>
-          <div>
-            <p className={KPI_LABEL}>Total entradas</p>
-            <p className={`${KPI_VALUE} text-emerald-600`}>{formatMoney(summary?.totalIn)}</p>
+          <div className="flex-1 min-w-0">
+            <p className={KPI_LABEL}>Total entradas mes</p>
+            <p className={`${KPI_VALUE} text-emerald-600`}>{formatMoney(summary?.totalInMonth)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Ver detalle · Origen de cada entrada</p>
           </div>
-        </div>
-        <div className={KPI_CARD}>
+        </ClickableKpiCard>
+        <ClickableKpiCard onClick={() => setKpiDetailView("outMonth")}>
           <div className={KPI_ICON_AMBER}>
             <FaArrowUp className="text-xl" />
           </div>
-          <div>
-            <p className={KPI_LABEL}>Total salidas</p>
-            <p className={`${KPI_VALUE} text-red-600`}>{formatMoney(summary?.totalOut)}</p>
+          <div className="flex-1 min-w-0">
+            <p className={KPI_LABEL}>Total salidas mes</p>
+            <p className={`${KPI_VALUE} text-red-600`}>{formatMoney(summary?.totalOutMonth)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Ver detalle · Origen de cada salida</p>
           </div>
-        </div>
-        <div className={KPI_CARD}>
-          <div className={KPI_ICON_PRIMARY}>
-            <FaExchangeAlt className="text-xl" />
-          </div>
-          <div>
-            <p className={KPI_LABEL}>Balance neto</p>
-            <p className={KPI_VALUE}>{formatMoney(summary?.netBalance)}</p>
-          </div>
-        </div>
+        </ClickableKpiCard>
       </div>
 
       <ExpenseTableCard
@@ -227,6 +224,17 @@ export default function TransactionsPage() {
         transaction={viewTransaction}
         isOpen={Boolean(viewTransaction)}
         onClose={() => setViewTransaction(null)}
+      />
+
+      <TransactionKpiDetailModal
+        isOpen={Boolean(kpiDetailView)}
+        onClose={() => setKpiDetailView(null)}
+        view={kpiDetailView}
+        transactions={transactions}
+        onViewTransaction={(transaction) => {
+          setKpiDetailView(null);
+          setViewTransaction(transaction);
+        }}
       />
     </ExpensePageLayout>
   );
