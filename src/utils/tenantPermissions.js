@@ -1,6 +1,7 @@
 export const TENANT_ROLES = {
     ADMIN: "ADMIN",
-    USER: "USER",
+    /** Valor en BD: USER */
+    VENDEDOR: "USER",
 };
 
 /** Permisos atómicos por rol de negocio */
@@ -78,7 +79,7 @@ const ADMIN_ROUTE_PREFIXES = [
 ];
 
 export function normalizeTenantRole(role) {
-    return role === TENANT_ROLES.ADMIN ? TENANT_ROLES.ADMIN : TENANT_ROLES.USER;
+    return role === TENANT_ROLES.ADMIN ? TENANT_ROLES.ADMIN : TENANT_ROLES.VENDEDOR;
 }
 
 export function hasTenantPermission(role, permission) {

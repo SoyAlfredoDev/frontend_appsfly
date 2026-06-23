@@ -5,6 +5,7 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaBuilding, FaUserCheck, FaTimes, FaCheck, FaSpinner } from "react-icons/fa";
 import { useState } from "react";
 import { useToast } from "../../context/ToastContext.jsx";
+import { getTenantRoleLabel } from "../../utils/tenantRoleLabels.js";
 import "../../styles/AuthPage.css";
 
 export default function PendingUserGuest() {
@@ -160,9 +161,7 @@ export default function PendingUserGuest() {
                                                         <span className="truncate font-sans">
                                                             Rol:{" "}
                                                             <span className="font-semibold text-dark capitalize">
-                                                                {guest.userGuestRole === "ADMIN"
-                                                                    ? "Admin"
-                                                                    : "Usuario"}
+                                                                {getTenantRoleLabel(guest.userGuestRole)}
                                                             </span>
                                                         </span>
                                                     </div>

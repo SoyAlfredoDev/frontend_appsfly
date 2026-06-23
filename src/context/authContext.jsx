@@ -34,6 +34,18 @@ export const AuthProvider = ({ children }) => {
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [business, setBusiness] = useState(null);
 
+    useEffect(() => {
+        const businessId =
+            businessSelected?.userBusinessBusinessId ??
+            businessSelected?.businessId ??
+            null;
+        if (businessId) {
+            sessionStorage.setItem("appsfly_business_id", businessId);
+        } else {
+            sessionStorage.removeItem("appsfly_business_id");
+        }
+    }, [businessSelected]);
+
     const subscriptionAccess = useMemo(
         () => getSubscriptionAccessState(subscriptions),
         [subscriptions],

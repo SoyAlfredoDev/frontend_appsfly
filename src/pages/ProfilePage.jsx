@@ -18,11 +18,7 @@ import ExpensePageLayout, { ExpenseAnimatedSection } from "../components/ui/Expe
 import ProfileSectionCard, { ProfileFieldRow } from "../components/profile/ProfileSectionCard.jsx";
 import SubscriptionBillingCard from "../components/profile/SubscriptionBillingCard.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-
-const ROLE_LABELS = {
-    ADMIN: "Administrador",
-    USER: "Usuario",
-};
+import { getTenantRoleLabel } from "../utils/tenantRoleLabels.js";
 
 function RoleBadge({ role }) {
     const isAdmin = role === "ADMIN";
@@ -35,7 +31,7 @@ function RoleBadge({ role }) {
             }`}
         >
             {isAdmin && <FaShieldAlt className="text-[10px]" />}
-            {ROLE_LABELS[role] ?? role ?? "—"}
+            {getTenantRoleLabel(role)}
         </span>
     );
 }

@@ -2,6 +2,8 @@
  * Plantilla React de invitación — alineada con backend/emails/users/invitations/.
  * El envío principal ocurre en el backend al crear/reenviar invitaciones.
  */
+import { getTenantRoleLabel } from "../../../utils/tenantRoleLabels.js";
+
 export const InvitationEmail = ({
     role = "USER",
     businessName,
@@ -13,7 +15,7 @@ export const InvitationEmail = ({
         registerUrl ||
         loginUrl ||
         `${import.meta.env.VITE_FRONTEND_URL || "https://appsfly.app"}/register`;
-    const roleLabel = role === "ADMIN" ? "Administrador" : "Usuario";
+    const roleLabel = getTenantRoleLabel(role);
 
     return (
         <html lang="es">

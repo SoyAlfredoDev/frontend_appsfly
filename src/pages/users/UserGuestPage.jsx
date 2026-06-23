@@ -11,6 +11,7 @@ import { useToast } from "../../context/ToastContext.jsx";
 import ExpensePageLayout, { ExpenseAnimatedSection } from "../../components/ui/ExpensePageLayout.jsx";
 import AuthAlert from "../../components/auth/AuthAlert.jsx";
 import { PRIMARY_BTN } from "../../utils/expenseUiPatterns.js";
+import { TENANT_ROLE_SELECT_OPTIONS } from "../../utils/tenantRoleLabels.js";
 
 export default function UserGuestPage() {
     const { businessSelected, business } = useAuth();
@@ -166,10 +167,7 @@ export default function UserGuestPage() {
                             value={dataFromForm.userGuestRole}
                             onChange={handleChange}
                             disabled={isLoading}
-                            options={[
-                                { value: "USER", label: "Usuario" },
-                                { value: "ADMIN", label: "Administrador" },
-                            ]}
+                            options={TENANT_ROLE_SELECT_OPTIONS}
                         />
 
                         <p className="text-xs text-slate-500 font-sans -mt-2">

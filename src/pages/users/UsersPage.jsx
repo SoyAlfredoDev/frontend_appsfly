@@ -12,6 +12,7 @@ import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
 import ExpensePageLayout from "../../components/ui/ExpensePageLayout.jsx";
+import { getTenantRoleLabel } from "../../utils/tenantRoleLabels.js";
 import ExpenseTableCard, {
     ExpenseTableScroll,
     ExpenseTableLoading,
@@ -245,9 +246,7 @@ export default function UsersPage() {
                                                         ) : (
                                                             <FaUserTie className="text-slate-400 shrink-0" />
                                                         )}
-                                                        {user.userRole === "ADMIN"
-                                                            ? "Administrador"
-                                                            : "Usuario"}
+                                                        {getTenantRoleLabel(user.userRole)}
                                                     </div>
                                                 </td>
                                                 <td className={`${TD} text-center`}>
@@ -283,9 +282,7 @@ export default function UsersPage() {
                                                         ) : (
                                                             <FaUserTie className="text-slate-400 shrink-0" />
                                                         )}
-                                                        {userG.userGuestRole === "ADMIN"
-                                                            ? "Administrador"
-                                                            : "Usuario"}
+                                                        {getTenantRoleLabel(userG.userGuestRole)}
                                                     </div>
                                                 </td>
                                                 <td className={`${TD} text-center`}>

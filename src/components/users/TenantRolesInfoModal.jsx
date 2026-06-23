@@ -71,13 +71,14 @@ function RoleCard({ role, icon: Icon, accentClass, iconBgClass }) {
                     </ul>
                 </div>
 
-                {role === TENANT_ROLES.USER && TENANT_ROLE_RESTRICTIONS[TENANT_ROLES.USER]?.length > 0 && (
+                {role === TENANT_ROLES.VENDEDOR &&
+                    TENANT_ROLE_RESTRICTIONS[TENANT_ROLES.VENDEDOR]?.length > 0 && (
                     <div className="rounded-lg border border-amber-100 bg-amber-50/80 p-3">
                         <p className="text-[10px] uppercase font-semibold text-amber-700 tracking-wide mb-2">
                             Restricciones
                         </p>
                         <ul className="space-y-1.5">
-                            {TENANT_ROLE_RESTRICTIONS[TENANT_ROLES.USER].map((line) => (
+                            {TENANT_ROLE_RESTRICTIONS[TENANT_ROLES.VENDEDOR].map((line) => (
                                 <li key={line} className="flex gap-2 text-xs text-amber-900/90">
                                     <FaBan className="text-amber-600 shrink-0 mt-0.5" />
                                     {line}
@@ -176,7 +177,7 @@ export default function TenantRolesInfoModal({ isOpen, onClose }) {
                                     iconBgClass="bg-secondary/5"
                                 />
                                 <RoleCard
-                                    role={TENANT_ROLES.USER}
+                                    role={TENANT_ROLES.VENDEDOR}
                                     icon={FaUserTie}
                                     accentClass="bg-slate-200 text-slate-600"
                                     iconBgClass="bg-slate-50"

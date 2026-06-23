@@ -7,6 +7,7 @@ import useTenantSubscriptionBlock from "../../hooks/useTenantSubscriptionBlock.j
 import formatName from "../../utils/formatName.js";
 import { NAV_ITEMS, filterNavItemsByRole } from "./navigationConfig.js";
 import useTenantPermissions from "../../hooks/useTenantPermissions.js";
+import { getTenantRoleLabel } from "../../utils/tenantRoleLabels.js";
 
 const PROFILE_NAV = [{ name: "Mi perfil", path: "/profile", icon: FaUserCircle }];
 
@@ -93,7 +94,7 @@ export default function SidebarNavigation() {
               </span>
               {!subscriptionLocked && (
                 <span className="block text-[10px] text-slate-500 mt-0.5 capitalize">
-                  {can("users:manage") ? "Administrador" : "Usuario"}
+                  {getTenantRoleLabel(can("users:manage") ? "ADMIN" : "USER")}
                 </span>
               )}
             </p>

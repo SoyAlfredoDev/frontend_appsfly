@@ -151,6 +151,50 @@ function InventoryTable({ rows, formatCurrency, formatDate }) {
     );
 }
 
+function SalesBySellerSummaryTable({ rows, formatCurrency }) {
+    const columns = [
+        { key: "seller", label: "Vendedor", wide: true },
+        { key: "count", label: "Tx" },
+        { key: "total", label: "Ventas" },
+        { key: "paid", label: "Abonado" },
+    ];
+    return (
+        <>
+            <TableHeader columns={columns} />
+            {rows.slice(0, 100).map((row) => (
+                <View key={row.sellerId} style={styles.tableRow}>
+                    <Text style={styles.cellWide}>{row.sellerName}</Text>
+                    <Text style={styles.cell}>{row.transactionCount}</Text>
+                    <Text style={styles.cell}>{formatCurrency(row.totalSales)}</Text>
+                    <Text style={styles.cell}>{formatCurrency(row.totalPaid)}</Text>
+                </View>
+            ))}
+        </>
+    );
+}
+
+function SalesBySellerDetailTable({ rows, formatCurrency, formatDate }) {
+    const columns = [
+        { key: "date", label: "Fecha" },
+        { key: "number", label: "N°" },
+        { key: "customer", label: "Cliente", wide: true },
+        { key: "total", label: "Total" },
+    ];
+    return (
+        <>
+            <TableHeader columns={columns} />
+            {rows.slice(0, 200).map((row) => (
+                <View key={row.id} style={styles.tableRow}>
+                    <Text style={styles.cell}>{formatDate(row.date)}</Text>
+                    <Text style={styles.cell}>{row.number ?? "—"}</Text>
+                    <Text style={styles.cellWide}>{row.customer}</Text>
+                    <Text style={styles.cell}>{formatCurrency(row.total)}</Text>
+                </View>
+            ))}
+        </>
+    );
+}
+
 export default function ReportPdfDocument({
     title,
     reportData,
@@ -190,6 +234,14 @@ export default function ReportPdfDocument({
                             <SummaryLine label="Cantidad neta" value={summary.netQuantity} formatCurrency={formatCurrency} />
                         </>
                     )}
+                    {reportType === "sales-by-seller" && (
+                        <>
+                            <SummaryLine label="Total ventas" value={summary.totalSales} formatCurrency={formatCurrency} />
+                            <SummaryLine label="Total abonado" value={summary.totalPaid} formatCurrency={formatCurrency} />
+                            <SummaryLine label="Transacciones" value={summary.transactionCount} formatCurrency={formatCurrency} />
+                            <SummaryLine label="Vendedores" value={summary.sellerCount} formatCurrency={formatCurrency} />
+                        </>
+                    )}
                 </View>
 
                 {reportType === "monthly-sales" && (
@@ -200,6 +252,16 @@ export default function ReportPdfDocument({
                 )}
                 {reportType === "inventory-movements" && (
                     <InventoryTable rows={reportData.rows} formatCurrency={formatCurrency} formatDate={formatDate} />
+                )}
+                {reportType === "sales-by-seller" && reportData.viewMode === "detail" && (
+                    <SalesBySellerDetailTable
+                        rows={reportData.rows}
+                        formatCurrency={formatCurrency}
+                        formatDate={formatDate}
+                    />
+                )}
+                {reportType === "sales-by-seller" && reportData.viewMode !== "detail" && (
+                    <SalesBySellerSummaryTable rows={reportData.rows} formatCurrency={formatCurrency} />
                 )}
 
                 <Text style={styles.footer} fixed>

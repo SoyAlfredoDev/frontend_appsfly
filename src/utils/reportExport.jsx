@@ -38,6 +38,13 @@ function getReportTitle(reportData) {
             return `Ventas por año — ${reportData.period.year}`;
         case "inventory-movements":
             return `Movimiento de inventario — ${reportData.period.startDate} a ${reportData.period.endDate}`;
+        case "sales-by-seller": {
+            const range = `${reportData.period.startDate} a ${reportData.period.endDate}`;
+            if (reportData.viewMode === "detail" && reportData.period.sellerName) {
+                return `Ventas por vendedor — ${reportData.period.sellerName} (${range})`;
+            }
+            return `Ventas por vendedor — ${range}`;
+        }
         default:
             return "Reporte AppsFly";
     }
@@ -113,6 +120,43 @@ function buildCsvContent(reportData) {
                 row.total,
             ].map(escapeCsvCell).join(","));
         });
+    }
+
+    if (reportData.reportType === "sales-by-seller") {
+        lines.push(
+            "Resumen",
+            `Total ventas,${reportData.summary.totalSales}`,
+            `Total abonado,${reportData.summary.totalPaid}`,
+            `Saldo pendiente,${reportData.summary.totalPending}`,
+            `Transacciones,${reportData.summary.transactionCount}`,
+            `Vendedores,${reportData.summary.sellerCount}`,
+            "",
+        );
+
+        if (reportData.viewMode === "detail") {
+            lines.push("Fecha,N° venta,Cliente,Total,Abonado,Pendiente");
+            reportData.rows.forEach((row) => {
+                lines.push([
+                    formatReportDate(row.date),
+                    row.number ?? "—",
+                    row.customer,
+                    row.total,
+                    row.paid,
+                    row.pending,
+                ].map(escapeCsvCell).join(","));
+            });
+        } else {
+            lines.push("Vendedor,Transacciones,Total ventas,Abonado,Pendiente");
+            reportData.rows.forEach((row) => {
+                lines.push([
+                    row.sellerName,
+                    row.transactionCount,
+                    row.totalSales,
+                    row.totalPaid,
+                    row.totalPending,
+                ].map(escapeCsvCell).join(","));
+            });
+        }
     }
 
     return `\uFEFF${lines.join("\n")}`;

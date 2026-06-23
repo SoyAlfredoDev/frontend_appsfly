@@ -3,14 +3,14 @@ import { TENANT_ROLES, hasTenantPermission } from "./tenantPermissions.js";
 
 export const TENANT_ROLE_LABELS = {
     [TENANT_ROLES.ADMIN]: "Administrador",
-    [TENANT_ROLES.USER]: "Usuario",
+    [TENANT_ROLES.VENDEDOR]: "Vendedor",
 };
 
 export const TENANT_ROLE_SUMMARIES = {
     [TENANT_ROLES.ADMIN]:
         "Dueño o gerente del negocio. Control total: finanzas, configuración, equipo y suscripción.",
-    [TENANT_ROLES.USER]:
-        "Vendedor o cajero. Operación diaria: clientes, ventas y consulta de catálogo e inventario.",
+    [TENANT_ROLES.VENDEDOR]:
+        "Operación diaria: clientes, ventas y consulta de catálogo e inventario.",
 };
 
 /** Vistas del menú lateral visibles por rol */
@@ -31,11 +31,11 @@ export const TENANT_ROLE_CAPABILITIES = {
         { label: "Gastos y transacciones", detail: "Control de egresos y movimientos de caja." },
         { label: "Reportes", detail: "Reportes financieros y operativos del negocio." },
         { label: "Campaña ASMR", detail: "Crear y enviar campañas de fidelización por WhatsApp." },
-        { label: "Usuarios", detail: "Invitar miembros y asignar rol Administrador o Usuario." },
+        { label: "Usuarios", detail: "Invitar miembros y asignar rol Administrador o Vendedor." },
         { label: "Suscripción", detail: "Ver estado, pagar plan y cancelar renovación automática." },
         { label: "Asistente IA", detail: "Consultas inteligentes sobre ventas, clientes y stock." },
     ],
-    [TENANT_ROLES.USER]: [
+    [TENANT_ROLES.VENDEDOR]: [
         { label: "Dashboard operativo", detail: "Ventas del día, del mes y número de transacciones." },
         { label: "Clientes", detail: "Ver, crear y editar clientes (no eliminar)." },
         { label: "Ventas", detail: "Registrar nuevas ventas y consultar historial." },
@@ -47,7 +47,7 @@ export const TENANT_ROLE_CAPABILITIES = {
 };
 
 export const TENANT_ROLE_RESTRICTIONS = {
-    [TENANT_ROLES.USER]: [
+    [TENANT_ROLES.VENDEDOR]: [
         "No accede a gastos, compras, proveedores ni transacciones.",
         "No puede ejecutar cierres diarios ni ver reportes.",
         "No gestiona usuarios, campañas ASMR ni suscripción.",

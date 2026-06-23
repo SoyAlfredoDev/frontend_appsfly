@@ -11,6 +11,7 @@ import {
     FaSpinner,
     FaChevronRight,
     FaTimes,
+    FaUserTie,
 } from "react-icons/fa";
 import ExpensePageLayout from "../components/ui/ExpensePageLayout.jsx";
 import {
@@ -39,6 +40,8 @@ import {
 } from "../utils/monthOptions.js";
 import { generateReportRequest } from "../api/reports.js";
 import { getCategories } from "../api/category.js";
+import { getBusinessMembersRequest } from "../api/userBusiness.js";
+import { useAuth } from "../context/authContext.jsx";
 import { isAbortError } from "../hooks/useAbortEffect.js";
 import { downloadReportCsv, downloadReportPdf } from "../utils/reportExport.jsx";
 import formatCurrency from "../utils/formatCurrency.js";
@@ -68,6 +71,14 @@ const REPORT_CATALOG = [
         icon: FaBoxes,
         iconClass: KPI_ICON_AMBER,
         accent: "border-amber-200 hover:border-amber-300",
+    },
+    {
+        id: "sales-by-seller",
+        title: "Ventas por Vendedor",
+        description: "Resumen por vendedor o detalle de ventas de un miembro del equipo.",
+        icon: FaUserTie,
+        iconClass: "p-3 bg-violet-100 rounded-xl text-violet-600",
+        accent: "border-violet-200 hover:border-violet-300",
     },
 ];
 
@@ -105,7 +116,7 @@ function defaultInventoryRange() {
 }
 
 function validateReportParams(reportId, params) {
-    if (reportId === "inventory-movements") {
+    if (reportId === "inventory-movements" || reportId === "sales-by-seller") {
         if (!params.startDate || !params.endDate) {
             return "Indica fecha de inicio y fin.";
         }
@@ -123,6 +134,13 @@ function buildRequestParams(reportId, params) {
     }
     if (reportId === "yearly-sales") {
         return { year: params.year };
+    }
+    if (reportId === "sales-by-seller") {
+        return {
+            startDate: params.startDate,
+            endDate: params.endDate,
+            ...(params.sellerId ? { sellerId: params.sellerId } : {}),
+        };
     }
     return {
         startDate: params.startDate,
@@ -198,6 +216,62 @@ function ReportPreviewTable({ reportData }) {
         );
     }
 
+    if (reportData.reportType === "sales-by-seller" && reportData.viewMode === "detail") {
+        return (
+            <table className="w-full text-left">
+                <thead className={THEAD}>
+                    <tr>
+                        <th className={TH}>Fecha</th>
+                        <th className={TH}>N° venta</th>
+                        <th className={TH}>Cliente</th>
+                        <th className={TH}>Total</th>
+                        <th className={TH}>Abonado</th>
+                        <th className={TH}>Pendiente</th>
+                    </tr>
+                </thead>
+                <tbody className={TBODY}>
+                    {reportData.rows.map((row) => (
+                        <tr key={row.id} className={TR_ROW}>
+                            <td className={TD}>{new Date(row.date).toLocaleDateString("es-CL")}</td>
+                            <td className={TD}>{row.number ?? "—"}</td>
+                            <td className={TD}>{row.customer || "—"}</td>
+                            <td className={TD_AMOUNT}>{formatCurrency(row.total)}</td>
+                            <td className={TD}>{formatCurrency(row.paid)}</td>
+                            <td className={TD}>{formatCurrency(row.pending)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        );
+    }
+
+    if (reportData.reportType === "sales-by-seller") {
+        return (
+            <table className="w-full text-left">
+                <thead className={THEAD}>
+                    <tr>
+                        <th className={TH}>Vendedor</th>
+                        <th className={TH}>Transacciones</th>
+                        <th className={TH}>Total ventas</th>
+                        <th className={TH}>Abonado</th>
+                        <th className={TH}>Pendiente</th>
+                    </tr>
+                </thead>
+                <tbody className={TBODY}>
+                    {reportData.rows.map((row) => (
+                        <tr key={row.sellerId} className={TR_ROW}>
+                            <td className={TD}>{row.sellerName}</td>
+                            <td className={TD}>{row.transactionCount}</td>
+                            <td className={TD_AMOUNT}>{formatCurrency(row.totalSales)}</td>
+                            <td className={TD}>{formatCurrency(row.totalPaid)}</td>
+                            <td className={TD}>{formatCurrency(row.totalPending)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        );
+    }
+
     return (
         <table className="w-full text-left">
             <thead className={THEAD}>
@@ -242,6 +316,8 @@ function PreviewSkeleton() {
 
 export default function ReportsPage() {
     const toast = useToast();
+    const { businessSelected } = useAuth();
+    const businessId = businessSelected?.userBusinessBusinessId;
     const monthOptions = useMemo(() => generateMonthOptions(36), []);
     const currentPeriod = useMemo(() => getCurrentMonthYear(), []);
     const inventoryDefaults = useMemo(() => defaultInventoryRange(), []);
@@ -253,9 +329,12 @@ export default function ReportsPage() {
         year: currentPeriod.year,
         ...inventoryDefaults,
         categoryId: "",
+        sellerId: "",
     });
     const [categories, setCategories] = useState([]);
     const [categoriesLoading, setCategoriesLoading] = useState(false);
+    const [members, setMembers] = useState([]);
+    const [membersLoading, setMembersLoading] = useState(false);
     const [reportData, setReportData] = useState(null);
     const [dataSignature, setDataSignature] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -264,6 +343,7 @@ export default function ReportsPage() {
 
     const fetchAbortRef = useRef(null);
     const categoriesAbortRef = useRef(null);
+    const membersAbortRef = useRef(null);
 
     const resetFetchState = useCallback(() => {
         fetchAbortRef.current?.abort();
@@ -305,6 +385,32 @@ export default function ReportsPage() {
         }
     }, []);
 
+    const loadMembers = useCallback(async () => {
+        if (!businessId) {
+            setMembers([]);
+            return;
+        }
+
+        membersAbortRef.current?.abort();
+        const controller = new AbortController();
+        membersAbortRef.current = controller;
+
+        setMembersLoading(true);
+        try {
+            const res = await getBusinessMembersRequest(businessId, { signal: controller.signal });
+            if (membersAbortRef.current !== controller) return;
+            setMembers(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            if (!isAbortError(err)) {
+                console.error("[Reports] Error cargando vendedores:", err);
+            }
+        } finally {
+            if (membersAbortRef.current === controller) {
+                setMembersLoading(false);
+            }
+        }
+    }, [businessId]);
+
     const handleSelectReport = (reportId) => {
         if (activeReport === reportId) {
             closeReportPanel();
@@ -317,6 +423,9 @@ export default function ReportsPage() {
 
         if (reportId === "inventory-movements") {
             loadCategories();
+        }
+        if (reportId === "sales-by-seller") {
+            loadMembers();
         }
     };
 
@@ -357,6 +466,14 @@ export default function ReportsPage() {
         setParams((prev) => ({ ...prev, categoryId }));
         if (import.meta.env.DEV) {
             console.log("[Reports] categoría:", categoryId || "(todas)");
+        }
+    };
+
+    const handleSellerChange = (e) => {
+        const sellerId = e.target.value;
+        setParams((prev) => ({ ...prev, sellerId }));
+        if (import.meta.env.DEV) {
+            console.log("[Reports] vendedor:", sellerId || "(todos)");
         }
     };
 
@@ -655,6 +772,65 @@ export default function ReportsPage() {
                                             </div>
                                         </>
                                     )}
+
+                                    {activeReport === "sales-by-seller" && (
+                                        <>
+                                            <div>
+                                                <label
+                                                    htmlFor="seller-report-start-date"
+                                                    className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                                >
+                                                    Desde
+                                                </label>
+                                                <input
+                                                    id="seller-report-start-date"
+                                                    type="date"
+                                                    value={params.startDate}
+                                                    onChange={handleStartDateChange}
+                                                    disabled={isBusy}
+                                                    className="input-field h-11 w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label
+                                                    htmlFor="seller-report-end-date"
+                                                    className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                                >
+                                                    Hasta
+                                                </label>
+                                                <input
+                                                    id="seller-report-end-date"
+                                                    type="date"
+                                                    value={params.endDate}
+                                                    onChange={handleEndDateChange}
+                                                    disabled={isBusy}
+                                                    className="input-field h-11 w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label
+                                                    htmlFor="report-seller"
+                                                    className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                                >
+                                                    Vendedor (opcional)
+                                                </label>
+                                                <select
+                                                    id="report-seller"
+                                                    value={params.sellerId}
+                                                    onChange={handleSellerChange}
+                                                    disabled={isBusy || membersLoading || !businessId}
+                                                    className="select-field h-11 w-full"
+                                                >
+                                                    <option value="">Todos los vendedores (resumen)</option>
+                                                    {members.map((member) => (
+                                                        <option key={member.userId} value={member.userId}>
+                                                            {member.userFirstName} {member.userLastName}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div>
@@ -858,6 +1034,46 @@ export default function ReportsPage() {
                                             </div>
                                         </>
                                     )}
+                                    {reportData.reportType === "sales-by-seller" && (
+                                        <>
+                                            <div className={KPI_CARD}>
+                                                <div className="p-3 bg-violet-100 rounded-xl text-violet-600">
+                                                    <FaUserTie className="text-xl" />
+                                                </div>
+                                                <div>
+                                                    <p className={KPI_LABEL}>Total ventas</p>
+                                                    <p className={KPI_VALUE}>{formatCurrency(reportData.summary.totalSales)}</p>
+                                                </div>
+                                            </div>
+                                            <div className={KPI_CARD}>
+                                                <div className={KPI_ICON_SECONDARY}><FaChartBar className="text-xl" /></div>
+                                                <div>
+                                                    <p className={KPI_LABEL}>Abonado</p>
+                                                    <p className={KPI_VALUE}>{formatCurrency(reportData.summary.totalPaid)}</p>
+                                                </div>
+                                            </div>
+                                            <div className={KPI_CARD}>
+                                                <div className={KPI_ICON_AMBER}><FaBoxes className="text-xl" /></div>
+                                                <div>
+                                                    <p className={KPI_LABEL}>Transacciones</p>
+                                                    <p className={KPI_VALUE}>{reportData.summary.transactionCount}</p>
+                                                </div>
+                                            </div>
+                                            <div className={KPI_CARD}>
+                                                <div className={KPI_ICON_PRIMARY}><FaUserTie className="text-xl" /></div>
+                                                <div>
+                                                    <p className={KPI_LABEL}>
+                                                        {reportData.viewMode === "detail" ? "Vendedor" : "Vendedores"}
+                                                    </p>
+                                                    <p className={KPI_VALUE}>
+                                                        {reportData.viewMode === "detail"
+                                                            ? (reportData.period.sellerName ?? "—")
+                                                            : reportData.summary.sellerCount}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className={TABLE_WRAPPER}>
@@ -866,6 +1082,15 @@ export default function ReportsPage() {
                                             Vista previa
                                             {reportData.reportType === "monthly-sales" && (
                                                 <> — {formatMonthYearLabel(reportData.period.month, reportData.period.year)}</>
+                                            )}
+                                            {reportData.reportType === "sales-by-seller" && (
+                                                <>
+                                                    {" "}
+                                                    — {reportData.period.startDate} a {reportData.period.endDate}
+                                                    {reportData.viewMode === "detail" && reportData.period.sellerName
+                                                        ? ` · ${reportData.period.sellerName}`
+                                                        : " · Resumen por vendedor"}
+                                                </>
                                             )}
                                         </p>
                                         <p className="text-xs text-gray-500 mt-0.5">
