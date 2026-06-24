@@ -5,13 +5,14 @@ import { motion as Motion } from "framer-motion";
 import { FaCheckCircle, FaTimesCircle, FaSpinner } from "react-icons/fa";
 import AuthPageLayout from "../../components/auth/AuthPageLayout.jsx";
 import AuthPageCard from "../../components/auth/AuthPageCard.jsx";
+import config from "../../config/env.js";
 
 export default function ConfirmAccountPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [status, setStatus] = useState("loading");
     const [message, setMessage] = useState("Validando tu cuenta...");
-    const baseURL = import.meta.env.VITE_API_URL;
+    const baseURL = config.apiUrl;
 
     useEffect(() => {
         const confirmAccount = async () => {
