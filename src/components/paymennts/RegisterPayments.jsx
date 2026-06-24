@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { FaTimes, FaCreditCard, FaMoneyBillWave, FaExchangeAlt } from "react-icons/fa";
 
-export default function RegisterPayments({ sendDetailPayment, paymentId, methodId, amount }) {
+export default function RegisterPayments({
+    sendDetailPayment,
+    paymentId,
+    methodId,
+    amount,
+    disableDelete = false,
+    required = false,
+    lockAmount = false,
+}) {
     const methods = [
         { methodId: 0, methodName: 'Débito', icon: <FaCreditCard className="text-secondary text-xs" /> },
         { methodId: 1, methodName: 'Crédito', icon: <FaCreditCard className="text-purple-500 text-xs" /> },
@@ -16,6 +24,7 @@ export default function RegisterPayments({ sendDetailPayment, paymentId, methodI
     });
 
     const handleAmountChange = (e) => {
+        if (lockAmount) return;
         const newAmount = Number(e.target.value);
         const newData = {
             paymentId: paymentId,
@@ -55,8 +64,9 @@ export default function RegisterPayments({ sendDetailPayment, paymentId, methodI
                     className="select-field h-9 sm:h-10 flex-1 min-w-0 text-sm font-medium"
                     value={payment.methodId}
                     onChange={handleMethodChange}
+                    required={required}
                 >
-                    <option value="">Método de pago...</option>
+                    <option value="">{required ? "Método de pago *" : "Método de pago..."}</option>
                     {methods.map((m) => (
                         <option key={m.methodId} value={m.methodId}>
                             {m.methodName}
@@ -74,10 +84,15 @@ export default function RegisterPayments({ sendDetailPayment, paymentId, methodI
                         step={1}
                         value={payment.amount}
                         onChange={handleAmountChange}
-                        className="input-field h-9 sm:h-10 w-full sm:w-28 pl-7 pr-3 text-right font-mono font-semibold text-sm"
+                        readOnly={lockAmount}
+                        required={required}
+                        className={`input-field h-9 sm:h-10 w-full sm:w-28 pl-7 pr-3 text-right font-mono font-semibold text-sm ${
+                            lockAmount ? "bg-slate-100 text-slate-700 cursor-not-allowed" : ""
+                        }`}
                     />
                 </div>
 
+                {!disableDelete && (
                 <button
                     type="button"
                     className="w-9 h-9 flex-shrink-0 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
@@ -86,6 +101,7 @@ export default function RegisterPayments({ sendDetailPayment, paymentId, methodI
                 >
                     <FaTimes className="text-xs" />
                 </button>
+                )}
             </div>
         </div>
     );

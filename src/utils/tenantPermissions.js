@@ -33,6 +33,7 @@ const ROLE_PERMISSIONS = {
         "assistant:use",
         "finance:view",
         "billing:manage",
+        "settings:manage",
     ],
     USER: [
         "dashboard:view",
@@ -64,6 +65,7 @@ export const NAV_PERMISSION_BY_PATH = {
     "/billing": "billing:manage",
     "/transactions": "transactions:read",
     "/users": "users:manage",
+    "/configuration": "settings:manage",
     "/profile": "profile:view",
 };
 
@@ -79,6 +81,7 @@ const ADMIN_ROUTE_PREFIXES = [
     "/finance",
     "/campaigns-asmr",
     "/sales/dailySales",
+    "/configuration",
 ];
 
 export function normalizeTenantRole(role) {

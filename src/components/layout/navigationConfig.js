@@ -14,6 +14,7 @@ import {
   FaBoxes,
   FaBullhorn,
   FaFileInvoice,
+  FaCog,
 } from "react-icons/fa";
 
 export const NAV_ITEMS = [
@@ -31,6 +32,7 @@ export const NAV_ITEMS = [
   { name: "Facturación", path: "/billing", icon: FaFileInvoice, permission: "billing:manage" },
   { name: "Transacciones", path: "/transactions", icon: FaExchangeAlt, permission: "transactions:read" },
   { name: "Usuarios", path: "/users", icon: FaUserFriends, permission: "users:manage" },
+  { name: "Configuración", path: "/configuration", icon: FaCog, permission: "settings:manage" },
   { name: "Perfil", path: "/profile", icon: FaUserCircle, permission: "profile:view" },
 ];
 

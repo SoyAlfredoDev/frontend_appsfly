@@ -1,12 +1,17 @@
 import { v4 as uuidv4 } from 'uuid';
-import { getSaleById } from '../../api/sale.js'
+import { getSaleById, markSaleDeliveredRequest } from '../../api/sale.js'
 import { getSaleDetailById } from '../../api/saleDetail.js'
 import { getPaymentBySaleId, createPayment } from '../../api/payment.js'
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, Link } from 'react-router-dom'
+import { useAuth } from '../../context/authContext.jsx'
+import { useConfirm } from '../../context/ConfirmationContext.jsx'
+import { useToast } from '../../context/ToastContext.jsx'
 import { IconPrinter } from "../../components/IconComponent.jsx"
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import SimpleTestPDFContent from '../../components/Printables/SimpleTestPDF.jsx'
+import SaleDeliveryBadge from '../../components/sales/SaleDeliveryBadge.jsx'
+import { isDeliveryControlEnabled } from '../../utils/businessReceiptSettings.js'
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import PageContainer from "../../components/layout/PageContainer.jsx";
 import { 
@@ -22,10 +27,14 @@ import {
     FaCreditCard,
     FaMoneyBill,
     FaUniversity,
-    FaBoxOpen
+    FaBoxOpen,
+    FaTruck,
 } from "react-icons/fa";
 
 export default function ViewSalePage() {
+    const { business } = useAuth();
+    const confirm = useConfirm();
+    const toast = useToast();
     const [sale, setSale] = useState({});
     const [tableProductAndService, setTableProductAndService] = useState([]);
     const [tablaPayment, setTablaPayment] = useState([])
@@ -36,6 +45,19 @@ export default function ViewSalePage() {
     const [btnModal, setBtnModal] = useState(false); // Used for loading state of button
     const [isLoading, setIsLoading] = useState(true);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [markingDelivered, setMarkingDelivered] = useState(false);
+
+    const deliveryControlEnabled = useMemo(
+        () => isDeliveryControlEnabled(business),
+        [business],
+    );
+
+    const hasProducts = useMemo(
+        () => tableProductAndService.some((item) => item.saleDetailType === "PRODUCT"),
+        [tableProductAndService],
+    );
+
+    const showDeliverySection = deliveryControlEnabled && hasProducts && sale?.saleDeliveryStatus;
 
     // Payment methods for the modal
     const methods = [
@@ -125,6 +147,31 @@ export default function ViewSalePage() {
         setShowPaymentModal(true);
     };
 
+    const handleMarkDelivered = async () => {
+        const isConfirmed = await confirm({
+            title: "¿Marcar como entregado?",
+            message: "Se registrará la fecha, hora y tu usuario como responsable de la entrega.",
+            variant: "success",
+            confirmText: "Marcar entregado",
+            cancelText: "Cancelar",
+        });
+        if (!isConfirmed) return;
+
+        setMarkingDelivered(true);
+        try {
+            const { data } = await markSaleDeliveredRequest(sale.saleId);
+            setSale(data.sale);
+            toast.success("Entrega registrada", "La venta quedó marcada como entregada.");
+        } catch (error) {
+            toast.error(
+                "No se pudo registrar",
+                error.response?.data?.message ?? "Ocurrió un error al marcar la entrega.",
+            );
+        } finally {
+            setMarkingDelivered(false);
+        }
+    };
+
     // Helper to format currency
     const formatCurrency = (amount) => {
         return amount?.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' }) || '$0';
@@ -158,11 +205,14 @@ export default function ViewSalePage() {
                     {/* Header Actions */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2 flex-wrap">
                                 Detalle de Venta
                                 <span className="bg-emerald-100 text-emerald-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
                                     #{sale?.saleNumber}
                                 </span>
+                                {showDeliverySection && (
+                                    <SaleDeliveryBadge status={sale.saleDeliveryStatus} className="text-xs" />
+                                )}
                             </h1>
                         </div>
                         
@@ -180,12 +230,25 @@ export default function ViewSalePage() {
                                 </button>
                             )}
 
+                            {!isLoading && showDeliverySection && sale.saleDeliveryStatus === "PENDING" && (
+                                <button
+                                    type="button"
+                                    onClick={handleMarkDelivered}
+                                    disabled={markingDelivered}
+                                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-bold disabled:opacity-60"
+                                >
+                                    <FaTruck />
+                                    {markingDelivered ? "Registrando..." : "Marcar como entregado"}
+                                </button>
+                            )}
+
                             {!isLoading && (
                                 <PDFDownloadLink
                                     document={
                                         <SimpleTestPDFContent
                                             sale={sale}
                                             tableProductAndService={tableProductAndService}
+                                            business={business}
                                         />
                                     }
                                     fileName={`boleta-${sale.saleNumber}.pdf`}
@@ -262,6 +325,23 @@ export default function ViewSalePage() {
                                             {formatCurrency(sale.salePendingAmount)}
                                         </span>
                                     </div>
+
+                                    {showDeliverySection && (
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-gray-500 uppercase font-bold tracking-wider">Estado de entrega</span>
+                                            <div className="mt-1">
+                                                <SaleDeliveryBadge status={sale.saleDeliveryStatus} />
+                                            </div>
+                                            {sale.saleDeliveryStatus === "DELIVERED" && sale.saleDeliveredAt && (
+                                                <span className="text-xs text-gray-500 mt-1">
+                                                    {new Date(sale.saleDeliveredAt).toLocaleString("es-CL")}
+                                                    {sale.deliveredBy && (
+                                                        <> · {sale.deliveredBy.userFirstName} {sale.deliveredBy.userLastName}</>
+                                                    )}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Observations */}
                                     <div className="col-span-2 md:col-span-2">

@@ -17,9 +17,10 @@ import {
   ExpenseTableBody,
 } from "../ui/ExpenseTableElements.jsx";
 import { ACTION_VIEW } from "../../utils/expenseUiPatterns.js";
+import SaleDeliveryBadge from "./SaleDeliveryBadge.jsx";
 
-function buildSalesColumns(navigate) {
-  return [
+function buildSalesColumns(navigate, showDeliveryColumn) {
+  const columns = [
     {
       header: "Fecha",
       accessorFn: (row) => row.saleDate ?? "",
@@ -72,6 +73,23 @@ function buildSalesColumns(navigate) {
         );
       },
     },
+  ];
+
+  if (showDeliveryColumn) {
+    columns.push({
+      header: "Entrega",
+      accessorFn: (row) => row.saleDeliveryStatus ?? "",
+      cell: ({ getValue }) => {
+        const status = getValue();
+        if (!status) {
+          return <span className="text-gray-300 text-xs">—</span>;
+        }
+        return <SaleDeliveryBadge status={status} />;
+      },
+    });
+  }
+
+  columns.push(
     {
       header: "Vendedor",
       accessorFn: (row) =>
@@ -108,8 +126,16 @@ function buildSalesColumns(navigate) {
         </div>
       ),
     },
-  ];
+  );
+
+  return columns;
 }
+
+const DELIVERY_FILTER_OPTIONS = [
+  { id: "all", label: "Todos" },
+  { id: "pending", label: "Pendientes de entrega" },
+  { id: "delivered", label: "Entregados" },
+];
 
 export default function SalesTable({
   data = [],
@@ -119,12 +145,18 @@ export default function SalesTable({
   emptyTitle = "No hay ventas registradas.",
   emptyHint,
   showSearch = true,
+  showDeliveryColumn = false,
+  deliveryFilter = "all",
+  onDeliveryFilterChange,
   className = "",
 }) {
   const navigate = useNavigate();
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const columns = useMemo(() => buildSalesColumns(navigate), [navigate]);
+  const columns = useMemo(
+    () => buildSalesColumns(navigate, showDeliveryColumn),
+    [navigate, showDeliveryColumn],
+  );
 
   const table = useReactTable({
     data,
@@ -139,6 +171,25 @@ export default function SalesTable({
 
   const filteredCount = table.getFilteredRowModel().rows.length;
 
+  const deliveryFilterToolbar = showDeliveryColumn && onDeliveryFilterChange ? (
+    <div className="flex flex-wrap gap-1.5">
+      {DELIVERY_FILTER_OPTIONS.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => onDeliveryFilterChange(option.id)}
+          className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors ${
+            deliveryFilter === option.id
+              ? "border-primary bg-primary/5 text-primary"
+              : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  ) : null;
+
   return (
     <ExpenseTableCard
       sectionTitle={sectionTitle}
@@ -148,6 +199,7 @@ export default function SalesTable({
       onSearchChange={showSearch ? setGlobalFilter : undefined}
       searchPlaceholder={searchPlaceholder}
       showSearch={showSearch}
+      toolbarExtra={deliveryFilterToolbar}
       className={className}
     >
       <ExpenseTableScroll>
@@ -167,11 +219,11 @@ export default function SalesTable({
                 colSpan={columns.length}
                 icon={<FaMoneyBillWave className="text-4xl text-gray-300" />}
                 title={
-                  globalFilter
+                  globalFilter || deliveryFilter !== "all"
                     ? "No se encontraron ventas con ese criterio."
                     : emptyTitle
                 }
-                hint={!globalFilter ? emptyHint : undefined}
+                hint={!globalFilter && deliveryFilter === "all" ? emptyHint : undefined}
               />
             }
           />

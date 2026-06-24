@@ -38,6 +38,7 @@ export const CLOUDINARY_FOLDERS = {
     SALE_RECEIPT: "sale_receipts",
     EXPENSE_RECEIPT: "ticket_receipts",
     SUPPORT: "tickets_support",
+    BUSINESS_LOGO: "business_logos",
 };
 
 /** Public ID único por subida — evita sobrescribir y permite borrar la imagen anterior. */

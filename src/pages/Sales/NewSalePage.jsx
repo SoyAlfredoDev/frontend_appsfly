@@ -14,6 +14,11 @@ import { issueTaxDocumentRequest } from "../../api/taxDocuments.js";
 import ReceiptTypeSelector from "../../components/billing/ReceiptTypeSelector.jsx";
 import FacturaReceiverForm from "../../components/billing/FacturaReceiverForm.jsx";
 import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/validateSaleStock.js";
+import { isCreditSalesEnabled, isDeliveryControlEnabled } from "../../utils/businessReceiptSettings.js";
+import {
+    isSalePaymentComplete,
+    validateSalePaymentsForCreditPolicy,
+} from "../../utils/salePaymentValidation.js";
 import { v4 as uuidv4 } from "uuid";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
@@ -101,7 +106,15 @@ export default function NewSalePage() {
   const [closureBlock, setClosureBlock] = useState(null);
   const [closingAllPending, setClosingAllPending] = useState(false);
   const [saleId, setSaleId] = useState(uuidv4());
-  const { user } = useAuth();
+  const { user, business } = useAuth();
+  const creditSalesEnabled = useMemo(
+    () => isCreditSalesEnabled(business),
+    [business],
+  );
+  const deliveryControlEnabled = useMemo(
+    () => isDeliveryControlEnabled(business),
+    [business],
+  );
 
   // Data
   const [customers, setCustomers] = useState([]);
@@ -124,6 +137,7 @@ export default function NewSalePage() {
   const [total, setTotal] = useState(0);
   const [totalPayments, setTotalPayments] = useState(0);
   const amountDue = useMemo(() => total - totalPayments, [total, totalPayments]);
+  const requireFullPayment = !creditSalesEnabled;
 
   // Sale header
   const [dataSale, setDataSale] = useState({
@@ -142,6 +156,19 @@ export default function NewSalePage() {
   const customerDropdownRef = useRef(null);
 
   const isSalesBlocked = closureBlock?.blocked === true;
+
+  const salePaymentComplete = useMemo(
+    () =>
+      isSalePaymentComplete({
+        creditSalesEnabled,
+        total,
+        payments: dataSalePayments,
+        totalPayments,
+      }),
+    [creditSalesEnabled, total, dataSalePayments, totalPayments],
+  );
+  const canFinalizeSale =
+    !isSalesBlocked && (creditSalesEnabled || total <= 0 || salePaymentComplete);
 
   const applyClosureStatus = useCallback((status) => {
     if (status?.blocked) {
@@ -396,14 +423,14 @@ export default function NewSalePage() {
   };
 
   // ── Payment handlers ────────────────────────────────
-  const handlePayments = (paymentsArr) => {
+  const handlePayments = useCallback((paymentsArr) => {
     setDataSalePayments(paymentsArr);
     const pTotal = paymentsArr.reduce(
       (sum, payment) => sum + Number(payment.amount || 0),
       0,
     );
     setTotalPayments(pTotal);
-  };
+  }, []);
 
   // Sincroniza totales en el payload de venta solo cuando cambian.
   useEffect(() => {
@@ -465,6 +492,25 @@ export default function NewSalePage() {
       return;
     }
 
+    if (amountDue > 0 && !creditSalesEnabled) {
+      toast.error(
+        "Pago incompleto",
+        "Este negocio no permite ventas a crédito. El total abonado debe igualar el total de la venta.",
+      );
+      return;
+    }
+
+    const paymentValidation = validateSalePaymentsForCreditPolicy({
+      creditSalesEnabled,
+      total,
+      payments: dataSalePayments,
+      totalPayments,
+    });
+    if (!paymentValidation.isValid) {
+      toast.error(paymentValidation.title, paymentValidation.message);
+      return;
+    }
+
     const customerLabel = selectedCustomer
       ? `${selectedCustomer.customerFirstName} ${selectedCustomer.customerLastName}`
       : '—';
@@ -494,6 +540,12 @@ export default function NewSalePage() {
         ...dataSale,
         documentType,
       };
+      const hasProducts = dataTable.some(
+        (row) => row.saleDetailType === "PRODUCT" && row.saleDetailProductServiceId,
+      );
+      if (deliveryControlEnabled && hasProducts) {
+        salePayload.saleDeliveryStatus = "PENDING";
+      }
       const res = await createSaleGeneral(
         salePayload,
         dataTable,
@@ -951,9 +1003,18 @@ export default function NewSalePage() {
 
           {/* Móvil: pagos y comentarios (scroll) */}
           <div className="md:hidden px-3 pb-4 space-y-3 border-t border-gray-100 pt-3 mt-1">
+            {!creditSalesEnabled && total > 0 && (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Venta a crédito desactivada: selecciona un método de pago. El monto se fija automáticamente en {formatCurrency(total)}.
+              </p>
+            )}
             <div>
               <h2 className="text-xs font-semibold text-gray-800 mb-2">Métodos de pago</h2>
-              <CardRegisterPayments sendPayments={handlePayments} />
+              <CardRegisterPayments
+                sendPayments={handlePayments}
+                requireFullPayment={requireFullPayment}
+                saleTotal={total}
+              />
             </div>
             <div>
               <h2 className="text-xs font-semibold text-gray-800 mb-2">Comentarios</h2>
@@ -1211,8 +1272,17 @@ export default function NewSalePage() {
             <div className="flex-1 p-6 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col min-h-[120px]">
               <h2 className={TABLE_SECTION_TITLE}>Métodos de Pago</h2>
               <p className={`${TABLE_SECTION_SUB} mb-3`}>Registre los pagos de esta venta</p>
+              {!creditSalesEnabled && total > 0 && (
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                  Venta a crédito desactivada: selecciona un método de pago. El monto se fija automáticamente en {formatCurrency(total)}.
+                </p>
+              )}
               <div className="flex-1 overflow-hidden">
-                <CardRegisterPayments sendPayments={handlePayments} />
+                <CardRegisterPayments
+                  sendPayments={handlePayments}
+                  requireFullPayment={requireFullPayment}
+                  saleTotal={total}
+                />
               </div>
             </div>
 
@@ -1276,7 +1346,7 @@ export default function NewSalePage() {
                 type="button"
                 onClick={handleSubmit}
                 className={`${PRIMARY_BTN_BLOCK} py-3 disabled:active:scale-100`}
-                disabled={isLoading || isSalesBlocked}
+                disabled={isLoading || !canFinalizeSale}
               >
                 {isLoading ? (
                   <>
@@ -1311,7 +1381,7 @@ export default function NewSalePage() {
               type="button"
               onClick={handleSubmit}
               className={`${PRIMARY_BTN} flex-1 justify-center !py-3 !text-sm font-semibold`}
-              disabled={isLoading || isSalesBlocked}
+              disabled={isLoading || !canFinalizeSale}
             >
               {isLoading ? (
                 <>
