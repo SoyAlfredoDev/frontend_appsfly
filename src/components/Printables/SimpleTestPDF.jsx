@@ -1,27 +1,52 @@
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { getReceiptBranding } from '../../utils/businessReceiptSettings.js';
 
+const BRAND_GREEN = '#059669';
+
 const styles = StyleSheet.create({
     page: {
-        paddingTop: 30,
-        paddingHorizontal: 30,
-        paddingBottom: 70,
+        paddingTop: 28,
+        paddingHorizontal: 32,
+        paddingBottom: 72,
         fontFamily: 'Helvetica',
+        fontSize: 10,
+        color: '#1f2937',
     },
-    headerRow: {
+    headerBox: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 12,
-        gap: 12,
+        alignItems: 'center',
+        gap: 16,
+        paddingBottom: 14,
+        borderBottomWidth: 2,
+        borderBottomColor: BRAND_GREEN,
+        marginBottom: 16,
+    },
+    logoWrap: {
+        width: 88,
+        height: 88,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        backgroundColor: '#f9fafb',
     },
     logo: {
-        width: 72,
-        height: 72,
+        width: 84,
+        height: 84,
         objectFit: 'contain',
     },
+    logoFallback: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: BRAND_GREEN,
+    },
+    businessBlock: {
+        flex: 1,
+    },
     businessName: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#111827',
         marginBottom: 4,
@@ -30,163 +55,213 @@ const styles = StyleSheet.create({
         fontSize: 9,
         color: '#4b5563',
         marginBottom: 2,
+        lineHeight: 1.35,
     },
-    detailRow: {
+    docTitle: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: BRAND_GREEN,
+        marginBottom: 10,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    infoGrid: {
         flexDirection: 'row',
-        marginBottom: 5,
+        flexWrap: 'wrap',
+        marginBottom: 4,
+        gap: 4,
     },
-    detailLabel: {
-        fontSize: 10,
-        width: '30%',
-        color: '#4b5563',
+    infoItem: {
+        width: '48%',
+        flexDirection: 'row',
+        marginBottom: 6,
+    },
+    infoLabel: {
+        width: '38%',
+        fontSize: 9,
+        color: '#6b7280',
         fontWeight: 'bold',
     },
-    detailValue: {
-        fontSize: 10,
-        width: '70%',
-        fontWeight: 'normal',
+    infoValue: {
+        width: '62%',
+        fontSize: 9,
+        color: '#111827',
     },
     tableHeader: {
         flexDirection: 'row',
-        backgroundColor: '#bfdbfe',
-        paddingVertical: 5,
-        borderBottomColor: '#374151',
+        backgroundColor: '#d1fae5',
+        paddingVertical: 6,
+        borderBottomColor: BRAND_GREEN,
         borderBottomWidth: 1,
-        marginTop: 15,
+        marginTop: 12,
     },
     tableRow: {
         flexDirection: 'row',
         borderBottomColor: '#e5e7eb',
         borderBottomWidth: 1,
-        paddingVertical: 4,
+        paddingVertical: 5,
     },
-    colType: { width: '15%', fontSize: 9, paddingHorizontal: 5 },
-    colSKU: { width: '15%', fontSize: 9, paddingHorizontal: 5 },
-    colName: { width: '30%', fontSize: 9, paddingHorizontal: 5 },
-    colQty: { width: '10%', fontSize: 9, paddingHorizontal: 5, textAlign: 'center' },
-    colPrice: { width: '15%', fontSize: 9, paddingHorizontal: 5, textAlign: 'right' },
-    colTotal: { width: '15%', fontSize: 9, paddingHorizontal: 5, textAlign: 'right', fontWeight: 'bold' },
+    colType: { width: '14%', fontSize: 8, paddingHorizontal: 4 },
+    colSKU: { width: '14%', fontSize: 8, paddingHorizontal: 4 },
+    colName: { width: '32%', fontSize: 8, paddingHorizontal: 4 },
+    colQty: { width: '10%', fontSize: 8, paddingHorizontal: 4, textAlign: 'center' },
+    colPrice: { width: '15%', fontSize: 8, paddingHorizontal: 4, textAlign: 'right' },
+    colTotal: { width: '15%', fontSize: 8, paddingHorizontal: 4, textAlign: 'right', fontWeight: 'bold' },
     summaryWrapper: {
-        marginTop: 20,
+        marginTop: 16,
+        alignItems: 'flex-end',
     },
     summaryRow: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
-        marginTop: 6,
-        borderTopWidth: 1,
-        borderTopColor: '#374151',
-        paddingTop: 5,
+        width: '45%',
+        justifyContent: 'space-between',
+        marginTop: 4,
+        paddingTop: 4,
     },
     summaryLabel: {
         fontSize: 10,
         fontWeight: 'bold',
-        width: '15%',
-        textAlign: 'right',
-        marginRight: 5,
+        color: '#374151',
     },
     summaryValue: {
         fontSize: 10,
-        width: '15%',
-        textAlign: 'right',
         fontWeight: 'bold',
+        color: '#111827',
+    },
+    summaryTotalRow: {
+        flexDirection: 'row',
+        width: '45%',
+        justifyContent: 'space-between',
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#374151',
     },
     footerContainer: {
         position: 'absolute',
-        bottom: 20,
-        left: 30,
-        right: 30,
+        bottom: 18,
+        left: 32,
+        right: 32,
         borderTopWidth: 1,
         borderTopColor: '#e5e7eb',
         paddingTop: 8,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-end',
     },
-    footerContact: {
+    footerText: {
         fontSize: 8,
         color: '#6b7280',
+        marginBottom: 2,
+        lineHeight: 1.35,
     },
     footerPageNumber: {
         fontSize: 8,
-        color: '#6b7280',
+        color: '#9ca3af',
         textAlign: 'right',
     },
 });
 
-const formatCurrency = (amount) => {
-    return amount?.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' }) || '$0';
-};
+const formatCurrency = (amount) =>
+    amount?.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' }) || '$0';
 
 function capitalizeFirstLetter(text) {
-    if (!text) return "";
+    if (!text) return '';
     return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function businessInitials(name) {
+    if (!name?.trim()) return '?';
+    return name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('');
 }
 
 const SimpleTestPDFContent = ({ sale, tableProductAndService, business }) => {
     const branding = getReceiptBranding(business);
-    const contactParts = [
-        branding.phone && `Tel: ${branding.phone}`,
-        branding.email,
+    const customerName = [
+        capitalizeFirstLetter(sale.customer?.customerFirstName),
+        capitalizeFirstLetter(sale.customer?.customerLastName),
+    ].filter(Boolean).join(' ');
+    const sellerName = [
+        capitalizeFirstLetter(sale.user?.userFirstName),
+        capitalizeFirstLetter(sale.user?.userLastName),
+    ].filter(Boolean).join(' ');
+
+    const headerContactLines = [
+        branding.documentNumber
+            ? `${branding.documentLabel}: ${branding.documentNumber}`
+            : null,
+        branding.address || null,
+        branding.phone ? `Tel: ${branding.phone}` : null,
+        branding.email || null,
+        branding.social ? branding.social : null,
     ].filter(Boolean);
 
     return (
-    <Document>
-        <Page size="A4" style={styles.page}>
-            <View>
-                <View style={styles.headerRow}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.businessName}>{branding.displayName || 'Comprobante de venta'}</Text>
-                        {branding.documentNumber ? (
-                            <Text style={styles.businessMeta}>
-                                {branding.documentLabel}: {branding.documentNumber}
+        <Document>
+            <Page size="A4" style={styles.page}>
+                <View style={styles.headerBox}>
+                    <View style={styles.logoWrap}>
+                        {branding.logoUrl ? (
+                            <Image src={branding.logoUrl} style={styles.logo} />
+                        ) : (
+                            <Text style={styles.logoFallback}>
+                                {businessInitials(branding.displayName)}
                             </Text>
-                        ) : null}
-                        {branding.address ? (
-                            <Text style={styles.businessMeta}>{branding.address}</Text>
-                        ) : null}
+                        )}
                     </View>
-                    {branding.logoUrl ? (
-                        <Image src={branding.logoUrl} style={styles.logo} />
-                    ) : null}
+                    <View style={styles.businessBlock}>
+                        <Text style={styles.businessName}>
+                            {branding.displayName || 'Mi negocio'}
+                        </Text>
+                        {headerContactLines.map((line) => (
+                            <Text key={line} style={styles.businessMeta}>{line}</Text>
+                        ))}
+                    </View>
                 </View>
 
-                <Text style={{ fontSize: 12, marginBottom: 8, fontWeight: 'bold' }}>
-                    Comprobante de venta {sale?.saleNumber}
+                <Text style={styles.docTitle}>
+                    Comprobante de venta N° {sale?.saleNumber ?? '—'}
                 </Text>
 
-                <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Cliente:</Text>
-                    <Text style={styles.detailValue}>
-                        {capitalizeFirstLetter(sale.customer?.customerFirstName)}{' '}
-                        {capitalizeFirstLetter(sale.customer?.customerLastName)}
-                    </Text>
-                    <Text style={styles.detailLabel}>Fecha:</Text>
-                    <Text style={styles.detailValue}>
-                        {new Date(sale?.createdAt).toLocaleDateString('es-CL')}
-                    </Text>
-                </View>
-                <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Vendedor:</Text>
-                    <Text style={styles.detailValue}>
-                        {capitalizeFirstLetter(sale.user?.userFirstName)}{' '}
-                        {capitalizeFirstLetter(sale.user?.userLastName)}
-                    </Text>
-                    <Text style={styles.detailLabel}>Observaciones:</Text>
-                    <Text style={styles.detailValue}>
-                        {sale?.saleComment || sale?.saleObservation || '   '}
-                    </Text>
+                <View style={styles.infoGrid}>
+                    <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Fecha</Text>
+                        <Text style={styles.infoValue}>
+                            {sale?.createdAt
+                                ? new Date(sale.createdAt).toLocaleDateString('es-CL')
+                                : '—'}
+                        </Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Cliente</Text>
+                        <Text style={styles.infoValue}>{customerName || '—'}</Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Vendedor</Text>
+                        <Text style={styles.infoValue}>{sellerName || '—'}</Text>
+                    </View>
+                    <View style={styles.infoItem}>
+                        <Text style={styles.infoLabel}>Observaciones</Text>
+                        <Text style={styles.infoValue}>
+                            {sale?.saleComment || sale?.saleObservation || '—'}
+                        </Text>
+                    </View>
                 </View>
 
-                <View style={styles.section}>
-                    <Text style={{ fontSize: 12, marginBottom: 5, fontWeight: 'bold', marginTop: 15 }}>
-                        Detalle de la venta
+                <View>
+                    <Text style={{ fontSize: 11, fontWeight: 'bold', marginBottom: 4 }}>
+                        Detalle
                     </Text>
-
                     <View style={styles.tableHeader}>
                         <Text style={styles.colType}>Tipo</Text>
                         <Text style={styles.colSKU}>SKU</Text>
-                        <Text style={styles.colName}>Nombre Producto/Servicio</Text>
-                        <Text style={styles.colQty}>Cantidad</Text>
+                        <Text style={styles.colName}>Producto / Servicio</Text>
+                        <Text style={styles.colQty}>Cant.</Text>
                         <Text style={styles.colPrice}>Precio</Text>
                         <Text style={styles.colTotal}>Total</Text>
                     </View>
@@ -197,10 +272,10 @@ const SimpleTestPDFContent = ({ sale, tableProductAndService, business }) => {
                                 {ps.saleDetailType === 'PRODUCT' ? 'Producto' : 'Servicio'}
                             </Text>
                             <Text style={styles.colSKU}>
-                                {ps.product?.productSKU || ps.service?.serviceSKU || 'N/A'}
+                                {ps.product?.productSKU || ps.service?.serviceSKU || '—'}
                             </Text>
                             <Text style={styles.colName}>
-                                {ps.product?.productName || ps.service?.serviceName || 'N/A'}
+                                {ps.product?.productName || ps.service?.serviceName || '—'}
                             </Text>
                             <Text style={styles.colQty}>{ps.saleDetailQuantity}</Text>
                             <Text style={styles.colPrice}>{formatCurrency(ps.saleDetailPrice)}</Text>
@@ -211,54 +286,46 @@ const SimpleTestPDFContent = ({ sale, tableProductAndService, business }) => {
 
                 <View style={styles.summaryWrapper}>
                     <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Total Venta:</Text>
+                        <Text style={styles.summaryLabel}>Total venta</Text>
                         <Text style={styles.summaryValue}>{formatCurrency(sale?.saleTotal)}</Text>
                     </View>
                     <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Total Pagado:</Text>
+                        <Text style={styles.summaryLabel}>Total pagado</Text>
                         <Text style={styles.summaryValue}>
-                            {formatCurrency(sale?.saleTotal - sale?.salePendingAmount)}
+                            {formatCurrency((sale?.saleTotal ?? 0) - (sale?.salePendingAmount ?? 0))}
                         </Text>
                     </View>
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>Pendiente:</Text>
+                    <View style={styles.summaryTotalRow}>
+                        <Text style={styles.summaryLabel}>Saldo pendiente</Text>
                         <Text style={{
                             ...styles.summaryValue,
-                            color: sale?.salePendingAmount > 0 ? '#b91c1c' : '#059669',
+                            color: (sale?.salePendingAmount ?? 0) > 0 ? '#b91c1c' : BRAND_GREEN,
                         }}>
                             {formatCurrency(sale?.salePendingAmount)}
                         </Text>
                     </View>
                 </View>
-            </View>
 
-            <View style={styles.footerContainer} fixed>
-                <View style={{ width: '70%', flexDirection: 'column' }}>
-                    {contactParts.length > 0 && (
-                        <Text style={styles.footerContact}>
-                            {contactParts.join(' | ')}
-                        </Text>
-                    )}
-                    {branding.social ? (
-                        <Text style={styles.footerContact}>Redes: {branding.social}</Text>
-                    ) : null}
-                    {branding.footerNote ? (
-                        <Text style={styles.footerContact}>{branding.footerNote}</Text>
-                    ) : null}
-                </View>
-
-                <View style={{ width: '30%' }}>
+                <View style={styles.footerContainer} fixed>
+                    <View style={{ width: '72%' }}>
+                        {branding.footerNote ? (
+                            <Text style={styles.footerText}>{branding.footerNote}</Text>
+                        ) : (
+                            <Text style={styles.footerText}>
+                                Documento interno generado por AppsFly.
+                            </Text>
+                        )}
+                    </View>
                     <Text
                         style={styles.footerPageNumber}
-                        render={({ pageNumber, totalPages }) => (
-                            `Página ${pageNumber} de ${totalPages}`
-                        )}
+                        render={({ pageNumber, totalPages }) =>
+                            `Pág. ${pageNumber} / ${totalPages}`
+                        }
                         fixed
                     />
                 </View>
-            </View>
-        </Page>
-    </Document>
+            </Page>
+        </Document>
     );
 };
 

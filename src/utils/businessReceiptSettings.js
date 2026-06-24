@@ -1,8 +1,30 @@
 /**
  * Datos de marca para el comprobante PDF a partir del negocio (General DB).
+ * Acepta el objeto Business completo o el payload serializado de settings.
  */
+function normalizeBusinessSource(business) {
+    if (!business) return null;
+
+    return {
+        businessName: business.businessName,
+        businessDocumentType: business.businessDocumentType,
+        businessDocumentNumber: business.businessDocumentNumber,
+        businessEmail: business.businessEmail,
+        businessPhoneNumber: business.businessPhoneNumber,
+        businessCodePhoneNumber: business.businessCodePhoneNumber,
+        businessCountry: business.businessCountry,
+        businessReceiptLogoUrl: business.businessReceiptLogoUrl ?? business.receiptLogoUrl ?? null,
+        businessReceiptAddress: business.businessReceiptAddress ?? business.receiptAddress ?? null,
+        businessReceiptPhone: business.businessReceiptPhone ?? business.receiptPhone ?? null,
+        businessReceiptEmail: business.businessReceiptEmail ?? business.receiptEmail ?? null,
+        businessReceiptSocial: business.businessReceiptSocial ?? business.receiptSocial ?? null,
+        businessReceiptFooterNote: business.businessReceiptFooterNote ?? business.receiptFooterNote ?? null,
+    };
+}
+
 export function getReceiptBranding(business) {
-    if (!business) {
+    const source = normalizeBusinessSource(business);
+    if (!source) {
         return {
             displayName: "",
             documentLabel: "RUT",
@@ -16,34 +38,34 @@ export function getReceiptBranding(business) {
         };
     }
 
-    const code = business.businessCodePhoneNumber?.trim() ?? "";
+    const code = source.businessCodePhoneNumber?.trim() ?? "";
     const phoneRaw =
-        business.businessReceiptPhone?.trim()
-        || business.businessPhoneNumber?.trim()
+        source.businessReceiptPhone?.trim()
+        || source.businessPhoneNumber?.trim()
         || "";
     const phone = phoneRaw
         ? `${code && !phoneRaw.startsWith("+") ? `${code} ` : ""}${phoneRaw}`.trim()
         : "";
 
     return {
-        displayName: business.businessName?.trim() ?? "",
+        displayName: source.businessName?.trim() ?? "",
         documentLabel:
-            business.businessDocumentType?.trim()?.toUpperCase() === "RUT"
+            source.businessDocumentType?.trim()?.toUpperCase() === "RUT"
                 ? "RUT"
-                : (business.businessDocumentType?.trim() || "Documento"),
-        documentNumber: business.businessDocumentNumber?.trim() ?? "",
-        logoUrl: business.businessReceiptLogoUrl ?? null,
+                : (source.businessDocumentType?.trim() || "Documento"),
+        documentNumber: source.businessDocumentNumber?.trim() ?? "",
+        logoUrl: source.businessReceiptLogoUrl?.trim() || null,
         address:
-            business.businessReceiptAddress?.trim()
-            || business.businessCountry?.trim()
+            source.businessReceiptAddress?.trim()
+            || source.businessCountry?.trim()
             || "",
         phone,
         email:
-            business.businessReceiptEmail?.trim()
-            || business.businessEmail?.trim()
+            source.businessReceiptEmail?.trim()
+            || source.businessEmail?.trim()
             || "",
-        social: business.businessReceiptSocial?.trim() ?? "",
-        footerNote: business.businessReceiptFooterNote?.trim() ?? "",
+        social: source.businessReceiptSocial?.trim() ?? "",
+        footerNote: source.businessReceiptFooterNote?.trim() ?? "",
     };
 }
 

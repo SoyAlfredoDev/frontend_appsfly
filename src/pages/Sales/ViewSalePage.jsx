@@ -5,6 +5,7 @@ import { getPaymentBySaleId, createPayment } from '../../api/payment.js'
 import { useEffect, useMemo, useState } from "react"
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../../context/authContext.jsx'
+import useReceiptBusiness from '../../hooks/useReceiptBusiness.js'
 import { useConfirm } from '../../context/ConfirmationContext.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
 import { IconPrinter } from "../../components/IconComponent.jsx"
@@ -33,6 +34,7 @@ import {
 
 export default function ViewSalePage() {
     const { business } = useAuth();
+    const receiptBusiness = useReceiptBusiness();
     const confirm = useConfirm();
     const toast = useToast();
     const [sale, setSale] = useState({});
@@ -248,7 +250,7 @@ export default function ViewSalePage() {
                                         <SimpleTestPDFContent
                                             sale={sale}
                                             tableProductAndService={tableProductAndService}
-                                            business={business}
+                                            business={receiptBusiness}
                                         />
                                     }
                                     fileName={`boleta-${sale.saleNumber}.pdf`}
