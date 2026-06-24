@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { FaChartLine, FaShieldAlt, FaRocket } from 'react-icons/fa';
+import GradientText from '../../components/web/GradientText.jsx';
 
 export default function NewsHomePage() {
     const staggerContainer = {
@@ -28,9 +29,9 @@ export default function NewsHomePage() {
                     transition={{ duration: 0.6 }}
                     className="text-center mb-16 md:mb-24"
                 >
-                    <span className="text-secondary font-bold tracking-wider uppercase text-sm mb-3 block">Innovación Constante</span>
+                    <span className="text-secondary font-bold tracking-wider uppercase text-sm mb-3 block">🚀 Innovación constante</span>
                     <h2 className="font-display text-4xl md:text-5xl font-bold text-dark">
-                        Novedades del Sistema
+                        🆕 Novedades del <GradientText>Sistema</GradientText>
                     </h2>
                 </motion.div>
 
@@ -43,19 +44,19 @@ export default function NewsHomePage() {
                 >
                     {[
                         { 
-                            title: "Nuevo Dashboard", 
+                            title: "📊 Nuevo Dashboard", 
                             desc: "Visualiza tus métricas clave en tiempo real con nuestro nuevo panel rediseñado.", 
                             icon: <FaChartLine className="text-4xl text-white" />,
                             bgIcon: "bg-secondary"
                         },
                         { 
-                            title: "Seguridad Mejorada", 
+                            title: "🔒 Seguridad Mejorada", 
                             desc: "Implementamos autenticación de dos factores para proteger tu cuenta.", 
                             icon: <FaShieldAlt className="text-4xl text-white" />,
                             bgIcon: "bg-dark"
                         },
                         { 
-                            title: "Más Rápido", 
+                            title: "⚡ Más Rápido", 
                             desc: "Optimización de base de datos para cargas instantáneas.", 
                             icon: <FaRocket className="text-4xl text-white" />,
                             bgIcon: "bg-primary"

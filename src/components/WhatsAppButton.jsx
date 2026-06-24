@@ -1,10 +1,11 @@
 import React from "react";
 import "./WhatsAppButton.css";
+import { SUPPORT_WHATSAPP_URL } from "../constants/supportContact.js";
 
 export default function WhatsAppButton() {
   return (
     <a
-      href="https://wa.me/353838316917"
+      href={SUPPORT_WHATSAPP_URL}
       className="whatsapp-btn"
       target="_blank"
       rel="noopener noreferrer"

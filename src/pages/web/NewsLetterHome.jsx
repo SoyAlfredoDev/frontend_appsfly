@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaEnvelope } from 'react-icons/fa';
 import { subscribeNewsletter } from '../../api/newsletter';
+import GradientText from '../../components/web/GradientText.jsx';
 
 export default function NewsLetterHome() {
     const [email, setEmail] = useState('');
@@ -42,7 +43,7 @@ export default function NewsLetterHome() {
                     </div>
                     
                     <h2 className="font-display text-3xl md:text-5xl font-bold mb-4 text-white">
-                        Mantente actualizado
+                        📬 Mantente <GradientText variant="light">actualizado</GradientText>
                     </h2>
                     
                     <p className="text-white/90 mb-8 text-base md:text-lg max-w-lg mx-auto leading-relaxed">

@@ -10,6 +10,9 @@ import NewCustomerModal from "../../components/modals/AddCustomerModal.jsx";
 import formatName from "../../utils/formatName.js";
 import formatCurrency from "../../utils/formatCurrency.js";
 import { createSaleGeneral } from "../../utils/createSale.js";
+import { issueTaxDocumentRequest } from "../../api/taxDocuments.js";
+import ReceiptTypeSelector from "../../components/billing/ReceiptTypeSelector.jsx";
+import FacturaReceiverForm from "../../components/billing/FacturaReceiverForm.jsx";
 import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/validateSaleStock.js";
 import { v4 as uuidv4 } from "uuid";
 import { motion as Motion, AnimatePresence } from "framer-motion";
@@ -105,6 +108,17 @@ export default function NewSalePage() {
   const [productsServices, setProductsServices] = useState([]);
   const [dataTable, setDataTable] = useState([createEmptyRow()]);
   const [dataSalePayments, setDataSalePayments] = useState([]);
+
+  const [documentType, setDocumentType] = useState("RECEIPT");
+  const [facturaReceiver, setFacturaReceiver] = useState({
+    businessName: "",
+    rut: "",
+    businessActivity: "",
+    address: "",
+    commune: "",
+    city: "",
+    email: "",
+  });
 
   // Totals
   const [total, setTotal] = useState(0);
@@ -465,18 +479,61 @@ export default function NewSalePage() {
 
     if (!isConfirmed) return;
 
+    if (documentType === "FACTURA") {
+      const required = ["businessName", "rut", "businessActivity", "address", "commune", "city", "email"];
+      const missing = required.filter((key) => !String(facturaReceiver[key] ?? "").trim());
+      if (missing.length) {
+        toast.info("Factura incompleta", "Completa los datos del receptor para factura electrónica.");
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
+      const salePayload = {
+        ...dataSale,
+        documentType,
+      };
       const res = await createSaleGeneral(
-        dataSale,
+        salePayload,
         dataTable,
         dataSalePayments,
       );
       if (res) {
-        toast.success(
-          `Venta #${res.dataSale.saleNumber}`,
-          'La venta se registró correctamente.',
-        );
+        if (documentType === "BOLETA" || documentType === "FACTURA") {
+          try {
+            const issueRes = await issueTaxDocumentRequest({
+              saleId: res.dataSale.saleId,
+              documentType,
+              receiver:
+                documentType === "FACTURA"
+                  ? facturaReceiver
+                  : {
+                        rut: selectedCustomer?.customerDocumentNumber,
+                        name: customerLabel,
+                        email: selectedCustomer?.customerEmail,
+                    },
+            });
+            const folio = issueRes.data?.document?.folio;
+            toast.success(
+              `Venta #${res.dataSale.saleNumber}`,
+              folio
+                ? `DTE emitido. Folio ${folio}.`
+                : "Venta registrada y DTE en proceso.",
+            );
+          } catch (dteError) {
+            toast.error(
+              "DTE no emitido",
+              dteError.response?.data?.error ??
+                "La venta se guardó, pero falló la emisión electrónica.",
+            );
+          }
+        } else {
+          toast.success(
+            `Venta #${res.dataSale.saleNumber}`,
+            "La venta se registró correctamente.",
+          );
+        }
         // Reset
         const newId = uuidv4();
         setSaleId(newId);
@@ -491,6 +548,16 @@ export default function NewSalePage() {
         setTotal(0);
         setTotalPayments(0);
         setDataSalePayments([]);
+        setDocumentType("RECEIPT");
+        setFacturaReceiver({
+          businessName: "",
+          rut: "",
+          businessActivity: "",
+          address: "",
+          commune: "",
+          city: "",
+          email: "",
+        });
       }
     } catch (error) {
       console.error("Error creating sale:", error);
@@ -1106,6 +1173,25 @@ export default function NewSalePage() {
         {/* FOOTER — scroll en móvil; desktop igual que antes */}
         <div className="hidden md:block bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(2,31,65,0.05)] flex-none z-20 w-full shrink-0">
           <div className="w-full flex flex-col lg:flex-row">
+            <div className="lg:w-1/4 p-6 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
+              <h2 className={TABLE_SECTION_TITLE}>Tipo de comprobante</h2>
+              <p className={`${TABLE_SECTION_SUB} mb-3`}>Selecciona el documento a emitir</p>
+              <ReceiptTypeSelector
+                value={documentType}
+                onChange={setDocumentType}
+                disabled={isLoading}
+              />
+              {documentType === "FACTURA" && (
+                <div className="mt-4">
+                  <FacturaReceiverForm
+                    value={facturaReceiver}
+                    onChange={setFacturaReceiver}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="lg:w-1/4 p-6 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
               <h2 className={TABLE_SECTION_TITLE}>Comentarios</h2>
               <p className={`${TABLE_SECTION_SUB} mb-3`}>Notas adicionales sobre la venta</p>

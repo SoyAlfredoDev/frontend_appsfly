@@ -32,6 +32,7 @@ const ROLE_PERMISSIONS = {
         "support:view",
         "assistant:use",
         "finance:view",
+        "billing:manage",
     ],
     USER: [
         "dashboard:view",
@@ -60,6 +61,7 @@ export const NAV_PERMISSION_BY_PATH = {
     "/providers": "providers:manage",
     "/expenses": "expenses:manage",
     "/reports": "reports:read",
+    "/billing": "billing:manage",
     "/transactions": "transactions:read",
     "/users": "users:manage",
     "/profile": "profile:view",
@@ -73,6 +75,7 @@ const ADMIN_ROUTE_PREFIXES = [
     "/providers",
     "/transactions",
     "/reports",
+    "/billing",
     "/finance",
     "/campaigns-asmr",
     "/sales/dailySales",

@@ -65,6 +65,7 @@ import TransactionsPage from "./pages/TransactionsPage.jsx";
 import ExpensesPage from "./pages/ExpensesPage.jsx";
 import FinancePage from "./pages/FinancePage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
+import TaxBillingPage from "./pages/billing/TaxBillingPage.jsx";
 
 /* Campaigns */
 import CampaignsAsmrPage from "./pages/campaigns/CampaignsAsmrPage.jsx";
@@ -145,6 +146,7 @@ function App() {
                   <Route path="/transactions" element={<TransactionsPage />} />
                   <Route path="/expenses" element={<ExpensesPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/billing" element={<TaxBillingPage />} />
                   <Route path="/finance" element={<FinancePage />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/business/register" element={<RegisterBusinessPage />} />

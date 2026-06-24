@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaWhatsapp, FaShieldAlt, FaServer, FaBan, FaClock, FaCopyright } from 'react-icons/fa';
+import { FaShieldAlt, FaServer, FaBan, FaClock, FaCopyright } from 'react-icons/fa';
 import Footer from '../components/FooterComponent';
 import NavbarHome from './web/NavbarHome.jsx';
+import FloatingWhatsApp from '../components/web/FloatingWhatsApp.jsx';
 
 const TermsPage = () => {
     const [activeSection, setActiveSection] = useState('nature');
@@ -280,20 +281,7 @@ const TermsPage = () => {
             {/* Footer (Consistent with Home) */}
             <Footer/>
 
-            {/* Floating WhatsApp */}
-            <motion.a
-                href="https://wa.me/1234567890" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:bg-[#128C7E] transition-colors z-50 flex items-center justify-center"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 }}
-            >
-                <FaWhatsapp className="text-3xl" />
-            </motion.a>
+            <FloatingWhatsApp />
         </div>
     );
 };
