@@ -17,9 +17,16 @@ api.interceptors.request.use((config) => {
         delete config.headers.Authorization;
     }
 
-    const businessId = sessionStorage.getItem(BUSINESS_ID_STORAGE_KEY);
-    if (businessId) {
-        config.headers["X-AppsFly-Business-Id"] = businessId;
+    const url = config.url ?? "";
+    const isAuthRoute = /^\/(login|register|logout|verify|forgot-password|reset-password)/.test(
+        url,
+    );
+
+    if (!isAuthRoute) {
+        const businessId = sessionStorage.getItem(BUSINESS_ID_STORAGE_KEY);
+        if (businessId) {
+            config.headers["X-AppsFly-Business-Id"] = businessId;
+        }
     }
 
     return config;

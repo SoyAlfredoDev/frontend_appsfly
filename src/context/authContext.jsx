@@ -264,6 +264,7 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         await logoutRequest();
         localStorage.removeItem('token');
+        sessionStorage.removeItem('appsfly_business_id');
         setUser(null);
         setIsAuthenticated(false);
         setUserGuestExists(false);
