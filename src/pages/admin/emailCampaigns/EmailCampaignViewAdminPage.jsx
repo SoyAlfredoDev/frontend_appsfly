@@ -10,6 +10,9 @@ import {
     FaCog,
     FaRobot,
     FaHandPaper,
+    FaPaperPlane,
+    FaSpinner,
+    FaExclamationTriangle,
 } from "react-icons/fa";
 import PageContainer, { PageHeader } from "../../../components/layout/PageContainer.jsx";
 import EmailMessagePreview from "../../../components/admin/EmailMessagePreview.jsx";
@@ -17,16 +20,20 @@ import EmailCampaignSubNav from "./EmailCampaignSubNav.jsx";
 import {
     getEmailCampaignRequest,
     previewEmailCampaignMessageRequest,
+    executeEmailCampaignRequest,
 } from "../../../api/adminEmailCampaign.js";
 import {
     audienceLabel,
     scheduleModeLabel,
     scheduleDetailLabel,
+    scheduleEligibilityLabel,
+    buildManualExecuteMessage,
     isAutomatedCampaign,
     SCHEDULE_MODE_STYLES,
     formatCampaignSender,
 } from "../../../utils/adminEmailCampaignConstants.js";
 import { useToast } from "../../../context/ToastContext.jsx";
+import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 import { PRIMARY_BTN } from "../../../utils/expenseUiPatterns.js";
 
 const SECONDARY_BTN =
@@ -48,10 +55,12 @@ function MetaBadge({ automated }) {
 export default function EmailCampaignViewAdminPage() {
     const { id } = useParams();
     const toast = useToast();
+    const confirm = useConfirm();
 
     const [campaign, setCampaign] = useState(null);
     const [messagePreview, setMessagePreview] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [executing, setExecuting] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -75,6 +84,32 @@ export default function EmailCampaignViewAdminPage() {
         load();
     }, [load]);
 
+    const handleSendNow = async () => {
+        const ok = await confirm({
+            title: "Enviar campaña ahora",
+            message: buildManualExecuteMessage(campaign, campaign?.totalRecipients ?? 0),
+            variant: "danger",
+            confirmText: "Enviar ahora",
+            cancelText: "Cancelar",
+        });
+        if (!ok) return;
+
+        setExecuting(true);
+        try {
+            const res = await executeEmailCampaignRequest(id);
+            const sent = res.data?.run?.sentCount ?? 0;
+            toast.success("Campaña enviada", `Se enviaron ${sent} correo(s).`);
+            await load();
+        } catch (err) {
+            toast.error(
+                "No se pudo enviar",
+                err.response?.data?.message ?? "Error al ejecutar la campaña.",
+            );
+        } finally {
+            setExecuting(false);
+        }
+    };
+
     if (loading) {
         return (
             <PageContainer>
@@ -97,6 +132,8 @@ export default function EmailCampaignViewAdminPage() {
     }
 
     const automated = isAutomatedCampaign(campaign);
+    const dueLabel = scheduleEligibilityLabel(campaign.scheduleEligibility);
+    const isDue = campaign.scheduleEligibility?.due;
 
     return (
         <PageContainer>
@@ -109,6 +146,13 @@ export default function EmailCampaignViewAdminPage() {
                 </Link>
             </div>
 
+            {isDue && dueLabel && (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-start gap-2">
+                    <FaExclamationTriangle className="shrink-0 mt-0.5" />
+                    <span>{dueLabel}</span>
+                </div>
+            )}
+
             <PageHeader
                 title={campaign.campaignName}
                 subtitle={
@@ -116,9 +160,22 @@ export default function EmailCampaignViewAdminPage() {
                     "Vista del mensaje y configuración de la campaña."
                 }
                 actions={
-                    <Link to={`/admin/email-campaigns/${id}/settings`} className={PRIMARY_BTN}>
-                        <FaCog /> Configurar y enviar
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                        {isDue && (
+                            <button
+                                type="button"
+                                onClick={handleSendNow}
+                                disabled={executing}
+                                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+                            >
+                                {executing ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+                                {executing ? "Enviando…" : "Enviar ahora"}
+                            </button>
+                        )}
+                        <Link to={`/admin/email-campaigns/${id}/settings`} className={PRIMARY_BTN}>
+                            <FaCog /> Configurar y enviar
+                        </Link>
+                    </div>
                 }
             />
 

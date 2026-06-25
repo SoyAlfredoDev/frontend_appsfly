@@ -10,19 +10,31 @@ import {
     FaCog,
     FaRobot,
     FaHandPaper,
+    FaExclamationTriangle,
+    FaPaperPlane,
+    FaSpinner,
 } from "react-icons/fa";
 import PageContainer, { PageHeader } from "../../../components/layout/PageContainer.jsx";
 import EmailCampaignSubNav from "./EmailCampaignSubNav.jsx";
-import { getEmailCampaignsRequest, ensureSystemEmailCampaignsRequest } from "../../../api/adminEmailCampaign.js";
+import {
+    getEmailCampaignsRequest,
+    ensureSystemEmailCampaignsRequest,
+    executeEmailCampaignRequest,
+    runDueEmailCampaignsRequest,
+} from "../../../api/adminEmailCampaign.js";
 import {
     audienceLabel,
     scheduleModeLabel,
     scheduleDetailLabel,
+    scheduleEligibilityLabel,
+    buildManualExecuteMessage,
     isAutomatedCampaign,
     SCHEDULE_MODE_STYLES,
     formatCampaignSender,
 } from "../../../utils/adminEmailCampaignConstants.js";
 import { PRIMARY_BTN, formatRecordCount } from "../../../utils/expenseUiPatterns.js";
+import { useToast } from "../../../context/ToastContext.jsx";
+import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 
 function ScheduleBadge({ campaign }) {
     const automated = isAutomatedCampaign(campaign);
@@ -38,10 +50,16 @@ function ScheduleBadge({ campaign }) {
     );
 }
 
-function CampaignCard({ campaign }) {
+function CampaignCard({ campaign, onSend, sendingId }) {
+    const dueLabel = scheduleEligibilityLabel(campaign.scheduleEligibility);
+    const isDue = campaign.scheduleEligibility?.due;
+    const isSending = sendingId === campaign.campaignId;
+
     return (
         <motion.article
-            className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col h-full overflow-hidden hover:border-primary/30 hover:shadow-md transition-all"
+            className={`bg-white rounded-xl border shadow-sm flex flex-col h-full overflow-hidden hover:shadow-md transition-all ${
+                isDue ? "border-amber-300 ring-1 ring-amber-200" : "border-gray-200 hover:border-primary/30"
+            }`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
         >
@@ -59,6 +77,13 @@ function CampaignCard({ campaign }) {
                     </div>
                     <ScheduleBadge campaign={campaign} />
                 </div>
+
+                {isDue && dueLabel && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 flex items-start gap-2">
+                        <FaExclamationTriangle className="shrink-0 mt-0.5" />
+                        <span>{dueLabel}</span>
+                    </div>
+                )}
 
                 {campaign.campaignDescription && (
                     <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
@@ -80,6 +105,15 @@ function CampaignCard({ campaign }) {
                     <p className="text-xs text-slate-500 leading-relaxed">
                         {scheduleDetailLabel(campaign)}
                     </p>
+                    {campaign.lastRunAt && (
+                        <p className="text-xs text-slate-400">
+                            Último envío:{" "}
+                            {new Date(campaign.lastRunAt).toLocaleString("es-CL", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                            })}
+                        </p>
+                    )}
                 </div>
 
                 {campaign.emailSubject && (
@@ -101,6 +135,17 @@ function CampaignCard({ campaign }) {
             </div>
 
             <div className="px-5 py-3 border-t border-gray-100 bg-slate-50/60 flex flex-wrap gap-2">
+                {isDue && (
+                    <button
+                        type="button"
+                        onClick={() => onSend(campaign)}
+                        disabled={Boolean(sendingId)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors"
+                    >
+                        {isSending ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+                        {isSending ? "Enviando…" : "Enviar ahora"}
+                    </button>
+                )}
                 <Link
                     to={`/admin/email-campaigns/${campaign.campaignId}`}
                     className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-primary/20 bg-white text-primary hover:bg-primary/5 transition-colors no-underline"
@@ -121,10 +166,14 @@ function CampaignCard({ campaign }) {
 }
 
 export default function EmailCampaignsAdminPage() {
+    const toast = useToast();
+    const confirm = useConfirm();
     const [campaigns, setCampaigns] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [sendingId, setSendingId] = useState(null);
+    const [runningDue, setRunningDue] = useState(false);
 
     const loadCampaigns = useCallback(async () => {
         setLoading(true);
@@ -146,6 +195,11 @@ export default function EmailCampaignsAdminPage() {
         loadCampaigns();
     }, [loadCampaigns]);
 
+    const dueCampaigns = useMemo(
+        () => campaigns.filter((c) => c.scheduleEligibility?.due),
+        [campaigns],
+    );
+
     const filtered = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
         if (!q) return campaigns;
@@ -166,6 +220,63 @@ export default function EmailCampaignsAdminPage() {
         });
     }, [campaigns, searchQuery]);
 
+    const handleSendCampaign = async (campaign) => {
+        const ok = await confirm({
+            title: "Enviar campaña ahora",
+            message: buildManualExecuteMessage(campaign, campaign.totalRecipients ?? 0),
+            variant: "danger",
+            confirmText: "Enviar ahora",
+            cancelText: "Cancelar",
+        });
+        if (!ok) return;
+
+        setSendingId(campaign.campaignId);
+        try {
+            const res = await executeEmailCampaignRequest(campaign.campaignId);
+            const sent = res.data?.run?.sentCount ?? 0;
+            toast.success(
+                "Campaña enviada",
+                `Se enviaron ${sent} correo(s). Revisa el historial para ver entregas.`,
+            );
+            await loadCampaigns();
+        } catch (err) {
+            toast.error(
+                "No se pudo enviar",
+                err.response?.data?.message ?? "Error al ejecutar la campaña.",
+            );
+        } finally {
+            setSendingId(null);
+        }
+    };
+
+    const handleRunAllDue = async () => {
+        const ok = await confirm({
+            title: "Enviar campañas pendientes",
+            message: `¿Ejecutar ${dueCampaigns.length} campaña(s) con envío pendiente?`,
+            variant: "danger",
+            confirmText: "Enviar pendientes",
+            cancelText: "Cancelar",
+        });
+        if (!ok) return;
+
+        setRunningDue(true);
+        try {
+            const res = await runDueEmailCampaignsRequest();
+            toast.success(
+                res.data?.ran ? "Envíos procesados" : "Sin pendientes",
+                res.data?.message ?? "Revisa el historial de cada campaña.",
+            );
+            await loadCampaigns();
+        } catch (err) {
+            toast.error(
+                "Error",
+                err.response?.data?.message ?? "No se pudieron enviar las campañas pendientes.",
+            );
+        } finally {
+            setRunningDue(false);
+        }
+    };
+
     return (
         <PageContainer>
             <PageHeader
@@ -179,6 +290,31 @@ export default function EmailCampaignsAdminPage() {
             />
 
             <EmailCampaignSubNav />
+
+            {dueCampaigns.length > 0 && (
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                        <FaExclamationTriangle className="text-amber-600 mt-0.5 shrink-0" />
+                        <div>
+                            <p className="text-sm font-semibold text-amber-900">
+                                {dueCampaigns.length} campaña{dueCampaigns.length > 1 ? "s" : ""} con envío pendiente
+                            </p>
+                            <p className="text-xs text-amber-800 mt-1">
+                                En producción el envío automático depende del cron de Vercel o de un envío manual desde aquí.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleRunAllDue}
+                        disabled={runningDue || Boolean(sendingId)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60 shrink-0"
+                    >
+                        {runningDue ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
+                        {runningDue ? "Enviando…" : "Enviar pendientes"}
+                    </button>
+                </div>
+            )}
 
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="relative flex-1 max-w-md">
@@ -228,7 +364,12 @@ export default function EmailCampaignsAdminPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                     {filtered.map((campaign) => (
-                        <CampaignCard key={campaign.campaignId} campaign={campaign} />
+                        <CampaignCard
+                            key={campaign.campaignId}
+                            campaign={campaign}
+                            onSend={handleSendCampaign}
+                            sendingId={sendingId}
+                        />
                     ))}
                 </div>
             )}

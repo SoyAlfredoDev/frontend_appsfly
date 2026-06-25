@@ -9,6 +9,8 @@ import {
     FaEnvelope,
     FaExclamationTriangle,
     FaRobot,
+    FaPaperPlane,
+    FaSpinner,
 } from "react-icons/fa";
 import PageContainer, { PageHeader } from "../../components/layout/PageContainer.jsx";
 import {
@@ -17,6 +19,7 @@ import {
     markAdminNotificationReadRequest,
     markAllAdminNotificationsReadRequest,
 } from "../../api/adminNotifications.js";
+import { executeEmailCampaignRequest } from "../../api/adminEmailCampaign.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
 import { useAdminNotifications } from "../../context/AdminNotificationsContext.jsx";
@@ -44,7 +47,7 @@ function getNotificationActionLink(notification) {
     }
     if (notification.campaignId) {
         return {
-            path: `/admin/email-campaigns/${notification.campaignId}/edit`,
+            path: `/admin/email-campaigns/${notification.campaignId}/settings`,
             label: "Configurar y enviar campaña",
         };
     }
@@ -66,6 +69,7 @@ export default function NotificationsAdminPage() {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setLocalUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [sendingCampaignId, setSendingCampaignId] = useState(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -114,6 +118,44 @@ export default function NotificationsAdminPage() {
         } catch {
             toast.error("Error", "No se pudieron marcar las notificaciones.");
             await refreshUnreadCount();
+        }
+    };
+
+    const canSendFromNotification = (notification) =>
+        Boolean(notification.campaignId)
+        && ["CAMPAIGN_MANUAL_REQUIRED", "CAMPAIGN_FAILED", "CAMPAIGN_SKIPPED"].includes(
+            notification.notificationType,
+        );
+
+    const handleSendCampaignNow = async (notification) => {
+        if (!notification.campaignId) return;
+
+        const ok = await confirm({
+            title: "Enviar campaña ahora",
+            message: `¿Ejecutar el envío de «${notification.payload?.campaignName ?? notification.title}»?`,
+            variant: "danger",
+            confirmText: "Enviar ahora",
+            cancelText: "Cancelar",
+        });
+        if (!ok) return;
+
+        setSendingCampaignId(notification.campaignId);
+        try {
+            const res = await executeEmailCampaignRequest(notification.campaignId);
+            const sent = res.data?.run?.sentCount ?? 0;
+            toast.success("Campaña enviada", `Se enviaron ${sent} correo(s).`);
+            if (!notification.isRead) {
+                await markAdminNotificationReadRequest(notification.notificationId);
+            }
+            await load();
+            await refreshUnreadCount();
+        } catch (err) {
+            toast.error(
+                "No se pudo enviar",
+                err.response?.data?.message ?? "Error al ejecutar la campaña.",
+            );
+        } finally {
+            setSendingCampaignId(null);
         }
     };
 
@@ -222,7 +264,22 @@ export default function NotificationsAdminPage() {
                                     <p className="text-xs text-slate-400 mt-2">
                                         {formatWhen(n.createdAt)}
                                     </p>
-                                    <div className="mt-2 flex flex-wrap gap-3">
+                                    <div className="mt-2 flex flex-wrap gap-3 items-center">
+                                        {canSendFromNotification(n) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSendCampaignNow(n)}
+                                                disabled={sendingCampaignId === n.campaignId}
+                                                className="text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 rounded-lg px-3 py-1.5 inline-flex items-center gap-1.5"
+                                            >
+                                                {sendingCampaignId === n.campaignId ? (
+                                                    <FaSpinner className="animate-spin" />
+                                                ) : (
+                                                    <FaPaperPlane />
+                                                )}
+                                                Enviar ahora
+                                            </button>
+                                        )}
                                         {actionLink && (
                                             <Link
                                                 to={actionLink.path}

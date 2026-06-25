@@ -8,6 +8,12 @@ export const ensureSystemEmailCampaignsRequest = () =>
 
 export const getEmailCampaignsRequest = () => axios.get("/admin/email-campaigns");
 
+export const getEmailCampaignsDueOverviewRequest = () =>
+    axios.get("/admin/email-campaigns/due-overview");
+
+export const runDueEmailCampaignsRequest = () =>
+    axios.post("/admin/email-campaigns/run-due");
+
 export const getEmailCampaignRequest = (campaignId) =>
     axios.get(`/admin/email-campaigns/${campaignId}`);
 
