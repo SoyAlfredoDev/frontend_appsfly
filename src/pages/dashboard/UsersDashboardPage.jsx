@@ -265,7 +265,7 @@ const DASHBOARD_SALES_VIEWS = {
   dayIncome: {
     title: "Ingresos del día",
     subtitle: "Ventas de hoy que generaron ingresos",
-    filterView: "today",
+    filterView: "todayIncome",
   },
   monthSales: {
     title: "Ventas del mes",

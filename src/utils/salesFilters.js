@@ -1,17 +1,24 @@
-function isSameDay(dateValue) {
-  const d = new Date(dateValue);
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
+const BUSINESS_TIMEZONE = "America/Santiago";
+
+function getBusinessDateFromValue(dateValue) {
+  if (!dateValue) return null;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-CA", { timeZone: BUSINESS_TIMEZONE });
 }
 
-function isSameMonth(dateValue) {
-  const d = new Date(dateValue);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+function getTodayBusinessDate() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: BUSINESS_TIMEZONE });
+}
+
+function isSameBusinessDay(dateValue) {
+  return getBusinessDateFromValue(dateValue) === getTodayBusinessDate();
+}
+
+function isSameBusinessMonth(dateValue) {
+  const businessDate = getBusinessDateFromValue(dateValue);
+  const today = getTodayBusinessDate();
+  return Boolean(businessDate && businessDate.slice(0, 7) === today.slice(0, 7));
 }
 
 export const DELIVERY_FILTERS = {
@@ -47,12 +54,18 @@ export function filterSalesByDashboardView(sales, view) {
 
   switch (view) {
     case "today":
-      return sales.filter((sale) => isSameDay(sale.createdAt));
+      return sales.filter((sale) => isSameBusinessDay(sale.createdAt));
+    case "todayIncome":
+      return sales.filter(
+        (sale) =>
+          isSameBusinessDay(sale.createdAt) && (sale.saleTotalPayments ?? 0) > 0,
+      );
     case "month":
-      return sales.filter((sale) => isSameMonth(sale.createdAt));
+      return sales.filter((sale) => isSameBusinessMonth(sale.createdAt));
     case "pending":
       return sales.filter(
-        (sale) => isSameMonth(sale.createdAt) && (sale.salePendingAmount ?? 0) > 0
+        (sale) =>
+          isSameBusinessMonth(sale.createdAt) && (sale.salePendingAmount ?? 0) > 0,
       );
     default:
       return sales;

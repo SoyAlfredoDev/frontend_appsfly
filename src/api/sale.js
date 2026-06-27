@@ -1,5 +1,6 @@
 import axios from "./axios.js"
 export const getSales = () => axios.get('/sales');
+export const getDashboardSalesView = (view) => axios.get(`/sales/dashboard/${view}`);
 export const createSale = (data) => axios.post('/sales', data);
 export const getSaleById = (id) => axios.get(`/sales/${id}`);
 export const getMonthlySales = (month, year) => axios.get(`/sales/month/${month}/${year}`);

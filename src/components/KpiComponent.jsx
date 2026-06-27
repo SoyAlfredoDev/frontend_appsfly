@@ -14,29 +14,8 @@ export default function KpiComponent({
 }) {
   const isClickable = Boolean(to || onClick);
 
-  const card = (
-    <motion.div
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onClick={onClick}
-      onKeyDown={
-        onClick
-          ? (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      className={`card overflow-hidden flex flex-col h-full${
-        isClickable ? " cursor-pointer hover:border-primary/25 transition-colors" : ""
-      }`}
-      whileHover={{ y: -2, boxShadow: "0 8px 24px rgba(2, 31, 65, 0.1)" }}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-    >
+  const cardBody = (
+    <>
       <div className="px-5 pt-4 pb-3 border-b border-slate-100">
         <h4 className="text-sm font-semibold text-dark">{title}</h4>
       </div>
@@ -64,14 +43,41 @@ export default function KpiComponent({
       <div className="bg-slate-50 text-slate-600 text-center py-2.5 px-4 text-xs font-medium border-t border-slate-100">
         {footer}
       </div>
-    </motion.div>
+    </>
   );
 
-  if (!to) return card;
+  const motionProps = {
+    className: `card overflow-hidden flex flex-col h-full${
+      isClickable ? " cursor-pointer hover:border-primary/25 transition-colors" : ""
+    }`,
+    whileHover: isClickable
+      ? { y: -2, boxShadow: "0 8px 24px rgba(2, 31, 65, 0.1)" }
+      : undefined,
+    initial: { opacity: 0, y: 12 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.3, ease: "easeOut" },
+  };
 
-  return (
-    <Link to={to} className="no-underline block h-full">
-      {card}
-    </Link>
-  );
+  if (to) {
+    return (
+      <Link to={to} className="no-underline block h-full">
+        <motion.div {...motionProps}>{cardBody}</motion.div>
+      </Link>
+    );
+  }
+
+  if (onClick) {
+    return (
+      <motion.button
+        type="button"
+        onClick={onClick}
+        {...motionProps}
+        className={`${motionProps.className} w-full text-left appearance-none`}
+      >
+        {cardBody}
+      </motion.button>
+    );
+  }
+
+  return <motion.div {...motionProps}>{cardBody}</motion.div>;
 }

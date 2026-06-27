@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaTimes, FaShoppingCart } from "react-icons/fa";
-import { getSales } from "../../api/sale.js";
+import { getDashboardSalesView, getSales } from "../../api/sale.js";
 import { filterSalesByDashboardView } from "../../utils/salesFilters.js";
 import SalesTable from "../sales/SalesTable.jsx";
 
@@ -32,19 +33,40 @@ export default function DashboardSalesDetailModal({
   }, [isOpen, onClose]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !filterView) {
+      return undefined;
+    }
 
     let cancelled = false;
 
     const loadSales = async () => {
       setLoading(true);
+      setSales([]);
       try {
-        const response = await getSales();
+        const response = await getDashboardSalesView(filterView);
         if (!cancelled) {
           setSales(Array.isArray(response.data) ? response.data : []);
         }
       } catch (error) {
-        console.error("Error loading sales for dashboard detail:", error);
+        const status = error?.response?.status;
+        if (status === 404 || status === 400) {
+          try {
+            const fallback = await getSales();
+            if (!cancelled) {
+              setSales(
+                filterSalesByDashboardView(
+                  Array.isArray(fallback.data) ? fallback.data : [],
+                  filterView,
+                ),
+              );
+            }
+            return;
+          } catch (fallbackError) {
+            console.error("Error loading sales fallback for dashboard detail:", fallbackError);
+          }
+        } else {
+          console.error("Error loading sales for dashboard detail:", error);
+        }
         if (!cancelled) setSales([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -56,16 +78,13 @@ export default function DashboardSalesDetailModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, filterView]);
 
-  const filteredSales = useMemo(
-    () => filterSalesByDashboardView(sales, filterView),
-    [sales, filterView]
-  );
+  if (typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && filterView && (
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center p-4"
           role="dialog"
@@ -118,7 +137,7 @@ export default function DashboardSalesDetailModal({
 
             <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-50 min-h-0">
               <SalesTable
-                data={filteredSales}
+                data={sales}
                 isLoading={loading}
                 sectionTitle="Detalle de ventas"
                 emptyTitle="No hay ventas para este periodo."
@@ -138,6 +157,7 @@ export default function DashboardSalesDetailModal({
           </Motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
