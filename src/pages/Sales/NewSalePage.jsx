@@ -3,15 +3,19 @@ import { getProductsAndServices } from "../../libs/productsAndServices.js";
 import { useAuth } from "../../context/authContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import CardRegisterPayments from "../../components/paymennts/CardRegisterPayments.jsx";
-import NewCustomerModal from "../../components/modals/AddCustomerModal.jsx";
 import formatName from "../../utils/formatName.js";
 import formatCurrency from "../../utils/formatCurrency.js";
 import { createSaleGeneral } from "../../utils/createSale.js";
+import { createQuotationGeneral } from "../../utils/createQuotation.js";
 import { issueTaxDocumentRequest } from "../../api/taxDocuments.js";
-import ReceiptTypeSelector from "../../components/billing/ReceiptTypeSelector.jsx";
+import ReceiptTypeSelector, {
+  RECEIPT_SHORT_LABELS,
+  isQuotationDocumentType,
+} from "../../components/billing/ReceiptTypeSelector.jsx";
+import SendDocumentEmailOption from "../../components/sales/SendDocumentEmailOption.jsx";
 import FacturaReceiverForm from "../../components/billing/FacturaReceiverForm.jsx";
 import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/validateSaleStock.js";
 import { isCreditSalesEnabled, isDeliveryControlEnabled } from "../../utils/businessReceiptSettings.js";
@@ -24,18 +28,12 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   FaPlus,
   FaTrash,
-  FaUserPlus,
   FaCalendarAlt,
   FaUserTie,
   FaSave,
-  FaSearch,
   FaBoxOpen,
   FaChevronLeft,
   FaMinus,
-  FaTimes,
-  FaReceipt,
-  FaMoneyBillWave,
-  FaListUl,
   FaLock,
   FaExclamationTriangle,
 } from "react-icons/fa";
@@ -43,18 +41,13 @@ import {
 import { getClosureStatus, closeAllPendingClosures } from "../../api/dailySales.js";
 import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineItem.jsx";
+import RegisterCustomerBar from "../../components/sales/RegisterCustomerBar.jsx";
+import FormFlatSection from "../../components/forms/FormFlatSection.jsx";
 import {
   PRIMARY_BTN,
   PRIMARY_BTN_BLOCK,
-  KPI_CARD,
-  KPI_ICON_PRIMARY,
-  KPI_ICON_SECONDARY,
-  KPI_ICON_AMBER,
-  KPI_LABEL,
-  KPI_VALUE,
   TABLE_WRAPPER_FULL,
   TABLE_TOOLBAR,
-  TABLE_SEARCH,
   TABLE_INPUT,
   TABLE_SECTION_TITLE,
   TABLE_SECTION_SUB,
@@ -66,7 +59,11 @@ import {
   TR_ROW,
   TBODY,
   ACTION_DELETE,
-  PAGE_HEADER_CARD,
+  FLAT_PAGE_HEADER,
+  FLAT_META_TEXT,
+  FLAT_MOBILE_SCROLL,
+  FLAT_INPUT,
+  FLAT_TAP_TARGET,
   formatRecordCount,
 } from "../../utils/expenseUiPatterns.js";
 
@@ -102,10 +99,13 @@ let lastClosureToastKey = null;
 export default function NewSalePage() {
   const toast = useToast();
   const confirm = useConfirm();
+  const navigate = useNavigate();
   /** { blocked, error, fechaPendiente, fechasPendientes, message } | null */
   const [closureBlock, setClosureBlock] = useState(null);
   const [closingAllPending, setClosingAllPending] = useState(false);
   const [saleId, setSaleId] = useState(uuidv4());
+  const [quotationId, setQuotationId] = useState(uuidv4());
+  const [sendByEmail, setSendByEmail] = useState(false);
   const { user, business } = useAuth();
   const creditSalesEnabled = useMemo(
     () => isCreditSalesEnabled(business),
@@ -123,6 +123,7 @@ export default function NewSalePage() {
   const [dataSalePayments, setDataSalePayments] = useState([]);
 
   const [documentType, setDocumentType] = useState("RECEIPT");
+  const isQuotationMode = isQuotationDocumentType(documentType);
   const [facturaReceiver, setFacturaReceiver] = useState({
     businessName: "",
     rut: "",
@@ -137,7 +138,7 @@ export default function NewSalePage() {
   const [total, setTotal] = useState(0);
   const [totalPayments, setTotalPayments] = useState(0);
   const amountDue = useMemo(() => total - totalPayments, [total, totalPayments]);
-  const requireFullPayment = !creditSalesEnabled;
+  const requireFullPayment = !creditSalesEnabled && !isQuotationMode;
 
   // Sale header
   const [dataSale, setDataSale] = useState({
@@ -153,7 +154,6 @@ export default function NewSalePage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [customerSearch, setCustomerSearch] = useState("");
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
-  const customerDropdownRef = useRef(null);
 
   const isSalesBlocked = closureBlock?.blocked === true;
 
@@ -167,8 +167,26 @@ export default function NewSalePage() {
       }),
     [creditSalesEnabled, total, dataSalePayments, totalPayments],
   );
-  const canFinalizeSale =
-    !isSalesBlocked && (creditSalesEnabled || total <= 0 || salePaymentComplete);
+  const canFinalizeSale = useMemo(() => {
+    const hasValidItems = dataTable.some((row) => row.saleDetailProductServiceId);
+    if (isQuotationMode) {
+      return total > 0 && Boolean(dataSale.saleCustomerId) && hasValidItems;
+    }
+    return (
+      !isSalesBlocked &&
+      (creditSalesEnabled || total <= 0 || salePaymentComplete)
+    );
+  }, [
+    isQuotationMode,
+    total,
+    dataSale.saleCustomerId,
+    dataTable,
+    isSalesBlocked,
+    creditSalesEnabled,
+    salePaymentComplete,
+  ]);
+
+  const submitActionLabel = isQuotationMode ? "Generar cotización" : "Finalizar venta";
 
   const applyClosureStatus = useCallback((status) => {
     if (status?.blocked) {
@@ -195,6 +213,14 @@ export default function NewSalePage() {
     [customers, dataSale.saleCustomerId],
   );
 
+  const customerHasEmail = Boolean(selectedCustomer?.customerEmail?.trim());
+
+  useEffect(() => {
+    if (!customerHasEmail) {
+      setSendByEmail(false);
+    }
+  }, [customerHasEmail, dataSale.saleCustomerId]);
+
   // Filtered customers for search
   const filteredCustomers = useMemo(() => {
     if (!customerSearch.trim()) return customers;
@@ -205,23 +231,13 @@ export default function NewSalePage() {
           .toLowerCase()
           .includes(q) ||
         (c.customerDocumentNumber &&
-          c.customerDocumentNumber.toLowerCase().includes(q)),
+          c.customerDocumentNumber.toLowerCase().includes(q)) ||
+        (c.customerPhoneNumber &&
+          c.customerPhoneNumber.toLowerCase().includes(q)) ||
+        (c.customerEmail &&
+          c.customerEmail.toLowerCase().includes(q)),
     );
   }, [customers, customerSearch]);
-
-  // ── Close dropdown on click outside ─────────────────
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        customerDropdownRef.current &&
-        !customerDropdownRef.current.contains(e.target)
-      ) {
-        setIsCustomerDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // ── Data loaders ────────────────────────────────────
   const searchCustomers = useCallback(async (signal) => {
@@ -448,7 +464,7 @@ export default function NewSalePage() {
 
   // ── Submit ───────────────────────────────────────────
   const handleSubmit = async () => {
-    if (isSalesBlocked) {
+    if (!isQuotationMode && isSalesBlocked) {
       toast.error("Operación bloqueada", closureBlock?.message ?? "No se pueden registrar ventas en este momento.");
       return;
     }
@@ -461,7 +477,7 @@ export default function NewSalePage() {
     }
     if (dataTable.length < 1) {
       toast.info(
-        'Sin productos',
+        isQuotationMode ? 'Sin productos' : 'Sin productos',
         'Debes agregar al menos un producto o servicio.',
       );
       return;
@@ -483,32 +499,34 @@ export default function NewSalePage() {
       }
     }
 
-    const stockErrors = validateSaleStockLines(dataTable, productsServices);
-    if (stockErrors.length > 0) {
-      toast.error(
-        'Stock insuficiente',
-        formatSaleStockErrors(stockErrors),
-      );
-      return;
-    }
+    if (!isQuotationMode) {
+      const stockErrors = validateSaleStockLines(dataTable, productsServices);
+      if (stockErrors.length > 0) {
+        toast.error(
+          'Stock insuficiente',
+          formatSaleStockErrors(stockErrors),
+        );
+        return;
+      }
 
-    if (amountDue > 0 && !creditSalesEnabled) {
-      toast.error(
-        "Pago incompleto",
-        "Este negocio no permite ventas a crédito. El total abonado debe igualar el total de la venta.",
-      );
-      return;
-    }
+      if (amountDue > 0 && !creditSalesEnabled) {
+        toast.error(
+          "Pago incompleto",
+          "Este negocio no permite ventas a crédito. El total abonado debe igualar el total de la venta.",
+        );
+        return;
+      }
 
-    const paymentValidation = validateSalePaymentsForCreditPolicy({
-      creditSalesEnabled,
-      total,
-      payments: dataSalePayments,
-      totalPayments,
-    });
-    if (!paymentValidation.isValid) {
-      toast.error(paymentValidation.title, paymentValidation.message);
-      return;
+      const paymentValidation = validateSalePaymentsForCreditPolicy({
+        creditSalesEnabled,
+        total,
+        payments: dataSalePayments,
+        totalPayments,
+      });
+      if (!paymentValidation.isValid) {
+        toast.error(paymentValidation.title, paymentValidation.message);
+        return;
+      }
     }
 
     const customerLabel = selectedCustomer
@@ -516,16 +534,16 @@ export default function NewSalePage() {
       : '—';
 
     const isConfirmed = await confirm({
-      title: '¿Confirmar venta?',
+      title: isQuotationMode ? '¿Generar cotización?' : '¿Confirmar venta?',
       message: `Cliente: ${customerLabel}. Items: ${dataTable.length}. Total: ${formatCurrency(total)}.`,
       variant: 'success',
-      confirmText: 'Confirmar venta',
+      confirmText: isQuotationMode ? 'Generar cotización' : 'Confirmar venta',
       cancelText: 'Cancelar',
     });
 
     if (!isConfirmed) return;
 
-    if (documentType === "FACTURA") {
+    if (!isQuotationMode && documentType === "FACTURA") {
       const required = ["businessName", "rut", "businessActivity", "address", "commune", "city", "email"];
       const missing = required.filter((key) => !String(facturaReceiver[key] ?? "").trim());
       if (missing.length) {
@@ -536,6 +554,38 @@ export default function NewSalePage() {
 
     setIsLoading(true);
     try {
+      if (isQuotationMode) {
+        const quotationPayload = {
+          quotationId,
+          quotationCustomerId: dataSale.saleCustomerId,
+          quotationTotal: total,
+          quotationComment: dataSale.saleComment || "",
+        };
+        const res = await createQuotationGeneral(
+          quotationPayload,
+          dataTable,
+          { sendByEmail: sendByEmail && customerHasEmail },
+        );
+        if (res) {
+          const sentEmail = Boolean(res.emailResult?.sent);
+          if (res.emailError) {
+            toast.info(
+              `Cotización #${res.dataQuotation.quotationNumber}`,
+              res.emailError.message || "La cotización se guardó, pero no se pudo enviar el correo.",
+            );
+          } else {
+            toast.success(
+              `Cotización #${res.dataQuotation.quotationNumber}`,
+              sentEmail
+                ? `La cotización se registró y se envió a ${selectedCustomer?.customerEmail}.`
+                : "La cotización se registró correctamente.",
+            );
+          }
+          navigate("/quotations");
+        }
+        return;
+      }
+
       const salePayload = {
         ...dataSale,
         documentType,
@@ -550,6 +600,7 @@ export default function NewSalePage() {
         salePayload,
         dataTable,
         dataSalePayments,
+        { sendByEmail: sendByEmail && customerHasEmail },
       );
       if (res) {
         if (documentType === "BOLETA" || documentType === "FACTURA") {
@@ -567,11 +618,19 @@ export default function NewSalePage() {
                     },
             });
             const folio = issueRes.data?.document?.folio;
+            let emailNote = "";
+            if (sendByEmail && customerHasEmail) {
+              if (res.emailResult?.sent) {
+                emailNote = ` Correo enviado a ${selectedCustomer?.customerEmail}.`;
+              } else if (res.emailError) {
+                emailNote = ` ${res.emailError.message || "No se pudo enviar el correo."}`;
+              }
+            }
             toast.success(
               `Venta #${res.dataSale.saleNumber}`,
-              folio
+              (folio
                 ? `DTE emitido. Folio ${folio}.`
-                : "Venta registrada y DTE en proceso.",
+                : "Venta registrada y DTE en proceso.") + emailNote,
             );
           } catch (dteError) {
             toast.error(
@@ -581,14 +640,24 @@ export default function NewSalePage() {
             );
           }
         } else {
-          toast.success(
-            `Venta #${res.dataSale.saleNumber}`,
-            "La venta se registró correctamente.",
-          );
+          const sentEmail = Boolean(res.emailResult?.sent);
+          if (res.emailError) {
+            toast.info(
+              `Venta #${res.dataSale.saleNumber}`,
+              res.emailError.message || "La venta se guardó, pero no se pudo enviar el correo.",
+            );
+          } else {
+            toast.success(
+              `Venta #${res.dataSale.saleNumber}`,
+              sentEmail
+                ? `La venta se registró y se envió a ${selectedCustomer?.customerEmail}.`
+                : "La venta se registró correctamente.",
+            );
+          }
         }
-        // Reset
         const newId = uuidv4();
         setSaleId(newId);
+        setQuotationId(uuidv4());
         setDataSale({
           saleId: newId,
           saleComment: "",
@@ -601,6 +670,7 @@ export default function NewSalePage() {
         setTotalPayments(0);
         setDataSalePayments([]);
         setDocumentType("RECEIPT");
+        setSendByEmail(false);
         setFacturaReceiver({
           businessName: "",
           rut: "",
@@ -612,9 +682,9 @@ export default function NewSalePage() {
         });
       }
     } catch (error) {
-      console.error("Error creating sale:", error);
+      console.error(isQuotationMode ? "Error creating quotation:" : "Error creating sale:", error);
       const apiError = error.response?.data;
-      if (apiError?.error === "BLOQUEO_CIERRE_PENDIENTE" || apiError?.error === "DAY_CLOSED") {
+      if (!isQuotationMode && (apiError?.error === "BLOQUEO_CIERRE_PENDIENTE" || apiError?.error === "DAY_CLOSED")) {
         applyClosureStatus({
           blocked: true,
           error: apiError.error,
@@ -624,13 +694,15 @@ export default function NewSalePage() {
         toast.error("Operación bloqueada", apiError.message);
         return;
       }
-      if (apiError?.code === "INSUFFICIENT_STOCK" || error.code === "INSUFFICIENT_STOCK") {
+      if (!isQuotationMode && (apiError?.code === "INSUFFICIENT_STOCK" || error.code === "INSUFFICIENT_STOCK")) {
         toast.error("Stock insuficiente", apiError?.message || error.message || "No hay unidades disponibles.");
         return;
       }
       toast.error(
         'Error',
-        'No se pudo registrar la venta. Inténtalo de nuevo.',
+        isQuotationMode
+          ? (apiError?.message || 'No se pudo registrar la cotización. Inténtalo de nuevo.')
+          : 'No se pudo registrar la venta. Inténtalo de nuevo.',
       );
     } finally {
       setIsLoading(false);
@@ -664,185 +736,106 @@ export default function NewSalePage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
-      className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface pb-[4.5rem] md:pb-0"
+      className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface md:pb-0"
     >
-        {/* Header — compacto en móvil */}
-        <Motion.div
-          className="flex-none w-full border-b border-gray-200 bg-white md:bg-transparent md:border-0"
-        >
-          {/* Móvil: barra superior mínima */}
-          <div className="md:hidden px-3 py-2.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Link
-                to="/sales"
-                className="p-2 -ml-1 text-gray-500 hover:text-gray-700 rounded-lg"
-                title="Volver"
-              >
-                <FaChevronLeft className="text-sm" />
-              </Link>
-              <div className="min-w-0">
-                <h1 className="text-base font-bold text-dark truncate">Nueva Venta</h1>
-                <p className="text-[10px] text-gray-400 truncate">{todayDate}</p>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-[10px] uppercase font-semibold text-gray-400">Total</p>
-              <p className="text-sm font-bold text-primary font-mono">{formatCurrency(total)}</p>
+        {/* Header plano */}
+        <Motion.div className={FLAT_PAGE_HEADER}>
+          <div className="md:hidden px-3 py-2 flex items-center gap-2 border-b border-gray-100">
+            <Link
+              to="/sales"
+              className={`${FLAT_TAP_TARGET} -ml-1 text-gray-500 rounded-md`}
+              title="Volver"
+              aria-label="Volver a ventas"
+            >
+              <FaChevronLeft className="text-sm" />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base font-bold text-dark leading-tight">Nueva Venta</h1>
+              <p className="text-[11px] text-gray-400">{todayDate}</p>
             </div>
           </div>
 
-          {/* Desktop: header completo */}
-          <div className={`hidden md:flex ${PAGE_HEADER_CARD} !rounded-none border-x-0 border-t-0 shadow-sm w-full flex-col gap-4`}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
-            <div className="flex items-center gap-3">
-              <Link
-                to="/sales"
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Volver a Ventas"
-              >
-                <FaChevronLeft className="text-sm" />
-              </Link>
-              <div>
-                <h1 className="page-title">Nueva Venta</h1>
-                <p className="page-subtitle">
-                  Registra una nueva venta con productos y servicios
-                </p>
+          <div className="hidden md:block px-4 py-2 border-b border-gray-100">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <Link
+                  to="/sales"
+                  className="p-1.5 text-gray-400 hover:text-gray-600 rounded-md transition-colors shrink-0"
+                  title="Volver a Ventas"
+                >
+                  <FaChevronLeft className="text-sm" />
+                </Link>
+                <div className="min-w-0">
+                  <h1 className="text-base font-bold text-dark">Nueva Venta</h1>
+                  <p className="text-[11px] text-gray-400">
+                    Registra productos, servicios y comprobante
+                  </p>
+                </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                <FaCalendarAlt className="text-primary text-xs" />
-                <span className="text-xs font-semibold text-gray-700">{todayDate}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                <FaUserTie className="text-secondary text-xs" />
-                <span className="text-xs font-medium text-gray-600">
+              <div className="flex items-center gap-4 shrink-0">
+                <span className={FLAT_META_TEXT}>
+                  <FaCalendarAlt className="text-primary" /> {todayDate}
+                </span>
+                <span className={FLAT_META_TEXT}>
+                  <FaUserTie className="text-secondary" />
                   {formatName(user?.userFirstName)} {formatName(user?.userLastName)}
                 </span>
               </div>
             </div>
           </div>
-          </div>
 
-          {/* Cliente — una sola instancia responsive */}
-          <div className="px-3 md:px-6 pb-3 flex items-center gap-2 w-full">
-              <div
-                ref={customerDropdownRef}
-                className="flex-1 relative"
-              >
-                {selectedCustomer && !isCustomerDropdownOpen ? (
-                  <div
-                    className="flex items-center gap-2 md:gap-3 bg-primary/5 border border-primary/20 rounded-lg md:rounded-xl px-3 md:px-4 h-10 md:h-11 cursor-pointer hover:bg-primary/10 transition-colors"
-                    onClick={() => setIsCustomerDropdownOpen(true)}
-                  >
-                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">
-                      {selectedCustomer.customerFirstName?.charAt(0)?.toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs md:text-sm font-semibold text-gray-800 truncate">
-                        {selectedCustomer.customerFirstName}{" "}
-                        {selectedCustomer.customerLastName}
-                      </p>
-                      <p className="hidden md:block text-xs text-gray-500 truncate">
-                        {selectedCustomer.customerDocumentNumber || "Sin documento"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDataSale((prev) => ({ ...prev, saleCustomerId: null }));
-                      }}
-                      className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
-                      title="Cambiar cliente"
-                    >
-                      <FaTimes className="text-xs" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs md:text-sm pointer-events-none" />
-                    <input
-                      type="text"
-                      className={`${TABLE_SEARCH} !py-2 !text-sm !pl-9 md:!pl-10`}
-                      placeholder="Buscar cliente..."
-                      value={customerSearch}
-                      onChange={(e) => {
-                        setCustomerSearch(e.target.value);
-                        setIsCustomerDropdownOpen(true);
-                      }}
-                      onFocus={() => setIsCustomerDropdownOpen(true)}
-                      autoComplete="off"
-                    />
-                  </div>
-                )}
-
-                <AnimatePresence>
-                  {isCustomerDropdownOpen && (
-                    <Motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg md:rounded-xl shadow-lg max-h-48 md:max-h-52 overflow-y-auto"
-                    >
-                      {filteredCustomers.length === 0 ? (
-                        <div className="px-3 py-4 text-center text-xs md:text-sm text-gray-400">
-                          No se encontraron clientes
-                        </div>
-                      ) : (
-                        filteredCustomers.map((c) => (
-                          <button
-                            key={c.customerId}
-                            type="button"
-                            className={`w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 h-9 md:h-10 text-left hover:bg-primary/5 transition-colors text-xs md:text-sm ${c.customerId === dataSale.saleCustomerId ? "bg-primary/10" : ""}`}
-                            onClick={() => handleChangeCustomerSelect(c.customerId)}
-                          >
-                            <div className="hidden md:flex w-7 h-7 rounded-full bg-gray-200 items-center justify-center text-gray-600 font-bold text-xs shrink-0">
-                              {c.customerFirstName?.charAt(0)?.toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-800 truncate">
-                                {c.customerFirstName} {c.customerLastName}
-                              </p>
-                              {c.customerDocumentNumber && (
-                                <p className="hidden md:block text-xs text-gray-400 truncate">
-                                  {c.customerDocumentNumber}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </Motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <NewCustomerModal
-                trigger={
-                  <button type="button" className={`${PRIMARY_BTN} !px-3 !py-2 h-10 shrink-0`} title="Registrar Cliente" disabled={isSalesBlocked}>
-                    <FaUserPlus className="text-sm" />
-                    <span className="hidden lg:inline ml-1">Nuevo</span>
-                  </button>
-                }
-                title="Registrar Cliente"
-                onCreated={handleCreated}
+          <div className="hidden md:grid md:grid-cols-12 md:gap-4 md:px-4 md:py-2 md:items-end">
+            <div className="col-span-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+                Comprobante
+              </p>
+              <ReceiptTypeSelector
+                variant="compact"
+                value={documentType}
+                onChange={setDocumentType}
+                disabled={isLoading || isSalesBlocked}
               />
-
-              {dataSale.saleCustomerId && (
-                <Link
-                  to={`/customers/${dataSale.saleCustomerId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden sm:flex items-center justify-center w-10 h-10 text-secondary hover:bg-secondary/10 rounded-lg transition-colors border border-slate-200 shrink-0"
-                  title="Ver Ficha Cliente"
-                >
-                  <FaSearch className="text-xs" />
-                </Link>
-              )}
+            </div>
+            <div className="col-span-8">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+                Cliente
+              </p>
+              <RegisterCustomerBar
+                selectedCustomer={selectedCustomer}
+                selectedCustomerId={dataSale.saleCustomerId}
+                customerSearch={customerSearch}
+                isDropdownOpen={isCustomerDropdownOpen}
+                onSearchChange={(value) => {
+                  setCustomerSearch(value);
+                  setIsCustomerDropdownOpen(true);
+                }}
+                onOpenDropdown={() => setIsCustomerDropdownOpen(true)}
+                onCloseDropdown={() => setIsCustomerDropdownOpen(false)}
+                onSelectCustomer={handleChangeCustomerSelect}
+                onClearCustomer={() =>
+                  setDataSale((prev) => ({ ...prev, saleCustomerId: null }))
+                }
+                filteredCustomers={filteredCustomers}
+                onCustomerCreated={handleCreated}
+                disabled={isSalesBlocked}
+                viewCustomerHref={
+                  dataSale.saleCustomerId
+                    ? `/customers/${dataSale.saleCustomerId}`
+                    : null
+                }
+              />
+            </div>
           </div>
+
+          {documentType === "FACTURA" && (
+            <div className="hidden md:block px-4 py-2 border-t border-gray-100">
+              <FacturaReceiverForm
+                value={facturaReceiver}
+                onChange={setFacturaReceiver}
+                disabled={isLoading || isSalesBlocked}
+              />
+            </div>
+          )}
         </Motion.div>
 
         {/* Banner de bloqueo por cierre pendiente o día cerrado */}
@@ -907,134 +900,144 @@ export default function NewSalePage() {
 
         <div
           className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-opacity ${
-            isSalesBlocked ? "pointer-events-none opacity-45 select-none" : ""
+            isSalesBlocked && !isQuotationMode ? "pointer-events-none opacity-45 select-none" : ""
           }`}
         >
 
-        {/* KPI — tira compacta móvil / cards desktop */}
-        <div className="md:hidden flex gap-2 px-3 py-2 border-b border-gray-200 bg-surface flex-none overflow-x-auto">
-          <div className="flex-shrink-0 rounded-lg bg-white border border-gray-200 px-3 py-2 min-w-[72px]">
-            <p className="text-[10px] font-semibold uppercase text-gray-400">Items</p>
-            <p className="text-sm font-bold text-gray-900">{itemCount}</p>
-          </div>
-          <div className="flex-shrink-0 rounded-lg bg-white border border-gray-200 px-3 py-2 min-w-[88px]">
-            <p className="text-[10px] font-semibold uppercase text-gray-400">Abonado</p>
-            <p className="text-sm font-bold text-primary font-mono">{formatCurrency(totalPayments)}</p>
-          </div>
-          <div className="flex-shrink-0 rounded-lg bg-white border border-gray-200 px-3 py-2 min-w-[88px]">
-            <p className="text-[10px] font-semibold uppercase text-gray-400">Saldo</p>
-            <p className={`text-sm font-bold font-mono ${amountDue > 0 ? "text-red-500" : "text-gray-900"}`}>
-              {formatCurrency(amountDue)}
-            </p>
-          </div>
-        </div>
-
-        <div className="hidden md:grid grid-cols-3 gap-4 px-6 py-4 border-b border-gray-200 bg-surface flex-none">
-          <div className={KPI_CARD}>
-            <div className={KPI_ICON_PRIMARY}>
-              <FaMoneyBillWave className="text-xl" />
-            </div>
-            <div>
-              <p className={KPI_LABEL}>Total venta</p>
-              <p className={KPI_VALUE}>{formatCurrency(total)}</p>
-            </div>
-          </div>
-          <div className={KPI_CARD}>
-            <div className={KPI_ICON_SECONDARY}>
-              <FaListUl className="text-xl" />
-            </div>
-            <div>
-              <p className={KPI_LABEL}>Items agregados</p>
-              <p className={KPI_VALUE}>{itemCount}</p>
-            </div>
-          </div>
-          <div className={KPI_CARD}>
-            <div className={KPI_ICON_AMBER}>
-              <FaReceipt className="text-xl" />
-            </div>
-            <div>
-              <p className={KPI_LABEL}>Saldo pendiente</p>
-              <p className={KPI_VALUE}>{formatCurrency(amountDue)}</p>
-            </div>
-          </div>
-        </div>
-
         {/* Items — tarjetas móvil / tabla desktop */}
-        <div className="flex-1 min-h-0 overflow-y-auto w-full">
-          {/* Móvil */}
-          <div className="md:hidden px-3 py-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-800">Productos</h2>
-                <p className="text-[10px] text-gray-500">{formatRecordCount(itemCount)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={newRow}
-                className={`${PRIMARY_BTN} !py-1.5 !px-3 !text-xs`}
+        <div className="flex-1 min-h-0 overflow-y-auto w-full scroll-pb-36 md:scroll-pb-0">
+          {/* Móvil — layout plano */}
+          <div className={FLAT_MOBILE_SCROLL}>
+            <FormFlatSection title="Cliente">
+              <RegisterCustomerBar
+                selectedCustomer={selectedCustomer}
+                selectedCustomerId={dataSale.saleCustomerId}
+                customerSearch={customerSearch}
+                isDropdownOpen={isCustomerDropdownOpen}
+                onSearchChange={(value) => {
+                  setCustomerSearch(value);
+                  setIsCustomerDropdownOpen(true);
+                }}
+                onOpenDropdown={() => setIsCustomerDropdownOpen(true)}
+                onCloseDropdown={() => setIsCustomerDropdownOpen(false)}
+                onSelectCustomer={handleChangeCustomerSelect}
+                onClearCustomer={() =>
+                  setDataSale((prev) => ({ ...prev, saleCustomerId: null }))
+                }
+                filteredCustomers={filteredCustomers}
+                onCustomerCreated={handleCreated}
                 disabled={isSalesBlocked}
-              >
-                <FaPlus className="text-[10px]" /> Agregar
-              </button>
-            </div>
+                viewCustomerHref={
+                  dataSale.saleCustomerId
+                    ? `/customers/${dataSale.saleCustomerId}`
+                    : null
+                }
+              />
+            </FormFlatSection>
 
-            {dataTable.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-200 py-10 text-center text-gray-400">
-                <FaBoxOpen className="text-3xl mx-auto mb-2 text-gray-300" />
-                <p className="text-sm font-medium">Sin productos</p>
-                <p className="text-xs mt-1">Toca Agregar para comenzar</p>
-              </div>
-            ) : (
-              dataTable.map((d, index) => (
-                <SaleLineItemMobileCard
-                  key={d.saleDetailId}
-                  row={d}
-                  index={index}
-                  productsServices={productsServices}
-                  onSelectProduct={handleChangeSelect}
-                  onAmountStep={handleAmountStep}
-                  onAmountInput={handleOnInput}
-                  onPriceInput={handleOnInput}
-                  onDelete={() => handleDeleteRow(d.saleDetailId)}
+            <FormFlatSection title="Comprobante">
+              <ReceiptTypeSelector
+                variant="compact"
+                value={documentType}
+                onChange={setDocumentType}
+                disabled={isLoading || isSalesBlocked}
+              />
+            </FormFlatSection>
+
+            {documentType === "FACTURA" && (
+              <FormFlatSection title="Datos del receptor">
+                <FacturaReceiverForm
+                  value={facturaReceiver}
+                  onChange={setFacturaReceiver}
+                  disabled={isLoading || isSalesBlocked}
                 />
-              ))
+              </FormFlatSection>
             )}
-          </div>
 
-          {/* Móvil: pagos y comentarios (scroll) */}
-          <div className="md:hidden px-3 pb-4 space-y-3 border-t border-gray-100 pt-3 mt-1">
-            {!creditSalesEnabled && total > 0 && (
-              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                Venta a crédito desactivada: selecciona un método de pago. El monto se fija automáticamente en {formatCurrency(total)}.
+            <FormFlatSection
+              title="Productos"
+              subtitle={formatRecordCount(itemCount)}
+              actions={
+                <button
+                  type="button"
+                  onClick={newRow}
+                  className={`${PRIMARY_BTN} !h-8 !px-3 !py-1 !text-xs`}
+                  disabled={isSalesBlocked}
+                >
+                  <FaPlus className="text-[10px]" /> Agregar
+                </button>
+              }
+            >
+              {dataTable.length === 0 ? (
+                <p className="text-xs text-gray-400 py-4 text-center">
+                  Sin productos — toca Agregar
+                </p>
+              ) : (
+                dataTable.map((d, index) => (
+                  <SaleLineItemMobileCard
+                    key={d.saleDetailId}
+                    row={d}
+                    index={index}
+                    productsServices={productsServices}
+                    onSelectProduct={handleChangeSelect}
+                    onAmountStep={handleAmountStep}
+                    onAmountInput={handleOnInput}
+                    onPriceInput={handleOnInput}
+                    onDelete={() => handleDeleteRow(d.saleDetailId)}
+                  />
+                ))
+              )}
+            </FormFlatSection>
+
+            {!isQuotationMode && (
+              <FormFlatSection title="Métodos de pago">
+                {!creditSalesEnabled && total > 0 && (
+                  <p className="text-[11px] text-amber-800 bg-amber-50 px-2 py-1.5 mb-2 rounded-sm">
+                    Pago completo requerido: {formatCurrency(total)}
+                  </p>
+                )}
+                <CardRegisterPayments
+                  sendPayments={handlePayments}
+                  requireFullPayment={requireFullPayment}
+                  saleTotal={total}
+                  mobile
+                />
+                {total > 0 && (
+                  <div className="flex justify-between text-xs pt-1.5 mt-1 border-t border-gray-100">
+                    <span className="text-primary font-medium">Abonado: {formatCurrency(totalPayments)}</span>
+                    <span className={`font-semibold ${amountDue > 0 ? "text-red-500" : "text-gray-400"}`}>
+                      Saldo: {formatCurrency(amountDue)}
+                    </span>
+                  </div>
+                )}
+              </FormFlatSection>
+            )}
+
+            {isQuotationMode && (
+              <p className="text-[11px] text-gray-500 py-2 border-b border-gray-200">
+                Las cotizaciones no registran venta ni pagos.
               </p>
             )}
-            <div>
-              <h2 className="text-xs font-semibold text-gray-800 mb-2">Métodos de pago</h2>
-              <CardRegisterPayments
-                sendPayments={handlePayments}
-                requireFullPayment={requireFullPayment}
-                saleTotal={total}
+
+            <FormFlatSection title="Envío al cliente">
+              <SendDocumentEmailOption
+                checked={sendByEmail}
+                onChange={setSendByEmail}
+                customerEmail={selectedCustomer?.customerEmail}
+                disabled={isLoading || isSalesBlocked}
               />
-            </div>
-            <div>
-              <h2 className="text-xs font-semibold text-gray-800 mb-2">Comentarios</h2>
+            </FormFlatSection>
+
+            <FormFlatSection title="Comentarios" bordered={false}>
               <textarea
-                className={`${TABLE_INPUT} resize-none w-full text-sm min-h-[64px]`}
+                className={`${FLAT_INPUT} resize-none w-full min-h-[72px] !h-auto py-2`}
                 placeholder="Notas sobre la venta..."
                 value={dataSale.saleComment || ""}
                 onChange={(e) =>
                   setDataSale((prev) => ({ ...prev, saleComment: e.target.value }))
                 }
               />
-            </div>
-            {total > 0 && (
-              <div className="flex justify-between text-xs pt-1 border-t border-gray-100">
-                <span className="text-primary font-medium">Abonado: {formatCurrency(totalPayments)}</span>
-                <span className={`font-semibold ${amountDue > 0 ? "text-red-500" : "text-gray-400"}`}>
-                  Saldo: {formatCurrency(amountDue)}
-                </span>
-              </div>
-            )}
+            </FormFlatSection>
           </div>
 
           {/* Desktop */}
@@ -1223,41 +1226,21 @@ export default function NewSalePage() {
               </table>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 hidden md:block">
-              <button type="button" onClick={newRow} className={PRIMARY_BTN_BLOCK} disabled={isSalesBlocked}>
-                <FaPlus /> Agregar Item
+            <div className="px-3 py-2 border-t border-gray-200 bg-gray-50/40 hidden md:block">
+              <button type="button" onClick={newRow} className={`${PRIMARY_BTN} w-full justify-center !py-1.5 !text-xs`} disabled={isSalesBlocked}>
+                <FaPlus /> Agregar ítem
               </button>
             </div>
           </div>
         </div>
 
         {/* FOOTER — scroll en móvil; desktop igual que antes */}
-        <div className="hidden md:block bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(2,31,65,0.05)] flex-none z-20 w-full shrink-0">
+        <div className="hidden md:block bg-white border-t border-gray-200 flex-none z-20 w-full shrink-0">
           <div className="w-full flex flex-col lg:flex-row">
-            <div className="lg:w-1/4 p-6 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
-              <h2 className={TABLE_SECTION_TITLE}>Tipo de comprobante</h2>
-              <p className={`${TABLE_SECTION_SUB} mb-3`}>Selecciona el documento a emitir</p>
-              <ReceiptTypeSelector
-                value={documentType}
-                onChange={setDocumentType}
-                disabled={isLoading}
-              />
-              {documentType === "FACTURA" && (
-                <div className="mt-4">
-                  <FacturaReceiverForm
-                    value={facturaReceiver}
-                    onChange={setFacturaReceiver}
-                    disabled={isLoading}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="lg:w-1/4 p-6 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
+            <div className="lg:w-1/3 p-3 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col">
               <h2 className={TABLE_SECTION_TITLE}>Comentarios</h2>
-              <p className={`${TABLE_SECTION_SUB} mb-3`}>Notas adicionales sobre la venta</p>
               <textarea
-                className={`${TABLE_INPUT} resize-none flex-1 min-h-[72px]`}
+                className={`${TABLE_INPUT} resize-none flex-1 min-h-[56px] mt-1.5`}
                 placeholder="Notas adicionales sobre la venta..."
                 value={dataSale.saleComment || ""}
                 onChange={(e) =>
@@ -1269,7 +1252,16 @@ export default function NewSalePage() {
               />
             </div>
 
-            <div className="flex-1 p-6 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col min-h-[120px]">
+            <div className="flex-1 p-3 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col min-h-[80px]">
+              {isQuotationMode ? (
+                <>
+                  <h2 className={TABLE_SECTION_TITLE}>Cotización</h2>
+                  <p className={`${TABLE_SECTION_SUB} mb-3`}>
+                    No se registran pagos. El documento se guardará como cotización.
+                  </p>
+                </>
+              ) : (
+                <>
               <h2 className={TABLE_SECTION_TITLE}>Métodos de Pago</h2>
               <p className={`${TABLE_SECTION_SUB} mb-3`}>Registre los pagos de esta venta</p>
               {!creditSalesEnabled && total > 0 && (
@@ -1284,12 +1276,22 @@ export default function NewSalePage() {
                   saleTotal={total}
                 />
               </div>
+                </>
+              )}
             </div>
 
             {/* Right: Summary & Actions */}
-            <div className="lg:w-[280px] p-6 bg-gray-50/80 flex flex-col justify-between gap-3">
+            <div className="lg:w-[260px] p-3 bg-gray-50/50 flex flex-col justify-between gap-2">
               {/* Totals breakdown */}
               <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[11px] text-gray-400 pb-1 border-b border-gray-100">
+                  <span>{itemCount} ítem{itemCount !== 1 ? "s" : ""}</span>
+                  {total > 0 && (
+                    <span className={amountDue > 0 ? "text-red-500 font-medium" : ""}>
+                      Saldo: {formatCurrency(amountDue)}
+                    </span>
+                  )}
+                </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">Neto</span>
                   <span className="font-medium text-gray-700 font-mono">
@@ -1312,7 +1314,7 @@ export default function NewSalePage() {
                 </div>
 
                 {/* Payment progress */}
-                {total > 0 && (
+                {!isQuotationMode && total > 0 && (
                   <div className="mt-2 space-y-1.5">
                     <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
                       <Motion.div
@@ -1329,18 +1331,17 @@ export default function NewSalePage() {
                           Abonado: {formatCurrency(totalPayments)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-red-400" />
-                        <span
-                          className={`font-semibold ${amountDue > 0 ? "text-red-500" : "text-gray-400"}`}
-                        >
-                          Saldo: {formatCurrency(amountDue)}
-                        </span>
-                      </div>
                     </div>
                   </div>
                 )}
               </div>
+
+              <SendDocumentEmailOption
+                checked={sendByEmail}
+                onChange={setSendByEmail}
+                customerEmail={selectedCustomer?.customerEmail}
+                disabled={isLoading || (isSalesBlocked && !isQuotationMode)}
+              />
 
               <button
                 type="button"
@@ -1356,7 +1357,7 @@ export default function NewSalePage() {
                 ) : (
                   <>
                     <FaSave />
-                    <span>Finalizar Venta</span>
+                    <span>{submitActionLabel}</span>
                   </>
                 )}
               </button>
@@ -1366,32 +1367,65 @@ export default function NewSalePage() {
         </div>
 
         {/* Móvil: barra fija inferior tipo POS */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-[0_-4px_24px_rgba(2,31,65,0.12)] px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
-          <div className="flex items-center gap-3 max-w-lg mx-auto">
-            <div className="shrink-0">
-              <p className="text-[10px] uppercase font-semibold text-gray-400 leading-none">Total</p>
-              <p className="text-base font-extrabold text-gray-900 font-mono leading-tight">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
+          <div className="px-3 pt-1.5">
+            <SendDocumentEmailOption
+              compact
+              checked={sendByEmail}
+              onChange={setSendByEmail}
+              customerEmail={selectedCustomer?.customerEmail}
+              disabled={isLoading || (isSalesBlocked && !isQuotationMode)}
+            />
+          </div>
+          {!isQuotationMode && total > 0 && (
+            <div className="px-4">
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <Motion.div
+                  className={`h-full rounded-full ${paidPercentage >= 100 ? "bg-primary" : "bg-amber-400"}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${paidPercentage}%` }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                />
+              </div>
+            </div>
+          )}
+          <div className="px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] uppercase font-semibold text-gray-400 tracking-wide">
+                {isQuotationMode ? "Total cotización" : "Total venta"}
+              </p>
+              <p className="text-2xl font-extrabold text-gray-900 font-mono leading-tight">
                 {formatCurrency(total)}
               </p>
-              {amountDue > 0 && (
-                <p className="text-[10px] text-red-500 font-semibold">Saldo {formatCurrency(amountDue)}</p>
-              )}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-gray-500">
+                <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                  {RECEIPT_SHORT_LABELS[documentType]}
+                </span>
+                <span>
+                  {itemCount} ítem{itemCount !== 1 ? "s" : ""}
+                </span>
+                {amountDue > 0 && !isQuotationMode && (
+                  <span className="text-red-500 font-semibold">
+                    Saldo {formatCurrency(amountDue)}
+                  </span>
+                )}
+              </div>
             </div>
             <button
               type="button"
               onClick={handleSubmit}
-              className={`${PRIMARY_BTN} flex-1 justify-center !py-3 !text-sm font-semibold`}
+              className={`${PRIMARY_BTN} min-h-12 px-5 shrink-0 !text-sm font-bold touch-manipulation shadow-md`}
               disabled={isLoading || !canFinalizeSale}
             >
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Procesando...
+                  <span className="sr-only sm:not-sr-only">Procesando...</span>
                 </>
               ) : (
                 <>
                   <FaSave />
-                  Finalizar venta
+                  <span>{isQuotationMode ? "Generar" : "Finalizar"}</span>
                 </>
               )}
             </button>

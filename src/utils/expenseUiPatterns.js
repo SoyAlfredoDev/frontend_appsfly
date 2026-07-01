@@ -23,33 +23,33 @@ export const KPI_VALUE = "text-2xl font-bold text-gray-900";
 export const TABLE_WRAPPER =
   "bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden";
 
-/** Variante full-bleed para POS /sales/register (sin márgenes laterales) */
+/** Variante full-bleed para POS / ventas / cotizaciones (plano, sin card) */
 export const TABLE_WRAPPER_FULL =
-  "bg-white border-y border-gray-200 overflow-hidden flex flex-col h-full min-h-[280px]";
+  "bg-white border-b border-gray-200 overflow-hidden flex flex-col h-full min-h-0";
 
 export const TABLE_TOOLBAR =
-  "px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+  "px-3 md:px-4 py-2 border-b border-gray-200 flex items-center justify-between gap-2";
 
-export const TABLE_SECTION_TITLE = "text-sm font-semibold text-gray-800";
+export const TABLE_SECTION_TITLE = "text-xs font-semibold text-gray-800";
 
-export const TABLE_SECTION_SUB = "text-xs text-gray-500 mt-0.5";
+export const TABLE_SECTION_SUB = "text-[11px] text-gray-400";
 
 export const TABLE_SEARCH =
-  "pl-10 pr-4 py-2 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm shadow-sm";
+  "pl-9 pr-3 py-1.5 w-full border-0 border-b border-gray-200 rounded-none focus:outline-none focus:border-primary text-sm bg-transparent";
 
 export const TABLE_INPUT =
-  "py-2 px-3 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm shadow-sm";
+  "py-1.5 px-2.5 w-full border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm bg-white";
 
 export const THEAD =
-  "bg-gray-50 text-gray-500 uppercase text-xs font-semibold border-b border-gray-100";
+  "bg-gray-50/80 text-gray-500 uppercase text-[10px] font-semibold border-b border-gray-200";
 
-export const TH = "px-6 py-4";
+export const TH = "px-3 py-2";
 
-export const TD = "px-6 py-4 text-sm";
+export const TD = "px-3 py-2 text-sm";
 
-export const TD_MUTED = "px-6 py-4 text-gray-600 text-sm whitespace-nowrap";
+export const TD_MUTED = "px-3 py-2 text-gray-600 text-sm whitespace-nowrap";
 
-export const TD_AMOUNT = "px-6 py-4 text-primary font-semibold text-sm whitespace-nowrap";
+export const TD_AMOUNT = "px-3 py-2 text-primary font-semibold text-sm whitespace-nowrap";
 
 export const TR_ROW = "hover:bg-gray-50 transition-colors group";
 
@@ -64,8 +64,54 @@ export const ACTION_EDIT =
 export const ACTION_DELETE =
   "p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors";
 
+/** Formularios de registro — layout plano (sin cards). */
+export const FLAT_PAGE_HEADER =
+  "flex-none w-full bg-white border-b border-gray-200";
+
+export const FLAT_META_TEXT = "text-[11px] text-gray-500 flex items-center gap-1.5";
+
+export const FLAT_MOBILE_SCROLL =
+  "md:hidden px-3 py-1 pb-[calc(8rem+env(safe-area-inset-bottom))]";
+
+export const FLAT_INPUT =
+  "h-9 px-2.5 w-full border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-sm bg-white";
+
+export const FLAT_TAP_TARGET =
+  "min-h-9 min-w-9 flex items-center justify-center touch-manipulation";
+
+/** @deprecated Usar FormFlatSection — mantener alias por compatibilidad */
+export const MOBILE_SECTION_CARD = "";
+export const MOBILE_SECTION_HEADER = "";
+export const MOBILE_SECTION_BODY = "";
+export const MOBILE_TAP_TARGET = FLAT_TAP_TARGET;
+export const MOBILE_INPUT = FLAT_INPUT;
+
 export const PAGE_HEADER_CARD =
   "card card-body flex flex-col md:flex-row md:items-center justify-between gap-4";
+
+/** Barra de cliente en formularios de registro (venta, cotización) — plana. */
+export const REGISTER_CUSTOMER_BAR = "overflow-visible w-full";
+
+export const REGISTER_CUSTOMER_BAR_ROW =
+  "flex items-stretch min-h-[40px] gap-2";
+
+export const REGISTER_CUSTOMER_BAR_LABEL =
+  "hidden md:flex items-center gap-1.5 shrink-0";
+
+export const REGISTER_CUSTOMER_BAR_LABEL_TEXT =
+  "text-[11px] font-semibold uppercase tracking-wide text-gray-500 whitespace-nowrap";
+
+export const REGISTER_CUSTOMER_BAR_FIELD =
+  "flex-1 relative min-w-0 flex items-center";
+
+export const REGISTER_CUSTOMER_BAR_ACTIONS =
+  "flex items-center gap-1 shrink-0";
+
+export const REGISTER_CUSTOMER_SEARCH_INPUT =
+  "w-full h-9 bg-transparent border-0 border-b border-gray-200 outline-none text-sm text-gray-800 placeholder:text-gray-400 focus:border-primary";
+
+export const REGISTER_CUSTOMER_DROPDOWN =
+  "absolute z-[60] left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto";
 
 export const containerVariants = {
   hidden: { opacity: 0 },

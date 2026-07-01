@@ -275,57 +275,39 @@ export default function NewPurchasePage() {
       .slice(0, 5);
   };
 
+  const itemCount = items.filter((item) => item.productId).length;
+
   return (
     <PageContainer>
-      <div className="min-h-screen bg-gray-50 pt-[70px] pb-2 px-4 md:px-6 font-sans">
-        {/* PAGE HEADER (Full Width) */}
-        <div className="max-w-[1600px] mx-auto mb-2">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-[#021f41] font-display">
-                Registrar Compra
-              </h1>
-            </div>
-          </div>
+      <div className="min-h-screen bg-white pt-[70px] pb-2 font-sans">
+        <div className="max-w-[1600px] mx-auto border-b border-gray-200 px-4 py-2">
+          <h1 className="text-lg font-bold text-[#021f41]">Registrar Compra</h1>
         </div>
 
-        {/* MAIN SPLIT LAYOUT */}
-        <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* LEFT COLUMN: FORM & DETAILS (~70%) */}
-          <div className="lg:col-span-8 xl:col-span-9 space-y-4">
-            {/* 1. HEADER FORM */}
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-5 items-start">
-              {/* Provider Select */}
-              <div className="flex-1 w-full space-y-1">
-                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+        <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 items-start">
+          <div className="lg:col-span-8 xl:col-span-9">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 px-4 py-3 border-b border-gray-200">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
                   <FaUserTie /> Proveedor
                 </label>
-                <div className="relative">
-                  <select
-                    name="providerId"
-                    value={purchaseData.providerId}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors pr-10 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%20stroke%3D%22%236b7280%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22M6%208l4%204%204-4%22%20%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-no-repeat bg-[right_0.5rem_center]"
-                  >
-                    <option value="" className="text-gray-400">
-                      Seleccionar Proveedor...
+                <select
+                  name="providerId"
+                  value={purchaseData.providerId}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-200 rounded-md px-2.5 py-1.5 text-sm text-gray-700 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none appearance-none cursor-pointer"
+                >
+                  <option value="">Seleccionar proveedor...</option>
+                  {providers.map((provider) => (
+                    <option key={provider.providerId} value={provider.providerId}>
+                      {provider.providerName}
                     </option>
-                    {providers.map((provider) => (
-                      <option
-                        key={provider.providerId}
-                        value={provider.providerId}
-                      >
-                        {provider.providerName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  ))}
+                </select>
               </div>
-
-              {/* Invoice Number */}
-              <div className="w-full md:w-1/4 space-y-1">
-                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                  <FaHashtag /> Nro. Documento
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                  <FaHashtag /> Nro. documento
                 </label>
                 <input
                   type="text"
@@ -333,40 +315,34 @@ export default function NewPurchasePage() {
                   value={purchaseData.documentNumber}
                   onChange={handleInputChange}
                   placeholder="Ej. 123456"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full border border-gray-200 rounded-md px-2.5 py-1.5 text-sm focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
               </div>
-
-              {/* Date */}
-              <div className="w-full md:w-1/4 space-y-1">
-                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                  <FaCalendar /> Fecha Emisión
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                  <FaCalendar /> Fecha
                 </label>
                 <input
                   type="date"
                   name="date"
                   value={purchaseData.date}
                   onChange={handleInputChange}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-gray-600"
+                  className="w-full border border-gray-200 rounded-md px-2.5 py-1.5 text-sm focus:ring-1 focus:ring-emerald-500 outline-none text-gray-600"
                 />
               </div>
             </div>
 
-            {/* 2. ITEMS TABLE */}
-            <div
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-visible min-h-[400px] flex flex-col"
-              ref={searchContainerRef}
-            >
-              <div className="overflow-visible flex-1">
+            <div className="border-b border-gray-200 overflow-visible" ref={searchContainerRef}>
+              <div className="overflow-visible">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-gray-50/50 text-gray-600 text-[11px] uppercase font-bold border-b border-gray-100">
+                  <thead className="bg-gray-50/80 text-gray-500 text-[10px] uppercase font-semibold border-b border-gray-200">
                     <tr>
-                      <th className="p-3 w-12 text-center">#</th>
-                      <th className="p-3 text-left">Producto / Detalle</th>
-                      <th className="p-3 w-28 text-center">Cantidad</th>
-                      <th className="p-3 w-36 text-end">Costo Unit.</th>
-                      <th className="p-3 w-36 text-end">Total</th>
-                      <th className="p-3 w-12 text-center"></th>
+                      <th className="px-3 py-2 w-10 text-center">#</th>
+                      <th className="px-3 py-2 text-left">Producto</th>
+                      <th className="px-3 py-2 w-24 text-center">Cant.</th>
+                      <th className="px-3 py-2 w-28 text-end">Costo</th>
+                      <th className="px-3 py-2 w-28 text-end">Total</th>
+                      <th className="px-3 py-2 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -379,10 +355,10 @@ export default function NewPurchasePage() {
                           exit={{ opacity: 0 }}
                           className="hover:bg-blue-50/30 transition-colors group text-sm relative"
                         >
-                          <td className="p-3 text-center text-gray-400 font-mono text-xs">
+                          <td className="px-3 py-1.5 text-center text-gray-400 font-mono text-xs">
                             {index + 1}
                           </td>
-                          <td className="p-3 relative">
+                          <td className="px-3 py-1.5 relative">
                             <div className="relative z-20">
                               <FaBoxOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-xs" />
                               <input
@@ -433,7 +409,7 @@ export default function NewPurchasePage() {
                               )}
                             </div>
                           </td>
-                          <td className="p-3">
+                          <td className="px-3 py-1.5">
                             <input
                               type="number"
                               min="1"
@@ -448,7 +424,7 @@ export default function NewPurchasePage() {
                               className="w-full text-center py-1.5 bg-transparent border border-transparent focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 rounded text-sm transition-all"
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="px-3 py-1.5">
                             <input
                               type="number"
                               min="0"
@@ -463,7 +439,7 @@ export default function NewPurchasePage() {
                               className="w-full text-end py-1.5 bg-transparent border border-transparent focus:bg-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 rounded text-sm transition-all"
                             />
                           </td>
-                          <td className="p-3 text-end font-semibold text-gray-700 bg-gray-50/50">
+                          <td className="px-3 py-1.5 text-end font-semibold text-gray-700">
                             {formatCurrency(item.totalLine)}
                           </td>
                           <td className="p-3 text-center">
@@ -481,22 +457,25 @@ export default function NewPurchasePage() {
                   </tbody>
                 </table>
               </div>
-              <div className="p-2 border-t border-gray-100 bg-gray-50/50">
+              <div className="px-3 py-2 border-t border-gray-200">
                 <button
                   onClick={addNewRow}
-                  className="w-full py-2 border border-dashed border-gray-300 rounded-lg text-gray-500 text-xs font-semibold hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50/50 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-1.5 border border-dashed border-gray-300 text-gray-500 text-xs font-semibold hover:border-emerald-500 hover:text-emerald-600 transition-all flex items-center justify-center gap-1"
                 >
-                  <FaPlus size={10} /> AGREGAR ITEM
+                  <FaPlus size={10} /> Agregar ítem
                 </button>
               </div>
             </div>
           </div>
 
-          {/* RIGHT COLUMN: SIDEBAR DETAILS (~30%) */}
-          <div className="lg:col-span-4 xl:col-span-3 space-y-4 lg:sticky lg:top-[90px]">
-            <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-200 flex flex-col gap-5">
-              {/* BLOCK 1: TOTALS (Top Priority) */}
-              <div className="space-y-3">
+          <div className="lg:col-span-4 xl:col-span-3 border-t lg:border-t-0 lg:border-l border-gray-200 p-4 flex flex-col gap-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px] text-gray-400 pb-1 border-b border-gray-200">
+                <span>{itemCount} ítem{itemCount !== 1 ? "s" : ""}</span>
+                {totals.balanceDue > 0 && (
+                  <span className="text-red-500">Saldo: {formatCurrency(totals.balanceDue)}</span>
+                )}
+              </div>
                 <div className="space-y-1">
                   <div className="flex justify-between items-center text-xs text-gray-500">
                     <span>Subtotal</span>
@@ -546,9 +525,8 @@ export default function NewPurchasePage() {
                 </div>
               </div>
 
-              {/* BLOCK 2: PAYMENTS */}
-              <div className="p-3 bg-gray-50/50 rounded-lg border border-gray-100 flex flex-col gap-3">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+              <div className="border-t border-gray-200 pt-2 space-y-2">
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
                   <FaMoneyBillWave size={10} /> Pagos
                 </label>
 
@@ -639,40 +617,37 @@ export default function NewPurchasePage() {
                 </div>
               </div>
 
-              {/* BLOCK 3: COMMENTS */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+              <div className="border-t border-gray-200 pt-2">
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1 mb-1">
                   <FaCommentAlt size={10} /> Notas
                 </label>
                 <textarea
                   name="note"
                   value={purchaseData.note}
                   onChange={handleInputChange}
-                  placeholder="..."
-                  className="w-full bg-gray-50 border-0 rounded-lg p-2 text-xs focus:ring-1 focus:ring-emerald-500 resize-none placeholder-gray-400 text-gray-600 h-16"
+                  placeholder="Comentarios..."
+                  className="w-full border border-gray-200 rounded-md p-2 text-xs focus:ring-1 focus:ring-emerald-500 resize-none h-14"
                 />
               </div>
 
-              {/* BLOCK 4: ACTIONS */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
                 <button
                   onClick={() => navigate("/purchase")}
-                  className="px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-100 transition-colors"
+                  className="px-3 py-2 rounded-md border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50"
                 >
                   CANCELAR
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={isLoading}
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 rounded-md bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 flex items-center justify-center gap-1 disabled:opacity-50"
                 >
-                  <FaSave /> {isLoading ? "GUARDANDO..." : "GUARDAR"}
+                  <FaSave /> {isLoading ? "Guardando..." : "Guardar"}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
     </PageContainer>
   );
 }

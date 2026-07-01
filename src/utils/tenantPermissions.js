@@ -13,6 +13,8 @@ const ROLE_PERMISSIONS = {
         "customers:delete",
         "sales:read",
         "sales:create",
+        "quotations:read",
+        "quotations:create",
         "products:read",
         "products:write",
         "inventory:read",
@@ -41,6 +43,8 @@ const ROLE_PERMISSIONS = {
         "customers:write",
         "sales:read",
         "sales:create",
+        "quotations:read",
+        "quotations:create",
         "products:read",
         "inventory:read",
         "profile:view",
@@ -57,6 +61,7 @@ export const NAV_PERMISSION_BY_PATH = {
     "/products_services": "products:read",
     "/inventory": "inventory:read",
     "/sales": "sales:read",
+    "/quotations": "quotations:read",
     "/sales/dailySales": "daily-closures:read",
     "/purchase": "purchases:manage",
     "/providers": "providers:manage",
@@ -127,6 +132,9 @@ export function canAccessRoute(role, pathname) {
             return hasTenantPermission(role, "daily-closures:read");
         }
         return hasTenantPermission(role, "sales:read");
+    }
+    if (pathname === "/quotations" || pathname.startsWith("/quotations/")) {
+        return hasTenantPermission(role, "quotations:read");
     }
     if (pathname.startsWith("/products") || pathname.startsWith("/products_services")) {
         return hasTenantPermission(role, "products:read");

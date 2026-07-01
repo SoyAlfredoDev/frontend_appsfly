@@ -1,14 +1,15 @@
 import { FaBoxOpen, FaMinus, FaPlus, FaTrash } from "react-icons/fa";
 import formatCurrency from "../../utils/formatCurrency.js";
 import {
+  FLAT_INPUT,
+  FLAT_TAP_TARGET,
   TABLE_INPUT,
-  ACTION_DELETE,
 } from "../../utils/expenseUiPatterns.js";
 
-function ProductSelect({ productsServices, value, onChange, compact = false }) {
+function ProductSelect({ productsServices, value, onChange, mobile = false }) {
   return (
     <select
-      className={`${TABLE_INPUT} font-medium ${compact ? "text-sm py-2" : ""}`}
+      className={`${mobile ? FLAT_INPUT : TABLE_INPUT} font-medium`}
       onChange={onChange}
       value={value || ""}
     >
@@ -38,43 +39,53 @@ function ProductSelect({ productsServices, value, onChange, compact = false }) {
   );
 }
 
-function QuantityStepper({ amount, onStep, onInput, compact = false }) {
-  const btnClass = compact
-    ? "w-9 h-9 flex items-center justify-center bg-slate-100 text-slate-600 text-xs"
-    : "w-8 h-10 flex items-center justify-center rounded-l-lg bg-slate-100 text-slate-500 hover:bg-slate-200 text-xs";
-  const inputClass = compact
-    ? "input-field h-9 w-11 border-x-0 text-center font-semibold text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-    : "input-field h-10 w-12 rounded-none border-x-0 text-center font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+function QuantityStepper({ amount, onStep, onInput, mobile = false }) {
+  const btnClass = mobile
+    ? `${FLAT_TAP_TARGET} bg-gray-100 text-gray-600 active:bg-gray-200`
+    : "w-8 h-8 flex items-center justify-center rounded-l-md bg-slate-100 text-slate-500 hover:bg-slate-200 text-xs";
+  const inputClass = mobile
+    ? "h-9 w-12 border-x border-gray-200 text-center font-semibold text-sm bg-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+    : "input-field h-8 w-11 rounded-none border-x-0 text-center font-semibold text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
 
   return (
-    <div className={`flex items-center ${compact ? "rounded-lg overflow-hidden border border-slate-200" : "justify-center gap-0.5"}`}>
+    <div
+      className={`flex items-center ${
+        mobile
+          ? "rounded-md overflow-hidden border border-gray-200 w-fit"
+          : "justify-center gap-0.5"
+      }`}
+    >
       <button
         type="button"
         onClick={() => onStep(-1)}
-        className={`${btnClass} ${compact ? "rounded-none" : "rounded-l-lg"}`}
+        className={`${btnClass} ${mobile ? "" : "rounded-l-md"}`}
         disabled={amount <= 1}
+        aria-label="Disminuir cantidad"
       >
-        <FaMinus className="text-[8px]" />
+        <FaMinus className="text-[9px]" />
       </button>
       <input
         type="number"
         min="1"
+        inputMode="numeric"
         className={inputClass}
         value={amount}
         onInput={onInput}
+        aria-label="Cantidad"
       />
       <button
         type="button"
         onClick={() => onStep(1)}
-        className={`${btnClass} ${compact ? "rounded-none" : "rounded-r-lg"}`}
+        className={`${btnClass} ${mobile ? "" : "rounded-r-md"}`}
+        aria-label="Aumentar cantidad"
       >
-        <FaPlus className="text-[8px]" />
+        <FaPlus className="text-[9px]" />
       </button>
     </div>
   );
 }
 
-/** Tarjeta compacta para móvil — sustituye fila de tabla en pantallas pequeñas. */
+/** Fila compacta para móvil — sin card, solo divider. */
 export function SaleLineItemMobileCard({
   row,
   index,
@@ -86,27 +97,27 @@ export function SaleLineItemMobileCard({
   onDelete,
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm space-y-3">
+    <article className="border-b border-gray-200 py-2.5 space-y-2 last:border-b-0">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-100 text-[11px] font-bold text-slate-500 flex items-center justify-center">
-            {index + 1}
-          </span>
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap text-[11px] text-gray-500">
+          <span className="font-mono font-semibold text-gray-400">#{index + 1}</span>
           {row.saleDetailType === "PRODUCT" && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600">
-              <FaBoxOpen className="text-[8px]" /> PROD
-            </span>
+            <span className="text-blue-600 font-semibold">PROD</span>
           )}
           {row.saleDetailType === "SERVICE" && (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-600">
-              SERV
-            </span>
+            <span className="text-purple-600 font-semibold">SERV</span>
           )}
           {row.saleDetailSKU && (
-            <span className="text-[10px] font-mono text-gray-400 truncate">{row.saleDetailSKU}</span>
+            <span className="font-mono truncate">{row.saleDetailSKU}</span>
           )}
         </div>
-        <button type="button" className={ACTION_DELETE} onClick={onDelete} title="Eliminar">
+        <button
+          type="button"
+          className={`${FLAT_TAP_TARGET} text-red-500 hover:bg-red-50 rounded-md shrink-0`}
+          onClick={onDelete}
+          title="Eliminar ítem"
+          aria-label="Eliminar ítem"
+        >
           <FaTrash className="text-xs" />
         </button>
       </div>
@@ -115,38 +126,37 @@ export function SaleLineItemMobileCard({
         productsServices={productsServices}
         value={row.saleDetailProductServiceId}
         onChange={(e) => onSelectProduct(e, index)}
-        compact
+        mobile
       />
 
       <div className="grid grid-cols-2 gap-2">
-        <div>
-          <p className="text-[10px] font-semibold uppercase text-gray-400 mb-1">Cantidad</p>
-          <QuantityStepper
-            amount={row.saleDetailAmount}
-            onStep={(dir) => onAmountStep(index, dir)}
-            onInput={(e) => onAmountInput(index, "saleDetailAmount", e.target.value)}
-            compact
-          />
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase text-gray-400 mb-1">Precio</p>
-          <input
-            type="number"
-            className={`${TABLE_INPUT} text-sm h-9 ${row.saleDetailPriceFixed ? "bg-gray-50 text-gray-400" : ""}`}
-            value={row.saleDetailPrice}
-            onInput={(e) => onPriceInput(index, "saleDetailPrice", e.target.value)}
-            disabled={row.saleDetailPriceFixed}
-          />
-        </div>
+        <QuantityStepper
+          amount={row.saleDetailAmount}
+          onStep={(dir) => onAmountStep(index, dir)}
+          onInput={(e) => onAmountInput(index, "saleDetailAmount", e.target.value)}
+          mobile
+        />
+        <input
+          type="number"
+          inputMode="decimal"
+          className={`${FLAT_INPUT} font-mono text-right ${
+            row.saleDetailPriceFixed ? "bg-gray-50 text-gray-400" : ""
+          }`}
+          value={row.saleDetailPrice}
+          onInput={(e) => onPriceInput(index, "saleDetailPrice", e.target.value)}
+          disabled={row.saleDetailPriceFixed}
+          aria-label="Precio unitario"
+          placeholder="Precio"
+        />
       </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-        <span className="text-xs font-semibold text-gray-500">Subtotal</span>
-        <span className="text-base font-bold text-primary font-mono">
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-gray-500">Subtotal</span>
+        <span className="font-bold text-primary font-mono">
           {formatCurrency(row.saleDetailTotal)}
         </span>
       </div>
-    </div>
+    </article>
   );
 }
 

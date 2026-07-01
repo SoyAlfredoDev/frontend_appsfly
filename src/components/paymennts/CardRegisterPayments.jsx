@@ -8,6 +8,7 @@ export default function CardRegisterPayments({
     sendPayments,
     requireFullPayment = false,
     saleTotal = 0,
+    mobile = false,
 }) {
     const [payments, setPayments] = useState([
         { paymentId: uuidv4(), methodId: '', amount: '' },
@@ -87,6 +88,7 @@ export default function CardRegisterPayments({
                                 disableDelete={requireFullPayment}
                                 required={requireFullPayment}
                                 lockAmount={requireFullPayment}
+                                mobile={mobile}
                             />
                         </Motion.div>
                     ))}
@@ -97,9 +99,11 @@ export default function CardRegisterPayments({
                 <button
                     type="button"
                     onClick={handledClickAddRowPayment}
-                    className="mt-2 w-full flex items-center justify-center gap-2 py-2 border border-dashed border-gray-300 rounded-lg text-gray-500 text-xs hover:text-primary hover:border-primary hover:bg-primary/5 transition-all font-semibold"
+                    className={`mt-3 w-full flex items-center justify-center gap-2 border border-dashed border-gray-300 rounded-xl text-gray-600 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all font-semibold touch-manipulation ${
+                        mobile ? "min-h-12 text-sm" : "py-2 text-xs"
+                    }`}
                 >
-                    <FaPlus className="text-[10px]" /> Agregar pago
+                    <FaPlus className="text-xs" /> Agregar pago
                 </button>
             )}
         </div>

@@ -9,6 +9,7 @@ export default function RegisterPayments({
     disableDelete = false,
     required = false,
     lockAmount = false,
+    mobile = false,
 }) {
     const methods = [
         { methodId: 0, methodName: 'Débito', icon: <FaCreditCard className="text-secondary text-xs" /> },
@@ -53,15 +54,27 @@ export default function RegisterPayments({
 
     const selectedMethod = methods.find(m => m.methodId === payment.methodId);
 
+    const fieldHeight = mobile ? "h-11 text-base" : "h-9 sm:h-10 text-sm";
+    const iconSize = mobile ? "w-11 h-11" : "w-8 h-8";
+    const deleteSize = mobile
+        ? "min-h-11 min-w-11"
+        : "w-9 h-9";
+
     return (
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center bg-slate-50/80 rounded-lg p-2.5 sm:p-2 border border-slate-200">
-            <div className="flex gap-2 items-center flex-1 min-w-0">
-                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
-                    {selectedMethod ? selectedMethod.icon : <FaCreditCard className="text-slate-300 text-xs" />}
+        <div
+            className={`flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50/50 p-2 ${
+                mobile ? "" : "sm:flex-row sm:items-center sm:gap-2 sm:p-2"
+            } ${mobile ? "!border-0 !bg-transparent !p-0 !gap-1.5" : ""}`}
+        >
+            <div className="flex gap-3 items-center flex-1 min-w-0">
+                <div
+                    className={`flex-shrink-0 ${iconSize} rounded-xl bg-white border border-slate-200 flex items-center justify-center`}
+                >
+                    {selectedMethod ? selectedMethod.icon : <FaCreditCard className="text-slate-300 text-sm" />}
                 </div>
 
                 <select
-                    className="select-field h-9 sm:h-10 flex-1 min-w-0 text-sm font-medium"
+                    className={`select-field ${fieldHeight} flex-1 min-w-0 font-medium rounded-xl`}
                     value={payment.methodId}
                     onChange={handleMethodChange}
                     required={required}
@@ -75,18 +88,19 @@ export default function RegisterPayments({
                 </select>
             </div>
 
-            <div className="flex gap-2 items-center">
-                <div className="relative flex-1 sm:flex-none">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium">$</span>
+            <div className="flex gap-3 items-center">
+                <div className="relative flex-1 min-w-0">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
                     <input
                         type="number"
+                        inputMode="decimal"
                         placeholder="0"
                         step={1}
                         value={payment.amount}
                         onChange={handleAmountChange}
                         readOnly={lockAmount}
                         required={required}
-                        className={`input-field h-9 sm:h-10 w-full sm:w-28 pl-7 pr-3 text-right font-mono font-semibold text-sm ${
+                        className={`input-field ${fieldHeight} w-full pl-8 pr-3 text-right font-mono font-semibold rounded-xl ${
                             lockAmount ? "bg-slate-100 text-slate-700 cursor-not-allowed" : ""
                         }`}
                     />
@@ -95,11 +109,12 @@ export default function RegisterPayments({
                 {!disableDelete && (
                 <button
                     type="button"
-                    className="w-9 h-9 flex-shrink-0 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    className={`${deleteSize} flex-shrink-0 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 rounded-xl transition-all touch-manipulation`}
                     onClick={handleClickDelete}
                     title="Eliminar pago"
+                    aria-label="Eliminar pago"
                 >
-                    <FaTimes className="text-xs" />
+                    <FaTimes className="text-sm" />
                 </button>
                 )}
             </div>

@@ -1,10 +1,14 @@
-import { createSale } from '../api/sale.js';
+import { createSale, sendSaleEmail } from '../api/sale.js';
 import { createSaleDetailUtils } from './createSaleDetail.js'
 import { createPayment } from '../api/payment.js'
 
-export const createSaleGeneral = async (dataSaleGeneral, dataSaleDetail, dataPayment) => {
+export const createSaleGeneral = async (
+    dataSaleGeneral,
+    dataSaleDetail,
+    dataPayment,
+    { sendByEmail = false } = {},
+) => {
     try {
-        // Call the API to create a new sale
         const saleCreated = await createSale(dataSaleGeneral);
         const saleCustomerId = dataSaleGeneral.saleCustomerId;
         const saleId = dataSaleGeneral.saleId;
@@ -25,7 +29,6 @@ export const createSaleGeneral = async (dataSaleGeneral, dataSaleDetail, dataPay
 
         for (const payment of dataPayment) {
             try {
-                console.log('PAYMENT: ', payment)
                 if (payment.amount > 0) {
                     const data = {
                         paymentId: payment.paymentId,
@@ -33,19 +36,31 @@ export const createSaleGeneral = async (dataSaleGeneral, dataSaleDetail, dataPay
                         paymentAmount: Number(payment.amount),
                         paymentMethod: payment.methodId
                     }
-                    console.log('pago a registar', data)
                     await createPayment(data)
                 }
             } catch (error) {
-                console.error('Error creating sale detail:', error);
-                throw error; // Re-throw the error to handle it in the outer try-catch
+                console.error('Error creating payment:', error);
+                throw error;
             }
         }
-        // Return the response from the API
-        const data = {
-            dataSale: saleCreated.data.sale,
+
+        let emailResult = null;
+        let emailError = null;
+        if (sendByEmail) {
+            try {
+                const emailRes = await sendSaleEmail(saleId);
+                emailResult = emailRes.data;
+            } catch (error) {
+                console.error('Error sending sale email:', error);
+                emailError = error.response?.data || { message: error.message };
+            }
         }
-        return data;
+
+        return {
+            dataSale: saleCreated.data.sale,
+            emailResult,
+            emailError,
+        };
     } catch (error) {
         console.error('Error creating sale:', error);
         throw error;

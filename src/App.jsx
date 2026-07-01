@@ -40,6 +40,11 @@ import SalesPage from "./pages/Sales/SalesPage.jsx";
 import NewSalePage from "./pages/Sales/NewSalePage.jsx";
 import ViewSalePage from "./pages/Sales/ViewSalePage.jsx";
 
+/* Quotations */
+import QuotationsPage from "./pages/Quotations/QuotationsPage.jsx";
+import NewQuotationPage from "./pages/Quotations/NewQuotationPage.jsx";
+import ViewQuotationPage from "./pages/Quotations/ViewQuotationPage.jsx";
+
 /* Purchases */
 import PurchasePage from "./pages/purchase/PurchasePage.jsx";
 import ProviderPage from "./pages/purchase/ProviderPage.jsx";
@@ -136,6 +141,9 @@ function App() {
                   <Route path="/sales/dailySales" element={<PageDailySales />} />
                   <Route path="/sales/view/:id" element={<ViewSalePage />} />
                   <Route path="/sales" element={<SalesPage />} />
+                  <Route path="/quotations/register" element={<NewQuotationPage />} />
+                  <Route path="/quotations/view/:id" element={<ViewQuotationPage />} />
+                  <Route path="/quotations" element={<QuotationsPage />} />
                   <Route path="/purchase" element={<PurchasePage />} />
                   <Route path="/providers" element={<ProviderPage />} />
                   <Route path="/purchase/register" element={<NewPurchasePage />} />

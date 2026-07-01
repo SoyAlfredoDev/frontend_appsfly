@@ -9,4 +9,5 @@ export const getDaySales = (day, month, year) => axios.get(`/sales/day/${day}/${
 export const getSalesByCustomerIdRequest = (customerId) => axios.get(`/sales/customer/${customerId}`);
 export const countSalesMonthRequest = (month, year) => axios.get(`/sales/count/${month}/${year}`);
 export const markSaleDeliveredRequest = (saleId) => axios.patch(`/sales/${saleId}/delivery`);
+export const sendSaleEmail = (saleId) => axios.post(`/sales/${saleId}/send-email`);
 

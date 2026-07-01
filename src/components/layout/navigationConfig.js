@@ -24,6 +24,7 @@ export const NAV_ITEMS = [
   { name: "Productos", path: "/products_services", icon: FaBoxOpen, permission: "products:read" },
   { name: "Inventario", path: "/inventory", icon: FaBoxes, permission: "inventory:read" },
   { name: "Ventas", path: "/sales", icon: FaShoppingCart, permission: "sales:read" },
+  { name: "Cotizaciones", path: "/quotations", icon: FaFileAlt, permission: "quotations:read" },
   { name: "Cierres Diarios", path: "/sales/dailySales", icon: FaCalendarCheck, permission: "daily-closures:read" },
   { name: "Compras", path: "/purchase", icon: FaTruck, permission: "purchases:manage" },
   { name: "Proveedores", path: "/providers", icon: FaStore, permission: "providers:manage" },
