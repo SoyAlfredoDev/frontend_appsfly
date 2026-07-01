@@ -1,37 +1,42 @@
-import { getQuotationById, updateQuotationStatus, deleteQuotation } from '../../api/quotation.js';
+import { getQuotationById, updateQuotationStatus, deleteQuotation, sendQuotationEmail } from '../../api/quotation.js';
 import { getQuotationDetailsByQuotationId } from '../../api/quotationDetail.js';
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/authContext.jsx';
 import { useConfirm } from '../../context/ConfirmationContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import useReceiptBusiness from '../../hooks/useReceiptBusiness.js';
 import QuotationStatusBadge from '../../components/quotations/QuotationStatusBadge.jsx';
+import QuotationReceiptPDFContent from '../../components/Printables/QuotationReceiptPDF.jsx';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import { motion as Motion } from "framer-motion";
 import PageContainer from "../../components/layout/PageContainer.jsx";
 import formatName from '../../utils/formatName.js';
 import { 
-  FaHashtag, 
   FaCalendarAlt, 
   FaUser, 
   FaClipboardList, 
   FaArrowLeft, 
   FaTrash, 
-  FaPaperPlane,
   FaCheck,
-  FaFileAlt
+  FaFileAlt,
+  FaPrint,
+  FaEnvelope,
 } from "react-icons/fa";
 
 export default function ViewQuotationPage() {
-    const { user } = useAuth();
     const confirm = useConfirm();
     const toast = useToast();
     const navigate = useNavigate();
+    const receiptBusiness = useReceiptBusiness();
     const { id } = useParams();
     
     const [quotation, setQuotation] = useState({});
     const [tableDetails, setTableDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [updatingState, setUpdatingState] = useState(false);
+    const [sendingEmail, setSendingEmail] = useState(false);
+
+    const customerEmail = quotation?.customer?.customerEmail?.trim() || "";
 
     const searchQuotationById = async () => {
         try {
@@ -51,6 +56,36 @@ export default function ViewQuotationPage() {
     useEffect(() => {
         searchQuotationById();
     }, [id]);
+
+    const handleSendEmail = async () => {
+        if (!customerEmail) {
+            toast.info("Sin correo", "El cliente no tiene email registrado.");
+            return;
+        }
+
+        const isConfirmed = await confirm({
+            title: "¿Enviar cotización por correo?",
+            message: `Se enviará la cotización #${quotation?.quotationNumber} con PDF adjunto a ${customerEmail}.`,
+            variant: "success",
+            confirmText: "Enviar correo",
+            cancelText: "Cancelar",
+        });
+        if (!isConfirmed) return;
+
+        setSendingEmail(true);
+        try {
+            await sendQuotationEmail(id);
+            toast.success("Correo enviado", `Cotización enviada a ${customerEmail}.`);
+            await searchQuotationById();
+        } catch (error) {
+            toast.error(
+                "Error",
+                error.response?.data?.message ?? "No se pudo enviar el correo con la cotización.",
+            );
+        } finally {
+            setSendingEmail(false);
+        }
+    };
 
     const handleUpdateStatus = async (newStatus, confirmMessage, successMessage) => {
         const isConfirmed = await confirm({
@@ -157,15 +192,44 @@ export default function ViewQuotationPage() {
                                 <FaArrowLeft /> Volver
                             </Link>
 
+                            <PDFDownloadLink
+                                document={
+                                    <QuotationReceiptPDFContent
+                                        quotation={quotation}
+                                        details={tableDetails}
+                                        business={receiptBusiness}
+                                        netTotal={netTotal}
+                                        ivaTotal={ivaTotal}
+                                        total={total}
+                                    />
+                                }
+                                fileName={`cotizacion-${quotation?.quotationNumber || id}.pdf`}
+                            >
+                                {({ loading: pdfLoading }) => (
+                                    <button
+                                        type="button"
+                                        className="flex items-center gap-2 px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-sm text-sm font-medium"
+                                    >
+                                        <FaPrint />
+                                        {pdfLoading ? "Generando..." : "Descargar PDF"}
+                                    </button>
+                                )}
+                            </PDFDownloadLink>
+
+                            {customerEmail && (
+                                <button
+                                    type="button"
+                                    onClick={handleSendEmail}
+                                    disabled={sendingEmail || updatingState}
+                                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-bold disabled:opacity-60"
+                                >
+                                    <FaEnvelope />
+                                    {sendingEmail ? "Enviando..." : quotation?.quotationStatus === "DRAFT" ? "Enviar por correo" : "Reenviar correo"}
+                                </button>
+                            )}
+
                             {quotation?.quotationStatus === "DRAFT" && (
                                 <>
-                                    <button
-                                        onClick={() => handleUpdateStatus("SENT", "¿Marcar como enviada al cliente?", "La cotización quedó marcada como enviada.")}
-                                        disabled={updatingState}
-                                        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-bold disabled:opacity-60"
-                                    >
-                                        <FaPaperPlane /> Enviar a Cliente
-                                    </button>
                                     <button
                                         onClick={handleDelete}
                                         className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm text-sm font-bold"

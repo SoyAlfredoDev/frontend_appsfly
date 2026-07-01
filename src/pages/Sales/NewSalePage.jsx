@@ -588,7 +588,7 @@ export default function NewSalePage() {
                 : "La cotización se registró correctamente.",
             );
           }
-          navigate("/quotations");
+          navigate(`/quotations/view/${quotationId}`);
         }
         return;
       }

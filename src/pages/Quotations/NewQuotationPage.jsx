@@ -350,7 +350,7 @@ export default function NewQuotationPage() {
           );
         }
         // Reset state or navigate
-        navigate("/quotations");
+        navigate(`/quotations/view/${dataQuotation.quotationId}`);
       }
     } catch (error) {
       console.error("Error creating quotation:", error);
