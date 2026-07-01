@@ -24,7 +24,7 @@ export const createQuotationDetailUtils = async (quotationDetail, quotationId, q
             quotationDetailType: saleDetailType,
             quotationDetailId: saleDetailId,
             quotationDetailQuantity: saleDetailAmount,
-            quotationDetailPrice,
+            quotationDetailPrice: saleDetailPrice,
             quotationDetailTotal: saleDetailAmount * saleDetailPrice,
             quotationDetailProductId,
             quotationDetailServiceId,

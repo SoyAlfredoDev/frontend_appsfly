@@ -10,8 +10,12 @@ export const createQuotationGeneral = async (
         const quotationCreated = await createQuotation(dataQuotationGeneral);
         const quotationCustomerId = dataQuotationGeneral.quotationCustomerId;
         const quotationId = dataQuotationGeneral.quotationId;
+
+        const detailLines = dataQuotationDetail.filter(
+            (row) => row.saleDetailProductServiceId && row.saleDetailType,
+        );
         
-        for (const detail of dataQuotationDetail) {
+        for (const detail of detailLines) {
             try {
                 await createQuotationDetailUtils(detail, quotationId, quotationCustomerId);
             } catch (error) {
