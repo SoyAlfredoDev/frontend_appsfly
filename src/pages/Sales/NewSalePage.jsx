@@ -708,7 +708,9 @@ export default function NewSalePage() {
       toast.error(
         'Error',
         isQuotationMode
-          ? (apiError?.message || 'No se pudo registrar la cotización. Inténtalo de nuevo.')
+          ? (error.response?.status === 404
+              ? 'El servidor aún no tiene activo el módulo de cotizaciones. Espera unos minutos al despliegue del backend o contacta soporte.'
+              : (apiError?.message || 'No se pudo registrar la cotización. Inténtalo de nuevo.'))
           : 'No se pudo registrar la venta. Inténtalo de nuevo.',
       );
     } finally {
