@@ -1,5 +1,5 @@
 import { getQuotationById, updateQuotationStatus, deleteQuotation, sendQuotationEmail } from '../../api/quotation.js';
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useConfirm } from '../../context/ConfirmationContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
@@ -7,6 +7,11 @@ import useReceiptBusiness from '../../hooks/useReceiptBusiness.js';
 import QuotationStatusBadge from '../../components/quotations/QuotationStatusBadge.jsx';
 import QuotationEmailDeliveryBadge from '../../components/quotations/QuotationEmailDeliveryBadge.jsx';
 import { getQuotationEmailDeliveryLabel } from '../../utils/quotationEmailDeliveryLabels.js';
+import {
+    buildQuotationWhatsAppMessage,
+    buildQuotationWhatsAppShareUrl,
+} from '../../utils/quotationShare.js';
+import { getReceiptBranding } from '../../utils/businessReceiptSettings.js';
 import QuotationReceiptPDFContent from '../../components/Printables/QuotationReceiptPDF.jsx';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { motion as Motion } from "framer-motion";
@@ -25,6 +30,8 @@ import {
   FaCheckCircle,
   FaClock,
   FaExclamationCircle,
+  FaWhatsapp,
+  FaShareAlt,
 } from "react-icons/fa";
 
 export default function ViewQuotationPage() {
@@ -40,36 +47,52 @@ export default function ViewQuotationPage() {
     const [loadError, setLoadError] = useState("");
     const [updatingState, setUpdatingState] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
+    const errorToastShown = useRef(false);
 
     const customerEmail = quotation?.customer?.customerEmail?.trim() || "";
+    const customerPhone = quotation?.customer?.customerPhoneNumber?.trim() || "";
+    const customerPhoneCode = quotation?.customer?.customerCodePhoneNumber?.trim() || "";
     const emailDeliveryStatus = quotation?.quotationEmailDeliveryStatus;
     const emailSentTo = quotation?.quotationEmailSentTo?.trim() || customerEmail;
 
-    const searchQuotationById = async () => {
+    const businessBranding = useMemo(
+        () => getReceiptBranding(receiptBusiness),
+        [receiptBusiness],
+    );
+
+    const searchQuotationById = useCallback(async () => {
         if (!id) return;
 
         setIsLoading(true);
         setLoadError("");
+        errorToastShown.current = false;
         try {
             const quotationRes = await getQuotationById(id);
             const quotationData = quotationRes.data;
 
+            if (!quotationData?.quotationId) {
+                throw new Error("Respuesta inválida del servidor.");
+            }
+
             setQuotation(quotationData);
             setTableDetails(quotationData?.QuotationDetail ?? []);
-            setIsLoading(false);
         } catch (error) {
             console.error("Error loading quotation:", error);
             const apiMessage = error.response?.data?.message;
-            const message = apiMessage || "No se pudo cargar el detalle de la cotización.";
+            const message = apiMessage || error.message || "No se pudo cargar el detalle de la cotización.";
             setLoadError(message);
-            toast.error("Error", message);
+            if (!errorToastShown.current) {
+                errorToastShown.current = true;
+                toast.error("Error", message);
+            }
+        } finally {
             setIsLoading(false);
         }
-    };
+    }, [id, toast]);
 
     useEffect(() => {
         searchQuotationById();
-    }, [id]);
+    }, [searchQuotationById]);
 
     const handleSendEmail = async () => {
         if (!customerEmail) {
@@ -166,6 +189,42 @@ export default function ViewQuotationPage() {
     const total = quotation?.quotationTotal ?? 0;
     const netTotal = Math.round(total / (1 + IVA_RATE));
     const ivaTotal = total - netTotal;
+
+    const whatsappShareUrl = useMemo(() => {
+        if (!customerPhone) return null;
+        const message = buildQuotationWhatsAppMessage({
+            customerName: [
+                quotation?.customer?.customerFirstName,
+                quotation?.customer?.customerLastName,
+            ].filter(Boolean).join(" "),
+            businessName: businessBranding.displayName,
+            quotationNumber: quotation?.quotationNumber,
+            quotationDate: quotation?.quotationDate,
+            total,
+            itemCount: tableDetails.length,
+        });
+        return buildQuotationWhatsAppShareUrl({
+            customerCodePhoneNumber: customerPhoneCode,
+            customerPhoneNumber: customerPhone,
+            message,
+        });
+    }, [
+        customerPhone,
+        customerPhoneCode,
+        quotation,
+        businessBranding.displayName,
+        total,
+        tableDetails.length,
+    ]);
+
+    const handleSendWhatsApp = () => {
+        if (!whatsappShareUrl) {
+            toast.info("Sin teléfono", "El cliente no tiene número de WhatsApp registrado.");
+            return;
+        }
+        window.open(whatsappShareUrl, "_blank", "noopener,noreferrer");
+        toast.success("WhatsApp", "Se abrió el chat con el mensaje de la cotización.");
+    };
 
     if (isLoading) {
         return (
@@ -268,7 +327,19 @@ export default function ViewQuotationPage() {
                                     className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-bold disabled:opacity-60"
                                 >
                                     <FaEnvelope />
-                                    {sendingEmail ? "Enviando..." : quotation?.quotationStatus === "DRAFT" ? "Enviar por correo" : "Reenviar correo"}
+                                    {sendingEmail ? "Enviando..." : "Reenviar correo"}
+                                </button>
+                            )}
+
+                            {customerPhone && (
+                                <button
+                                    type="button"
+                                    onClick={handleSendWhatsApp}
+                                    disabled={updatingState}
+                                    className="flex items-center gap-2 px-3 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebe57] transition-colors shadow-sm text-sm font-bold disabled:opacity-60"
+                                >
+                                    <FaWhatsapp />
+                                    Enviar por WhatsApp
                                 </button>
                             )}
 
@@ -408,6 +479,40 @@ export default function ViewQuotationPage() {
                                 </div>
                             </Motion.div>
 
+                            <Motion.div variants={itemVariants} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                    <FaShareAlt className="text-xs" /> Enviar cotización
+                                </h3>
+                                <p className="text-xs text-gray-500 leading-relaxed">
+                                    Reenvíe la cotización al cliente por correo (con PDF) o compártala por WhatsApp.
+                                </p>
+                                <div className="flex flex-col gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleSendEmail}
+                                        disabled={!customerEmail || sendingEmail || updatingState}
+                                        className="flex items-center justify-center gap-2 w-full px-3 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <FaEnvelope />
+                                        {sendingEmail ? "Enviando correo..." : "Reenviar por correo"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSendWhatsApp}
+                                        disabled={!whatsappShareUrl || updatingState}
+                                        className="flex items-center justify-center gap-2 w-full px-3 py-2.5 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebe57] transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <FaWhatsapp />
+                                        Enviar por WhatsApp
+                                    </button>
+                                </div>
+                                {!customerEmail && !customerPhone && (
+                                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                                        El cliente no tiene correo ni teléfono registrado.
+                                    </p>
+                                )}
+                            </Motion.div>
+
                             {emailDeliveryStatus && (
                                 <Motion.div variants={itemVariants} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
                                     <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
@@ -468,6 +573,11 @@ export default function ViewQuotationPage() {
                                             </p>
                                             <p className="text-xs text-gray-500 truncate">
                                                 {quotation?.customer?.customerEmail || "Sin correo"}
+                                            </p>
+                                            <p className="text-xs text-gray-500 truncate">
+                                                {customerPhone
+                                                    ? `${customerPhoneCode} ${customerPhone}`.trim()
+                                                    : "Sin teléfono / WhatsApp"}
                                             </p>
                                         </div>
                                     </div>
