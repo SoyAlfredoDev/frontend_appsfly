@@ -10,4 +10,5 @@ export const getSalesByCustomerIdRequest = (customerId) => axios.get(`/sales/cus
 export const countSalesMonthRequest = (month, year) => axios.get(`/sales/count/${month}/${year}`);
 export const markSaleDeliveredRequest = (saleId) => axios.patch(`/sales/${saleId}/delivery`);
 export const sendSaleEmail = (saleId) => axios.post(`/sales/${saleId}/send-email`);
+export const getSaleShareLink = (saleId) => axios.get(`/sales/${saleId}/share-link`);
 

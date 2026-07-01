@@ -16,6 +16,12 @@ import ReceiptTypeSelector, {
   isQuotationDocumentType,
 } from "../../components/billing/ReceiptTypeSelector.jsx";
 import SendDocumentEmailOption from "../../components/sales/SendDocumentEmailOption.jsx";
+import SendDocumentWhatsAppOption from "../../components/sales/SendDocumentWhatsAppOption.jsx";
+import { getSaleShareLink } from "../../api/sale.js";
+import {
+  buildSaleWhatsAppMessage,
+  buildSaleWhatsAppShareUrl,
+} from "../../utils/saleShare.js";
 import FacturaReceiverForm from "../../components/billing/FacturaReceiverForm.jsx";
 import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/validateSaleStock.js";
 import { isCreditSalesEnabled, isDeliveryControlEnabled } from "../../utils/businessReceiptSettings.js";
@@ -107,6 +113,7 @@ export default function NewSalePage() {
   const [saleId, setSaleId] = useState(uuidv4());
   const [quotationId, setQuotationId] = useState(uuidv4());
   const [sendByEmail, setSendByEmail] = useState(false);
+  const [sendByWhatsApp, setSendByWhatsApp] = useState(false);
   const { user, business } = useAuth();
   const creditSalesEnabled = useMemo(
     () => isCreditSalesEnabled(business),
@@ -221,12 +228,70 @@ export default function NewSalePage() {
   );
 
   const customerHasEmail = Boolean(selectedCustomer?.customerEmail?.trim());
+  const customerHasPhone = Boolean(selectedCustomer?.customerPhoneNumber?.trim());
+
+  const SALE_DOCUMENT_LABELS = {
+    RECEIPT: "Comprobante de venta",
+    BOLETA: "Boleta electrónica",
+    FACTURA: "Factura electrónica",
+  };
 
   useEffect(() => {
     if (!customerHasEmail) {
       setSendByEmail(false);
     }
   }, [customerHasEmail, dataSale.saleCustomerId]);
+
+  useEffect(() => {
+    if (!customerHasPhone) {
+      setSendByWhatsApp(false);
+    }
+  }, [customerHasPhone, dataSale.saleCustomerId]);
+
+  const tryOpenSaleWhatsAppShare = useCallback(
+    async (saleId, saleNumber) => {
+      if (!sendByWhatsApp || !customerHasPhone) return;
+      const customerLabel = selectedCustomer
+        ? `${selectedCustomer.customerFirstName} ${selectedCustomer.customerLastName}`.trim()
+        : "";
+      try {
+        const linkRes = await getSaleShareLink(saleId);
+        const message = buildSaleWhatsAppMessage({
+          customerName: customerLabel,
+          businessName: business?.businessName,
+          saleNumber,
+          saleDate: new Date().toLocaleDateString("es-CL"),
+          documentLabel: SALE_DOCUMENT_LABELS[documentType] || SALE_DOCUMENT_LABELS.RECEIPT,
+          total,
+          itemCount: dataTable.filter((row) => row.saleDetailProductServiceId).length,
+          publicUrl: linkRes.data.shareUrl,
+        });
+        const shareUrl = buildSaleWhatsAppShareUrl({
+          customerCodePhoneNumber: selectedCustomer?.customerCodePhoneNumber,
+          customerPhoneNumber: selectedCustomer?.customerPhoneNumber,
+          message,
+        });
+        if (shareUrl) {
+          window.open(shareUrl, "_blank", "noopener,noreferrer");
+        }
+      } catch (error) {
+        toast.info(
+          "WhatsApp",
+          error.response?.data?.message || "No se pudo abrir WhatsApp con el enlace.",
+        );
+      }
+    },
+    [
+      sendByWhatsApp,
+      customerHasPhone,
+      selectedCustomer,
+      business?.businessName,
+      documentType,
+      total,
+      dataTable,
+      toast,
+    ],
+  );
 
   // Filtered customers for search
   const filteredCustomers = useMemo(() => {
@@ -639,6 +704,7 @@ export default function NewSalePage() {
                 ? `DTE emitido. Folio ${folio}.`
                 : "Venta registrada y DTE en proceso.") + emailNote,
             );
+            await tryOpenSaleWhatsAppShare(res.dataSale.saleId, res.dataSale.saleNumber);
           } catch (dteError) {
             toast.error(
               "DTE no emitido",
@@ -661,6 +727,7 @@ export default function NewSalePage() {
                 : "La venta se registró correctamente.",
             );
           }
+          await tryOpenSaleWhatsAppShare(res.dataSale.saleId, res.dataSale.saleNumber);
         }
         const newId = uuidv4();
         setSaleId(newId);
@@ -678,6 +745,7 @@ export default function NewSalePage() {
         setDataSalePayments([]);
         setDocumentType("RECEIPT");
         setSendByEmail(false);
+        setSendByWhatsApp(false);
         setFacturaReceiver({
           businessName: "",
           rut: "",
@@ -1037,6 +1105,13 @@ export default function NewSalePage() {
                 customerEmail={selectedCustomer?.customerEmail}
                 disabled={isLoading || blockSalesRegistration}
               />
+              <SendDocumentWhatsAppOption
+                checked={sendByWhatsApp}
+                onChange={setSendByWhatsApp}
+                customerCodePhoneNumber={selectedCustomer?.customerCodePhoneNumber}
+                customerPhone={selectedCustomer?.customerPhoneNumber}
+                disabled={isLoading || blockSalesRegistration || isQuotationMode}
+              />
             </FormFlatSection>
 
             <FormFlatSection title="Comentarios" bordered={false}>
@@ -1347,11 +1422,22 @@ export default function NewSalePage() {
                 )}
               </div>
 
-              <SendDocumentEmailOption
+              <div className="space-y-1 py-2 border-t border-gray-100">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 px-0.5">
+                  Envío al cliente
+                </p>
+                <SendDocumentEmailOption
                 checked={sendByEmail}
                 onChange={setSendByEmail}
                 customerEmail={selectedCustomer?.customerEmail}
                 disabled={isLoading || blockSalesRegistration}
+              />
+              <SendDocumentWhatsAppOption
+                checked={sendByWhatsApp}
+                onChange={setSendByWhatsApp}
+                customerCodePhoneNumber={selectedCustomer?.customerCodePhoneNumber}
+                customerPhone={selectedCustomer?.customerPhoneNumber}
+                disabled={isLoading || blockSalesRegistration || isQuotationMode}
               />
 
               <button
@@ -1386,6 +1472,14 @@ export default function NewSalePage() {
               onChange={setSendByEmail}
               customerEmail={selectedCustomer?.customerEmail}
               disabled={isLoading || blockSalesRegistration}
+            />
+            <SendDocumentWhatsAppOption
+              compact
+              checked={sendByWhatsApp}
+              onChange={setSendByWhatsApp}
+              customerCodePhoneNumber={selectedCustomer?.customerCodePhoneNumber}
+              customerPhone={selectedCustomer?.customerPhoneNumber}
+              disabled={isLoading || blockSalesRegistration || isQuotationMode}
             />
           </div>
           {!isQuotationMode && total > 0 && (

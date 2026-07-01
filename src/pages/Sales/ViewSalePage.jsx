@@ -1,11 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
-import { getSaleById, markSaleDeliveredRequest } from '../../api/sale.js'
+import { getSaleById, markSaleDeliveredRequest, sendSaleEmail, getSaleShareLink } from '../../api/sale.js'
 import { getSaleDetailById } from '../../api/saleDetail.js'
 import { getPaymentBySaleId, createPayment } from '../../api/payment.js'
 import { useEffect, useMemo, useState } from "react"
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../../context/authContext.jsx'
 import useReceiptBusiness from '../../hooks/useReceiptBusiness.js'
+import {
+    buildSaleWhatsAppMessage,
+    buildSaleWhatsAppShareUrl,
+} from '../../utils/saleShare.js'
 import { useConfirm } from '../../context/ConfirmationContext.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
 import { IconPrinter } from "../../components/IconComponent.jsx"
@@ -30,6 +34,9 @@ import {
     FaUniversity,
     FaBoxOpen,
     FaTruck,
+    FaEnvelope,
+    FaWhatsapp,
+    FaShareAlt,
 } from "react-icons/fa";
 
 export default function ViewSalePage() {
@@ -48,6 +55,14 @@ export default function ViewSalePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [markingDelivered, setMarkingDelivered] = useState(false);
+    const [sendingEmail, setSendingEmail] = useState(false);
+    const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+
+    const DOCUMENT_LABELS = {
+        RECEIPT: "Comprobante de venta",
+        BOLETA: "Boleta electrónica",
+        FACTURA: "Factura electrónica",
+    };
 
     const deliveryControlEnabled = useMemo(
         () => isDeliveryControlEnabled(business),
@@ -60,6 +75,16 @@ export default function ViewSalePage() {
     );
 
     const showDeliverySection = deliveryControlEnabled && hasProducts && sale?.saleDeliveryStatus;
+
+    const customerEmail = sale?.customer?.customerEmail?.trim() || "";
+    const customerPhone = sale?.customer?.customerPhoneNumber?.trim() || "";
+    const customerPhoneCode = sale?.customer?.customerCodePhoneNumber?.trim() || "";
+    const customerName = [
+        sale?.customer?.customerFirstName,
+        sale?.customer?.customerLastName,
+    ].filter(Boolean).join(" ").trim();
+
+    const documentLabel = DOCUMENT_LABELS[sale?.documentType] || DOCUMENT_LABELS.RECEIPT;
 
     // Payment methods for the modal
     const methods = [
@@ -174,6 +199,66 @@ export default function ViewSalePage() {
         }
     };
 
+    const handleSendEmail = async () => {
+        if (!customerEmail) {
+            toast.info("Sin correo", "El cliente no tiene correo electrónico registrado.");
+            return;
+        }
+        setSendingEmail(true);
+        try {
+            await sendSaleEmail(id);
+            toast.success("Correo enviado", `Comprobante enviado a ${customerEmail}.`);
+        } catch (error) {
+            toast.error(
+                "No se pudo enviar",
+                error.response?.data?.message ?? "Ocurrió un error al enviar el correo.",
+            );
+        } finally {
+            setSendingEmail(false);
+        }
+    };
+
+    const handleSendWhatsApp = async () => {
+        if (!customerPhone) {
+            toast.info("Sin teléfono", "El cliente no tiene número de WhatsApp registrado.");
+            return;
+        }
+        setSendingWhatsApp(true);
+        try {
+            const linkRes = await getSaleShareLink(id);
+            const message = buildSaleWhatsAppMessage({
+                customerName,
+                businessName: receiptBusiness?.businessName || business?.businessName,
+                saleNumber: sale?.saleNumber,
+                saleDate: sale?.createdAt
+                    ? new Date(sale.createdAt).toLocaleDateString("es-CL")
+                    : "",
+                documentLabel,
+                total: sale?.saleTotal,
+                itemCount: tableProductAndService.length,
+                publicUrl: linkRes.data.shareUrl,
+            });
+            const shareUrl = buildSaleWhatsAppShareUrl({
+                customerCodePhoneNumber: customerPhoneCode,
+                customerPhoneNumber: customerPhone,
+                message,
+            });
+            if (!shareUrl) {
+                toast.info("WhatsApp", "No se pudo preparar el enlace de WhatsApp.");
+                return;
+            }
+            window.open(shareUrl, "_blank", "noopener,noreferrer");
+            toast.success("WhatsApp", "Se abrió el chat con el enlace al comprobante.");
+        } catch (error) {
+            toast.error(
+                "WhatsApp",
+                error.response?.data?.message ?? "No se pudo generar el enlace para compartir.",
+            );
+        } finally {
+            setSendingWhatsApp(false);
+        }
+    };
+
     // Helper to format currency
     const formatCurrency = (amount) => {
         return amount?.toLocaleString('es-CL', { style: 'currency', currency: 'CLP' }) || '$0';
@@ -261,6 +346,30 @@ export default function ViewSalePage() {
                                         </button>
                                     )}
                                 </PDFDownloadLink>
+                            )}
+
+                            {!isLoading && customerEmail && (
+                                <button
+                                    type="button"
+                                    onClick={handleSendEmail}
+                                    disabled={sendingEmail}
+                                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-bold disabled:opacity-60"
+                                >
+                                    <FaEnvelope />
+                                    {sendingEmail ? "Enviando..." : "Enviar correo"}
+                                </button>
+                            )}
+
+                            {!isLoading && customerPhone && (
+                                <button
+                                    type="button"
+                                    onClick={handleSendWhatsApp}
+                                    disabled={sendingWhatsApp}
+                                    className="flex items-center gap-2 px-3 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebe57] transition-colors shadow-sm text-sm font-bold disabled:opacity-60"
+                                >
+                                    <FaWhatsapp />
+                                    {sendingWhatsApp ? "Preparando..." : "WhatsApp"}
+                                </button>
                             )}
                         </div>
                     </div>
@@ -356,6 +465,49 @@ export default function ViewSalePage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {(customerEmail || customerPhone) && (
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                        <FaShareAlt className="text-xs" /> Enviar comprobante al cliente
+                                    </h3>
+                                    <p className="text-xs text-gray-500 leading-relaxed">
+                                        Reenvíe el comprobante por correo (con PDF y enlace) o compártalo por WhatsApp.
+                                    </p>
+                                    <div className="flex flex-col sm:flex-row gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleSendEmail}
+                                            disabled={!customerEmail || sendingEmail}
+                                            className="flex items-center justify-center gap-2 flex-1 px-3 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <FaEnvelope />
+                                            {sendingEmail ? "Enviando correo..." : "Enviar por correo"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleSendWhatsApp}
+                                            disabled={!customerPhone || sendingWhatsApp}
+                                            className="flex items-center justify-center gap-2 flex-1 px-3 py-2.5 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebe57] transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <FaWhatsapp />
+                                            {sendingWhatsApp ? "Preparando..." : "Enviar por WhatsApp"}
+                                        </button>
+                                    </div>
+                                    <div className="text-xs text-gray-500 space-y-1">
+                                        {customerEmail ? (
+                                            <p>Correo: {customerEmail}</p>
+                                        ) : (
+                                            <p className="text-amber-700">Sin correo registrado para este cliente.</p>
+                                        )}
+                                        {customerPhone ? (
+                                            <p>Teléfono: {[customerPhoneCode, customerPhone].filter(Boolean).join(" ")}</p>
+                                        ) : (
+                                            <p className="text-amber-700">Sin teléfono registrado para WhatsApp.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* 2. Items Table (Compact) */}
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

@@ -95,6 +95,7 @@ import EmailCampaignHistoryDetailAdminPage from "./pages/admin/emailCampaigns/Em
 import EmailCampaignDetailAdminPage from "./pages/admin/emailCampaigns/EmailCampaignDetailAdminPage.jsx";
 import EmailProspectsAdminPage from "./pages/admin/emailProspects/EmailProspectsAdminPage.jsx";
 import ProspectUnsubscribePage from "./pages/ProspectUnsubscribePage.jsx";
+import PublicSaleReceiptPage from "./pages/public/PublicSaleReceiptPage.jsx";
 import NotificationsAdminPage from "./pages/admin/NotificationsAdminPage.jsx";
 import AgentTasksAdminPage from "./pages/admin/AgentTasksAdminPage.jsx";
 import PlatformOwnerProtectedView from "./components/PlatformOwnerProtectedView.jsx";
@@ -124,6 +125,7 @@ function App() {
               <Route path="/about-us" element={<AboutUsPage />} />
               <Route path="/users/:id/confirm-email" element={<ConfirmAccountPage />} />
               <Route path="/prospect-unsubscribe/:token" element={<ProspectUnsubscribePage />} />
+              <Route path="/public/receipt/:token" element={<PublicSaleReceiptPage />} />
 
               {/* Authenticated tenant shell */}
               <Route element={<AppLayout />}>
