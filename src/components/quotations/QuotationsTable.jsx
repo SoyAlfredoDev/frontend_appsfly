@@ -18,6 +18,7 @@ import {
 } from "../ui/ExpenseTableElements.jsx";
 import { ACTION_VIEW } from "../../utils/expenseUiPatterns.js";
 import QuotationStatusBadge from "./QuotationStatusBadge.jsx";
+import QuotationEmailDeliveryBadge from "./QuotationEmailDeliveryBadge.jsx";
 
 function buildQuotationsColumns(navigate) {
   const columns = [
@@ -63,6 +64,22 @@ function buildQuotationsColumns(navigate) {
       cell: ({ getValue }) => {
         const status = getValue();
         return <QuotationStatusBadge status={status} />;
+      },
+    },
+    {
+      header: "Correo",
+      accessorFn: (row) => row.quotationEmailDeliveryStatus ?? "",
+      cell: ({ row }) => {
+        const status = row.original.quotationEmailDeliveryStatus;
+        if (!status) {
+          return <span className="text-xs text-gray-400">—</span>;
+        }
+        return (
+          <QuotationEmailDeliveryBadge
+            status={status}
+            openedAt={row.original.quotationEmailOpenedAt}
+          />
+        );
       },
     },
     {

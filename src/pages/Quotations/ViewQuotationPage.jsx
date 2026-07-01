@@ -1,11 +1,12 @@
 import { getQuotationById, updateQuotationStatus, deleteQuotation, sendQuotationEmail } from '../../api/quotation.js';
-import { getQuotationDetailsByQuotationId } from '../../api/quotationDetail.js';
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useConfirm } from '../../context/ConfirmationContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import useReceiptBusiness from '../../hooks/useReceiptBusiness.js';
 import QuotationStatusBadge from '../../components/quotations/QuotationStatusBadge.jsx';
+import QuotationEmailDeliveryBadge from '../../components/quotations/QuotationEmailDeliveryBadge.jsx';
+import { getQuotationEmailDeliveryLabel } from '../../utils/quotationEmailDeliveryLabels.js';
 import QuotationReceiptPDFContent from '../../components/Printables/QuotationReceiptPDF.jsx';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { motion as Motion } from "framer-motion";
@@ -21,6 +22,9 @@ import {
   FaFileAlt,
   FaPrint,
   FaEnvelope,
+  FaCheckCircle,
+  FaClock,
+  FaExclamationCircle,
 } from "react-icons/fa";
 
 export default function ViewQuotationPage() {
@@ -33,23 +37,33 @@ export default function ViewQuotationPage() {
     const [quotation, setQuotation] = useState({});
     const [tableDetails, setTableDetails] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [updatingState, setUpdatingState] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
 
     const customerEmail = quotation?.customer?.customerEmail?.trim() || "";
+    const emailDeliveryStatus = quotation?.quotationEmailDeliveryStatus;
+    const emailSentTo = quotation?.quotationEmailSentTo?.trim() || customerEmail;
 
     const searchQuotationById = async () => {
-        try {
-            const quotationData = await getQuotationById(id);
-            const detailData = await getQuotationDetailsByQuotationId(id);
+        if (!id) return;
 
-            setQuotation(quotationData.data);
-            setTableDetails(detailData.data);
+        setIsLoading(true);
+        setLoadError("");
+        try {
+            const quotationRes = await getQuotationById(id);
+            const quotationData = quotationRes.data;
+
+            setQuotation(quotationData);
+            setTableDetails(quotationData?.QuotationDetail ?? []);
             setIsLoading(false);
         } catch (error) {
             console.error("Error loading quotation:", error);
-            toast.error("Error", "No se pudo cargar el detalle de la cotización.");
-            navigate("/quotations");
+            const apiMessage = error.response?.data?.message;
+            const message = apiMessage || "No se pudo cargar el detalle de la cotización.";
+            setLoadError(message);
+            toast.error("Error", message);
+            setIsLoading(false);
         }
     };
 
@@ -166,6 +180,31 @@ export default function ViewQuotationPage() {
         );
     }
 
+    if (loadError) {
+        return (
+            <PageContainer>
+                <div className="flex h-[50vh] flex-col items-center justify-center gap-4 px-4 text-center">
+                    <p className="text-sm text-red-600">{loadError}</p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                            type="button"
+                            onClick={searchQuotationById}
+                            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+                        >
+                            Reintentar
+                        </button>
+                        <Link
+                            to="/quotations"
+                            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 no-underline"
+                        >
+                            Volver al listado
+                        </Link>
+                    </div>
+                </div>
+            </PageContainer>
+        );
+    }
+
     return (
         <PageContainer>
             <div className="min-h-screen bg-gray-50/50 pb-12 font-montserrat">
@@ -184,6 +223,11 @@ export default function ViewQuotationPage() {
                                     #{quotation?.quotationNumber}
                                 </span>
                                 <QuotationStatusBadge status={quotation?.quotationStatus} className="text-xs" />
+                                <QuotationEmailDeliveryBadge
+                                    status={emailDeliveryStatus}
+                                    openedAt={quotation?.quotationEmailOpenedAt}
+                                    className="text-xs"
+                                />
                             </h1>
                         </div>
                         
@@ -363,6 +407,50 @@ export default function ViewQuotationPage() {
                                     </div>
                                 </div>
                             </Motion.div>
+
+                            {emailDeliveryStatus && (
+                                <Motion.div variants={itemVariants} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                        <FaEnvelope className="text-xs" /> Estado del correo
+                                    </h3>
+
+                                    <div className="flex items-start gap-3">
+                                        {emailDeliveryStatus === "DELIVERED" ? (
+                                            <FaCheckCircle className="text-emerald-500 mt-0.5 shrink-0" />
+                                        ) : emailDeliveryStatus === "SENT" ? (
+                                            <FaClock className="text-amber-500 mt-0.5 shrink-0" />
+                                        ) : (
+                                            <FaExclamationCircle className="text-red-500 mt-0.5 shrink-0" />
+                                        )}
+                                        <div className="min-w-0 space-y-2">
+                                            <p className="text-sm font-semibold text-gray-800">
+                                                {getQuotationEmailDeliveryLabel(
+                                                    emailDeliveryStatus,
+                                                    { openedAt: quotation?.quotationEmailOpenedAt },
+                                                )}
+                                            </p>
+                                            <p className="text-xs text-gray-500 break-all">
+                                                Destinatario: {emailSentTo}
+                                            </p>
+                                            {quotation?.quotationEmailSentAt && (
+                                                <p className="text-xs text-gray-500">
+                                                    Enviado: {new Date(quotation.quotationEmailSentAt).toLocaleString("es-CL")}
+                                                </p>
+                                            )}
+                                            {quotation?.quotationEmailDeliveredAt && (
+                                                <p className="text-xs text-gray-500">
+                                                    Recibido: {new Date(quotation.quotationEmailDeliveredAt).toLocaleString("es-CL")}
+                                                </p>
+                                            )}
+                                            {quotation?.quotationEmailErrorMessage && (
+                                                <p className="text-xs text-red-600">
+                                                    {quotation.quotationEmailErrorMessage}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </Motion.div>
+                            )}
 
                             {/* Customer & Creator Meta Info */}
                             <Motion.div variants={itemVariants} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
