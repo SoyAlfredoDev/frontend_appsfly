@@ -40,6 +40,7 @@ import {
 
 import { getClosureStatus, closeAllPendingClosures } from "../../api/dailySales.js";
 import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
+import { useMatchMedia } from "../../hooks/useMatchMedia.js";
 import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineItem.jsx";
 import RegisterCustomerBar from "../../components/sales/RegisterCustomerBar.jsx";
 import FormFlatSection from "../../components/forms/FormFlatSection.jsx";
@@ -158,6 +159,7 @@ export default function NewSalePage() {
   const isSalesBlocked = closureBlock?.blocked === true;
   /** Ventas bloqueadas por cierre; las cotizaciones siguen habilitadas. */
   const blockSalesRegistration = isSalesBlocked && !isQuotationMode;
+  const isDesktopLayout = useMatchMedia("(min-width: 768px)");
 
   const salePaymentComplete = useMemo(
     () =>
@@ -211,7 +213,10 @@ export default function NewSalePage() {
 
   // Selected customer object
   const selectedCustomer = useMemo(
-    () => customers.find((c) => c.customerId === dataSale.saleCustomerId),
+    () =>
+      customers.find(
+        (c) => String(c.customerId) === String(dataSale.saleCustomerId ?? ""),
+      ),
     [customers, dataSale.saleCustomerId],
   );
 
@@ -820,6 +825,7 @@ export default function NewSalePage() {
                 filteredCustomers={filteredCustomers}
                 onCustomerCreated={handleCreated}
                 disabled={blockSalesRegistration}
+                isActive={isDesktopLayout}
                 viewCustomerHref={
                   dataSale.saleCustomerId
                     ? `/customers/${dataSale.saleCustomerId}`
@@ -929,6 +935,7 @@ export default function NewSalePage() {
                 filteredCustomers={filteredCustomers}
                 onCustomerCreated={handleCreated}
                 disabled={blockSalesRegistration}
+                isActive={!isDesktopLayout}
                 viewCustomerHref={
                   dataSale.saleCustomerId
                     ? `/customers/${dataSale.saleCustomerId}`

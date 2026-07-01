@@ -15,6 +15,8 @@ import {
   REGISTER_CUSTOMER_SEARCH_INPUT,
 } from "../../utils/expenseUiPatterns.js";
 
+const CUSTOMER_DROPDOWN_SELECTOR = "[data-register-customer-dropdown]";
+
 function customerSecondaryLine(customer) {
   return [customer.customerDocumentNumber, customer.customerPhoneNumber, customer.customerEmail]
     .filter(Boolean)
@@ -34,6 +36,8 @@ export default function RegisterCustomerBar({
   filteredCustomers,
   onCustomerCreated,
   disabled = false,
+  /** Solo la instancia visible (móvil o desktop) monta el dropdown y escucha clics externos. */
+  isActive = true,
   viewCustomerHref = null,
   className = "",
 }) {
@@ -44,6 +48,7 @@ export default function RegisterCustomerBar({
   const updateDropdownPosition = useCallback(() => {
     if (!fieldRef.current) return;
     const rect = fieldRef.current.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
     setDropdownPosition({
       top: rect.bottom + 6,
       left: rect.left,
@@ -52,7 +57,7 @@ export default function RegisterCustomerBar({
   }, []);
 
   useEffect(() => {
-    if (!isDropdownOpen) {
+    if (!isDropdownOpen || !isActive) {
       setDropdownPosition(null);
       return;
     }
@@ -63,17 +68,30 @@ export default function RegisterCustomerBar({
       window.removeEventListener("resize", updateDropdownPosition);
       window.removeEventListener("scroll", updateDropdownPosition, true);
     };
-  }, [isDropdownOpen, updateDropdownPosition]);
+  }, [isDropdownOpen, isActive, updateDropdownPosition]);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        onCloseDropdown();
+    if (!isDropdownOpen || !isActive) return;
+
+    const handlePointerDown = (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest(CUSTOMER_DROPDOWN_SELECTOR)) {
+        return;
       }
+      onCloseDropdown();
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onCloseDropdown]);
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isDropdownOpen, isActive, onCloseDropdown]);
+
+  const handleSelectCustomer = (customerId) => {
+    onSelectCustomer(customerId);
+  };
+
+  const showDropdown = isActive && isDropdownOpen && dropdownPosition;
 
   return (
     <div className={className}>
@@ -88,61 +106,62 @@ export default function RegisterCustomerBar({
 
           <div ref={dropdownRef} className={REGISTER_CUSTOMER_BAR_FIELD}>
             <div ref={fieldRef} className="relative w-full flex items-center">
-            {selectedCustomer && !isDropdownOpen ? (
-              <div
-                className="flex items-center gap-3 w-full py-1 cursor-pointer group"
-                onClick={onOpenDropdown}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") onOpenDropdown();
-                }}
-              >
-                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs shrink-0">
-                  {selectedCustomer.customerFirstName?.charAt(0)?.toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {selectedCustomer.customerFirstName}{" "}
-                    {selectedCustomer.customerLastName}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {customerSecondaryLine(selectedCustomer) || "Sin datos de contacto"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClearCustomer();
-                    onCloseDropdown();
+              {selectedCustomer && !isDropdownOpen ? (
+                <div
+                  className="flex items-center gap-3 w-full py-1 cursor-pointer group"
+                  onClick={onOpenDropdown}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") onOpenDropdown();
                   }}
-                  className="min-h-11 min-w-11 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 rounded-xl transition-colors shrink-0 touch-manipulation"
-                  title="Quitar cliente"
-                  aria-label="Quitar cliente"
                 >
-                  <FaTimes className="text-xs" />
-                </button>
-              </div>
-            ) : (
-              <div className="relative w-full flex items-center">
-                <FaSearch className="absolute left-0 text-slate-400 text-sm pointer-events-none" />
-                <input
-                  type="text"
-                  className={`${REGISTER_CUSTOMER_SEARCH_INPUT} pl-7 text-base md:text-sm`}
-                  placeholder="Buscar por nombre, RUT, teléfono o correo..."
-                  value={customerSearch}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  onFocus={onOpenDropdown}
-                  autoComplete="off"
-                />
-              </div>
-            )}
+                  <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs shrink-0">
+                    {selectedCustomer.customerFirstName?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {selectedCustomer.customerFirstName}{" "}
+                      {selectedCustomer.customerLastName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {customerSecondaryLine(selectedCustomer) || "Sin datos de contacto"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClearCustomer();
+                      onCloseDropdown();
+                    }}
+                    className="min-h-11 min-w-11 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 rounded-xl transition-colors shrink-0 touch-manipulation"
+                    title="Quitar cliente"
+                    aria-label="Quitar cliente"
+                  >
+                    <FaTimes className="text-xs" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative w-full flex items-center">
+                  <FaSearch className="absolute left-0 text-slate-400 text-sm pointer-events-none" />
+                  <input
+                    type="text"
+                    className={`${REGISTER_CUSTOMER_SEARCH_INPUT} pl-7 text-base md:text-sm`}
+                    placeholder="Buscar por nombre, RUT, teléfono o correo..."
+                    value={customerSearch}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    onFocus={onOpenDropdown}
+                    autoComplete="off"
+                  />
+                </div>
+              )}
             </div>
 
             <AnimatePresence>
-              {isDropdownOpen && dropdownPosition && (
+              {showDropdown && (
                 <Motion.div
+                  data-register-customer-dropdown
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
@@ -163,10 +182,15 @@ export default function RegisterCustomerBar({
                       <button
                         key={c.customerId}
                         type="button"
-                        className={`w-full flex items-center gap-3 px-4 h-12 text-left hover:bg-primary/5 transition-colors text-sm border-b border-gray-50 last:border-0 ${
-                          c.customerId === selectedCustomerId ? "bg-primary/10" : ""
+                        className={`w-full flex items-center gap-3 px-4 h-12 text-left hover:bg-primary/5 active:bg-primary/10 transition-colors text-sm border-b border-gray-50 last:border-0 touch-manipulation ${
+                          String(c.customerId) === String(selectedCustomerId)
+                            ? "bg-primary/10"
+                            : ""
                         }`}
-                        onClick={() => onSelectCustomer(c.customerId)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelectCustomer(c.customerId);
+                        }}
                       >
                         <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs shrink-0">
                           {c.customerFirstName?.charAt(0)?.toUpperCase()}
