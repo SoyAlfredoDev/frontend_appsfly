@@ -156,6 +156,8 @@ export default function NewSalePage() {
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
 
   const isSalesBlocked = closureBlock?.blocked === true;
+  /** Ventas bloqueadas por cierre; las cotizaciones siguen habilitadas. */
+  const blockSalesRegistration = isSalesBlocked && !isQuotationMode;
 
   const salePaymentComplete = useMemo(
     () =>
@@ -793,7 +795,7 @@ export default function NewSalePage() {
                 variant="compact"
                 value={documentType}
                 onChange={setDocumentType}
-                disabled={isLoading || isSalesBlocked}
+                disabled={isLoading}
               />
             </div>
             <div className="col-span-8">
@@ -817,7 +819,7 @@ export default function NewSalePage() {
                 }
                 filteredCustomers={filteredCustomers}
                 onCustomerCreated={handleCreated}
-                disabled={isSalesBlocked}
+                disabled={blockSalesRegistration}
                 viewCustomerHref={
                   dataSale.saleCustomerId
                     ? `/customers/${dataSale.saleCustomerId}`
@@ -832,7 +834,7 @@ export default function NewSalePage() {
               <FacturaReceiverForm
                 value={facturaReceiver}
                 onChange={setFacturaReceiver}
-                disabled={isLoading || isSalesBlocked}
+                disabled={isLoading || blockSalesRegistration}
               />
             </div>
           )}
@@ -900,7 +902,7 @@ export default function NewSalePage() {
 
         <div
           className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-opacity ${
-            isSalesBlocked && !isQuotationMode ? "pointer-events-none opacity-45 select-none" : ""
+            blockSalesRegistration ? "pointer-events-none opacity-45 select-none" : ""
           }`}
         >
 
@@ -926,7 +928,7 @@ export default function NewSalePage() {
                 }
                 filteredCustomers={filteredCustomers}
                 onCustomerCreated={handleCreated}
-                disabled={isSalesBlocked}
+                disabled={blockSalesRegistration}
                 viewCustomerHref={
                   dataSale.saleCustomerId
                     ? `/customers/${dataSale.saleCustomerId}`
@@ -940,7 +942,7 @@ export default function NewSalePage() {
                 variant="compact"
                 value={documentType}
                 onChange={setDocumentType}
-                disabled={isLoading || isSalesBlocked}
+                disabled={isLoading}
               />
             </FormFlatSection>
 
@@ -949,7 +951,7 @@ export default function NewSalePage() {
                 <FacturaReceiverForm
                   value={facturaReceiver}
                   onChange={setFacturaReceiver}
-                  disabled={isLoading || isSalesBlocked}
+                  disabled={isLoading || blockSalesRegistration}
                 />
               </FormFlatSection>
             )}
@@ -962,7 +964,7 @@ export default function NewSalePage() {
                   type="button"
                   onClick={newRow}
                   className={`${PRIMARY_BTN} !h-8 !px-3 !py-1 !text-xs`}
-                  disabled={isSalesBlocked}
+                  disabled={blockSalesRegistration}
                 >
                   <FaPlus className="text-[10px]" /> Agregar
                 </button>
@@ -1024,7 +1026,7 @@ export default function NewSalePage() {
                 checked={sendByEmail}
                 onChange={setSendByEmail}
                 customerEmail={selectedCustomer?.customerEmail}
-                disabled={isLoading || isSalesBlocked}
+                disabled={isLoading || blockSalesRegistration}
               />
             </FormFlatSection>
 
@@ -1227,7 +1229,7 @@ export default function NewSalePage() {
             </div>
 
             <div className="px-3 py-2 border-t border-gray-200 bg-gray-50/40 hidden md:block">
-              <button type="button" onClick={newRow} className={`${PRIMARY_BTN} w-full justify-center !py-1.5 !text-xs`} disabled={isSalesBlocked}>
+              <button type="button" onClick={newRow} className={`${PRIMARY_BTN} w-full justify-center !py-1.5 !text-xs`} disabled={blockSalesRegistration}>
                 <FaPlus /> Agregar ítem
               </button>
             </div>
@@ -1340,7 +1342,7 @@ export default function NewSalePage() {
                 checked={sendByEmail}
                 onChange={setSendByEmail}
                 customerEmail={selectedCustomer?.customerEmail}
-                disabled={isLoading || (isSalesBlocked && !isQuotationMode)}
+                disabled={isLoading || blockSalesRegistration}
               />
 
               <button
@@ -1374,7 +1376,7 @@ export default function NewSalePage() {
               checked={sendByEmail}
               onChange={setSendByEmail}
               customerEmail={selectedCustomer?.customerEmail}
-              disabled={isLoading || (isSalesBlocked && !isQuotationMode)}
+              disabled={isLoading || blockSalesRegistration}
             />
           </div>
           {!isQuotationMode && total > 0 && (

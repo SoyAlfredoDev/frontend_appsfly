@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { FaSearch, FaTimes, FaUser, FaUserPlus } from "react-icons/fa";
@@ -38,6 +38,32 @@ export default function RegisterCustomerBar({
   className = "",
 }) {
   const dropdownRef = useRef(null);
+  const fieldRef = useRef(null);
+  const [dropdownPosition, setDropdownPosition] = useState(null);
+
+  const updateDropdownPosition = useCallback(() => {
+    if (!fieldRef.current) return;
+    const rect = fieldRef.current.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + 6,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isDropdownOpen) {
+      setDropdownPosition(null);
+      return;
+    }
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("scroll", updateDropdownPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateDropdownPosition);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+    };
+  }, [isDropdownOpen, updateDropdownPosition]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -61,6 +87,7 @@ export default function RegisterCustomerBar({
           </div>
 
           <div ref={dropdownRef} className={REGISTER_CUSTOMER_BAR_FIELD}>
+            <div ref={fieldRef} className="relative w-full flex items-center">
             {selectedCustomer && !isDropdownOpen ? (
               <div
                 className="flex items-center gap-3 w-full py-1 cursor-pointer group"
@@ -111,15 +138,21 @@ export default function RegisterCustomerBar({
                 />
               </div>
             )}
+            </div>
 
             <AnimatePresence>
-              {isDropdownOpen && (
+              {isDropdownOpen && dropdownPosition && (
                 <Motion.div
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.15 }}
-                  className={REGISTER_CUSTOMER_DROPDOWN}
+                  className={`${REGISTER_CUSTOMER_DROPDOWN} fixed z-[200]`}
+                  style={{
+                    top: dropdownPosition.top,
+                    left: dropdownPosition.left,
+                    width: dropdownPosition.width,
+                  }}
                 >
                   {filteredCustomers.length === 0 ? (
                     <div className="px-4 py-5 text-center text-sm text-gray-400">
