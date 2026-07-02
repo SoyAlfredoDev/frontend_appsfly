@@ -100,6 +100,7 @@ import NotificationsAdminPage from "./pages/admin/NotificationsAdminPage.jsx";
 import AgentTasksAdminPage from "./pages/admin/AgentTasksAdminPage.jsx";
 import PlatformOwnerProtectedView from "./components/PlatformOwnerProtectedView.jsx";
 import SubscriptionPaymentReturnPage from "./pages/dashboard/SubscriptionPaymentReturnPage.jsx";
+import OfflineScreen from "./components/pwa/OfflineScreen.jsx";
 
 function App() {
   return (
@@ -108,6 +109,7 @@ function App() {
         <ConfirmationProvider>
           <BrowserRouter>
             <RouteSeo />
+            <OfflineScreen />
             <PaymentModalProvider>
             <Routes>
               {/* Public */}

@@ -5,6 +5,7 @@ import UsersDashboardPage from "./dashboard/UsersDashboardPage.jsx";
 import SubscriptionWelcomePage from "./dashboard/SubscriptionWelcomePage.jsx";
 import SubscriptionExpiredPage from "./dashboard/SubscriptionExpiredPage.jsx";
 import PageContainer from "../components/layout/PageContainer.jsx";
+import InstallPwaPrompt from "../components/pwa/InstallPwaPrompt.jsx";
 import { getSubscriptionAccessState } from "../utils/subscriptionAccess.js";
 
 export default function DashboardPage() {
@@ -23,6 +24,7 @@ export default function DashboardPage() {
 
     return (
         <PageContainer>
+            <InstallPwaPrompt variant="banner" className="mb-6" />
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className={`col-span-1 ${mainColSpan}`}>
                     {hasBusiness && hasActiveSubscription ? (

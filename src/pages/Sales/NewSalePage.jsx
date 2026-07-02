@@ -1536,6 +1536,7 @@ export default function NewSalePage() {
             </button>
           </div>
         </div>
+        </div>
     </Motion.div>
   );
 }
