@@ -45,12 +45,17 @@ const FALLBACK_PAID_PLAN = {
  * - paid: plan comercial — Checkout Pro Mercado Pago Chile
  */
 export default function Subscription({ embedded = false, compact = false, offerType = "trial" }) {
-    const { businessSelected, refreshSubscriptions, canClaimFreeTrial } = useAuth();
+    const { businessSelected, business, refreshSubscriptions, canClaimFreeTrial } = useAuth();
     const [paidPlan, setPaidPlan] = useState(null);
     const toast = useToast();
 
     const isPaidOffer = offerType === "paid";
-    const businessId = businessSelected?.userBusinessBusinessId;
+    const businessId =
+        businessSelected?.userBusinessBusinessId ??
+        business?.businessId ??
+        businessSelected?.businessId ??
+        sessionStorage.getItem("appsfly_business_id") ??
+        null;
 
     useEffect(() => {
         if (!isPaidOffer) return;
@@ -99,7 +104,9 @@ export default function Subscription({ embedded = false, compact = false, offerT
 
     const handlePaymentError = useCallback((error) => {
         const statusDetail = error.statusDetail || error.message;
-        const fromApi = error.response?.data?.message;
+        const fromApi =
+            error.response?.data?.message ??
+            error.response?.data?.error;
         const message = fromApi && !String(fromApi).startsWith("cc_")
             ? fromApi
             : getMercadoPagoStatusMessage(statusDetail, {
@@ -274,7 +281,7 @@ export default function Subscription({ embedded = false, compact = false, offerT
                                     <PromoFreeTrialButton
                                         businessId={businessId}
                                         planId={plan.planId}
-                                        disabled={!canClaimFreeTrial}
+                                        disabled={!canClaimFreeTrial || !businessId}
                                         refreshSubscriptions={refreshSubscriptions}
                                         onSuccess={handlePromoSuccess}
                                         onError={handlePaymentError}

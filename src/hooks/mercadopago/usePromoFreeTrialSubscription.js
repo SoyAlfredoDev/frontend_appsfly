@@ -17,6 +17,13 @@ export default function usePromoFreeTrialSubscription({ refreshSubscriptions, on
             if (planId !== FREE_TRIAL_PLAN_ID) {
                 throw new Error("Este hook solo aplica al plan promocional gratuito.");
             }
+            if (!businessId) {
+                const missingBusinessError = new Error(
+                    "No se encontró el negocio activo. Recarga la página o vuelve a iniciar sesión.",
+                );
+                onError?.(missingBusinessError);
+                throw missingBusinessError;
+            }
 
             setLoading(true);
             try {

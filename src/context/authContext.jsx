@@ -276,6 +276,7 @@ export const AuthProvider = ({ children }) => {
         setHasBusiness(false);
         setSubscriptions([]);
         setBusinessSelected(null);
+        setBusiness(null);
         setTenantAccessReady(false);
         setIsSuperAdmin(false);
     };
