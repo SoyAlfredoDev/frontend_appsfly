@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-function isStandaloneMode() {
+export function isStandaloneMode() {
     if (typeof window === "undefined") return false;
     return (
         window.matchMedia("(display-mode: standalone)").matches
@@ -8,19 +8,35 @@ function isStandaloneMode() {
     );
 }
 
-function isIosDevice() {
+export function isIosDevice() {
     if (typeof navigator === "undefined") return false;
-    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const ua = navigator.userAgent || "";
+    const isClassicIos = /iphone|ipad|ipod/i.test(ua);
+    const isIpadOs = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+    return isClassicIos || isIpadOs;
+}
+
+export function isMobileDevice() {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    return (
+        /android|iphone|ipad|ipod|mobile/i.test(ua)
+        || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024)
+    );
 }
 
 export default function usePwaInstall() {
     const [deferredPrompt, setDeferredPrompt] = useState(null);
-    const [isInstalled, setIsInstalled] = useState(isStandaloneMode);
-    const [isIos, setIsIos] = useState(false);
+    const [isInstalled, setIsInstalled] = useState(() => isStandaloneMode());
+    const [isIos, setIsIos] = useState(() => isIosDevice());
+    const [isMobile, setIsMobile] = useState(() => isMobileDevice());
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
         setIsIos(isIosDevice());
+        setIsMobile(isMobileDevice());
         setIsInstalled(isStandaloneMode());
+        setIsReady(true);
 
         const onBeforeInstall = (event) => {
             event.preventDefault();
@@ -64,6 +80,8 @@ export default function usePwaInstall() {
     return {
         isInstalled,
         isIos,
+        isMobile,
+        isReady,
         canNativeInstall,
         showIosHint,
         promptInstall,

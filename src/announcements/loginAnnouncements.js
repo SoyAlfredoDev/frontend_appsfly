@@ -11,8 +11,8 @@ import PwaInstallAnnouncementContent from "../components/announcements/content/P
  */
 export const LOGIN_ANNOUNCEMENTS = [
     {
-        id: "pwa-install-v1",
-        version: "1",
+        id: "pwa-install-v2",
+        version: "2",
         priority: 10,
         trigger: "login",
         shouldShow: ({ isPwaInstalled }) => !isPwaInstalled,

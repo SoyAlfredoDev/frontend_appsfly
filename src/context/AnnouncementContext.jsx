@@ -4,15 +4,21 @@ import {
     useContext,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "./authContext.jsx";
-import usePwaInstall from "../hooks/usePwaInstall.js";
+import usePwaInstall, { isStandaloneMode } from "../hooks/usePwaInstall.js";
 import { resolveLoginAnnouncement } from "../announcements/loginAnnouncements.js";
 import {
     dismissAnnouncementForever,
     markAnnouncementSeenVersion,
 } from "../announcements/announcementStorage.js";
+import {
+    consumeLoginAnnouncementsPending,
+    hasLoginAnnouncementsPending,
+} from "../announcements/announcementTriggers.js";
 import AnnouncementOverlay from "../components/announcements/AnnouncementOverlay.jsx";
 
 const AnnouncementContext = createContext(null);
@@ -25,39 +31,111 @@ export function useAnnouncements() {
     return ctx;
 }
 
+function getAnnouncementDelayMs() {
+    if (typeof window === "undefined") return 400;
+    const ua = navigator.userAgent || "";
+    const isMobile = /android|iphone|ipad|ipod|mobile/i.test(ua);
+    return isMobile ? 700 : 400;
+}
+
 export function AnnouncementProvider({ children }) {
     const { isAuthenticated, loadingAuth, loginSessionKey } = useAuth();
+    const location = useLocation();
     const pwa = usePwaInstall();
     const [activeAnnouncement, setActiveAnnouncement] = useState(null);
+    const shownForLoginKeyRef = useRef(0);
+    const timerRef = useRef(null);
+
+    const tryShowLoginAnnouncement = useCallback(() => {
+        const next = resolveLoginAnnouncement({
+            isPwaInstalled: isStandaloneMode(),
+        });
+        if (next) {
+            setActiveAnnouncement(next);
+            return true;
+        }
+        return false;
+    }, []);
+
+    const scheduleLoginAnnouncement = useCallback((loginKey) => {
+        if (shownForLoginKeyRef.current >= loginKey) {
+            return;
+        }
+
+        if (timerRef.current) {
+            window.clearTimeout(timerRef.current);
+        }
+
+        const delay = getAnnouncementDelayMs();
+        timerRef.current = window.setTimeout(() => {
+            timerRef.current = null;
+            if (shownForLoginKeyRef.current >= loginKey) {
+                return;
+            }
+            const shown = tryShowLoginAnnouncement();
+            if (shown) {
+                shownForLoginKeyRef.current = loginKey;
+                consumeLoginAnnouncementsPending();
+            }
+        }, delay);
+    }, [tryShowLoginAnnouncement]);
 
     useEffect(() => {
-        if (loadingAuth || !isAuthenticated || loginSessionKey === 0) {
+        if (loadingAuth || !isAuthenticated) {
             return undefined;
         }
 
-        const timer = window.setTimeout(() => {
-            const next = resolveLoginAnnouncement({
-                isPwaInstalled: pwa.isInstalled,
-                canNativeInstall: pwa.canNativeInstall,
-                showIosHint: pwa.showIosHint,
-            });
-            if (next) {
-                setActiveAnnouncement(next);
-            }
-        }, 350);
+        const pendingFromSignin = hasLoginAnnouncementsPending();
+        const shouldEvaluate = loginSessionKey > 0 || pendingFromSignin;
 
-        return () => window.clearTimeout(timer);
+        if (!shouldEvaluate) {
+            return undefined;
+        }
+
+        const loginKey = loginSessionKey > 0 ? loginSessionKey : Date.now();
+        scheduleLoginAnnouncement(loginKey);
+
+        return () => {
+            if (timerRef.current) {
+                window.clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
+        };
     }, [
         loadingAuth,
         isAuthenticated,
         loginSessionKey,
-        pwa.isInstalled,
-        pwa.canNativeInstall,
-        pwa.showIosHint,
+        location.pathname,
+        scheduleLoginAnnouncement,
+    ]);
+
+    useEffect(() => {
+        if (!pwa.isReady || loadingAuth || !isAuthenticated) {
+            return;
+        }
+
+        if (activeAnnouncement || shownForLoginKeyRef.current >= loginSessionKey) {
+            return;
+        }
+
+        if (!hasLoginAnnouncementsPending() && loginSessionKey === 0) {
+            return;
+        }
+
+        const loginKey = loginSessionKey > 0 ? loginSessionKey : Date.now();
+        scheduleLoginAnnouncement(loginKey);
+    }, [
+        pwa.isReady,
+        loadingAuth,
+        isAuthenticated,
+        loginSessionKey,
+        activeAnnouncement,
+        scheduleLoginAnnouncement,
     ]);
 
     const closeAnnouncement = useCallback(() => {
         setActiveAnnouncement(null);
+        consumeLoginAnnouncementsPending();
     }, []);
 
     const dismissForever = useCallback(() => {
@@ -67,6 +145,7 @@ export function AnnouncementProvider({ children }) {
             markAnnouncementSeenVersion(activeAnnouncement.id, activeAnnouncement.version);
         }
         setActiveAnnouncement(null);
+        consumeLoginAnnouncementsPending();
     }, [activeAnnouncement]);
 
     const handleInstall = useCallback(async () => {
@@ -82,7 +161,6 @@ export function AnnouncementProvider({ children }) {
             activeAnnouncement,
             closeAnnouncement,
             dismissForever,
-            /** Para futuros anuncios disparados manualmente (videos, novedades, etc.) */
             showAnnouncement: setActiveAnnouncement,
         }),
         [activeAnnouncement, closeAnnouncement, dismissForever],

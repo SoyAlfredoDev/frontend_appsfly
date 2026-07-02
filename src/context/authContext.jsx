@@ -13,6 +13,7 @@ import {
     isFirstTimeSubscriber as checkFirstTimeSubscriber,
     isExpiredSubscriber as checkExpiredSubscriber,
 } from "../utils/subscriptionAccess.js";
+import { markLoginAnnouncementsPending } from "../announcements/announcementTriggers.js";
 
 export const AuthContext = createContext();
 
@@ -259,6 +260,7 @@ export const AuthProvider = ({ children }) => {
             setTenantAccessReady(true);
         }
 
+        markLoginAnnouncementsPending();
         setLoginSessionKey((key) => key + 1);
         return data;
     };

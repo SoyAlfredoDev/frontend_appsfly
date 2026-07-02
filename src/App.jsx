@@ -106,10 +106,10 @@ import OfflineScreen from "./components/pwa/OfflineScreen.jsx";
 function App() {
   return (
     <AuthProvider>
-      <AnnouncementProvider>
       <ToastProvider>
         <ConfirmationProvider>
           <BrowserRouter>
+            <AnnouncementProvider>
             <RouteSeo />
             <OfflineScreen />
             <PaymentModalProvider>
@@ -203,10 +203,10 @@ function App() {
             </PaymentModalProvider>
             <Analytics />
             <SpeedInsights />
+            </AnnouncementProvider>
           </BrowserRouter>
         </ConfirmationProvider>
       </ToastProvider>
-      </AnnouncementProvider>
     </AuthProvider>
   );
 }

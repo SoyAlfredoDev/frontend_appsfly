@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion as Motion } from "framer-motion";
 import { FaTimes } from "react-icons/fa";
 
@@ -8,11 +9,16 @@ export default function AnnouncementOverlay({
     dismissForeverLabel = "No volver a mostrar este mensaje",
     children,
 }) {
-    return (
+    if (typeof document === "undefined") {
+        return null;
+    }
+
+    return createPortal(
         <AnimatePresence>
             {open && (
                 <Motion.div
                     className="fixed inset-0 z-[10050] flex items-end sm:items-center justify-center p-0 sm:p-4"
+                    style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -31,7 +37,7 @@ export default function AnnouncementOverlay({
                         aria-modal="true"
                         aria-labelledby="announcement-title"
                         aria-describedby="announcement-desc"
-                        className="relative z-10 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl border border-slate-200/80 overflow-hidden"
+                        className="relative z-10 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl border border-slate-200/80 overflow-hidden max-h-[92dvh] flex flex-col"
                         initial={{ opacity: 0, y: 32, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 24, scale: 0.98 }}
@@ -46,11 +52,11 @@ export default function AnnouncementOverlay({
                             <FaTimes />
                         </button>
 
-                        <div className="px-6 pt-8 pb-5 sm:px-8 sm:pt-10 sm:pb-6 max-h-[min(90dvh,720px)] overflow-y-auto">
+                        <div className="px-6 pt-8 pb-5 sm:px-8 sm:pt-10 sm:pb-6 overflow-y-auto flex-1">
                             {children}
                         </div>
 
-                        <div className="px-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-6 pt-2 border-t border-slate-100 bg-slate-50/60 flex flex-col gap-2">
+                        <div className="px-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-6 pt-2 border-t border-slate-100 bg-slate-50/60 flex flex-col gap-2 shrink-0">
                             <button
                                 type="button"
                                 onClick={onClose}
@@ -71,6 +77,7 @@ export default function AnnouncementOverlay({
                     </Motion.div>
                 </Motion.div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
     );
 }
