@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import RouteSeo from "./components/seo/RouteSeo.jsx";
 import { AuthProvider } from "./context/authContext.jsx";
+import { AnnouncementProvider } from "./context/AnnouncementContext.jsx";
 import { PaymentModalProvider } from "./context/paymentModalContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 import { ConfirmationProvider } from "./context/ConfirmationContext.jsx";
@@ -105,6 +106,7 @@ import OfflineScreen from "./components/pwa/OfflineScreen.jsx";
 function App() {
   return (
     <AuthProvider>
+      <AnnouncementProvider>
       <ToastProvider>
         <ConfirmationProvider>
           <BrowserRouter>
@@ -204,6 +206,7 @@ function App() {
           </BrowserRouter>
         </ConfirmationProvider>
       </ToastProvider>
+      </AnnouncementProvider>
     </AuthProvider>
   );
 }

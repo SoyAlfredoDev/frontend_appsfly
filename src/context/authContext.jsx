@@ -33,6 +33,8 @@ export const AuthProvider = ({ children }) => {
     const [tenantAccessReady, setTenantAccessReady] = useState(false);
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [business, setBusiness] = useState(null);
+    /** Incrementa en cada signin exitoso (no en restauración de sesión). Dispara anuncios post-login. */
+    const [loginSessionKey, setLoginSessionKey] = useState(0);
 
     useEffect(() => {
         const businessId =
@@ -257,6 +259,7 @@ export const AuthProvider = ({ children }) => {
             setTenantAccessReady(true);
         }
 
+        setLoginSessionKey((key) => key + 1);
         return data;
     };
 
@@ -361,6 +364,7 @@ export const AuthProvider = ({ children }) => {
                 searchUserGuestExists,
                 isSuperAdmin,
                 business,
+                loginSessionKey,
 
             }}
         >

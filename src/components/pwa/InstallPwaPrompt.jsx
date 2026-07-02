@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FaDownload, FaMobileAlt, FaTimes, FaShareSquare } from "react-icons/fa";
 import usePwaInstall from "../../hooks/usePwaInstall.js";
 
@@ -6,12 +7,11 @@ export default function InstallPwaPrompt({ variant = "card", className = "" }) {
         isInstalled,
         canNativeInstall,
         showIosHint,
-        shouldShowPrompt,
         promptInstall,
-        dismiss,
     } = usePwaInstall();
+    const [hiddenThisSession, setHiddenThisSession] = useState(false);
 
-    if (isInstalled || !shouldShowPrompt) {
+    if (isInstalled || hiddenThisSession || (!canNativeInstall && !showIosHint)) {
         return null;
     }
 
@@ -60,7 +60,7 @@ export default function InstallPwaPrompt({ variant = "card", className = "" }) {
                     )}
                     <button
                         type="button"
-                        onClick={dismiss}
+                        onClick={() => setHiddenThisSession(true)}
                         className="p-2 text-slate-400 hover:text-slate-600 rounded-lg"
                         aria-label="Ocultar sugerencia de instalación"
                     >
@@ -93,7 +93,7 @@ export default function InstallPwaPrompt({ variant = "card", className = "" }) {
                 </div>
                 <button
                     type="button"
-                    onClick={dismiss}
+                    onClick={() => setHiddenThisSession(true)}
                     className="text-slate-400 hover:text-slate-600 p-1"
                     aria-label="Cerrar"
                 >

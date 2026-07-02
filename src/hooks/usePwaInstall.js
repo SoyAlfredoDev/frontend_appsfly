@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 
-const DISMISS_KEY = "appsfly_pwa_install_dismissed_until";
-const DISMISS_DAYS = 14;
-
 function isStandaloneMode() {
     if (typeof window === "undefined") return false;
     return (
@@ -16,34 +13,14 @@ function isIosDevice() {
     return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
-function isDismissed() {
-    try {
-        const until = Number(localStorage.getItem(DISMISS_KEY) || 0);
-        return until > Date.now();
-    } catch {
-        return false;
-    }
-}
-
-export function dismissPwaInstallPrompt() {
-    try {
-        const until = Date.now() + DISMISS_DAYS * 24 * 60 * 60 * 1000;
-        localStorage.setItem(DISMISS_KEY, String(until));
-    } catch {
-        // ignore
-    }
-}
-
 export default function usePwaInstall() {
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [isInstalled, setIsInstalled] = useState(isStandaloneMode);
     const [isIos, setIsIos] = useState(false);
-    const [dismissed, setDismissed] = useState(isDismissed);
 
     useEffect(() => {
         setIsIos(isIosDevice());
         setIsInstalled(isStandaloneMode());
-        setDismissed(isDismissed());
 
         const onBeforeInstall = (event) => {
             event.preventDefault();
@@ -81,22 +58,14 @@ export default function usePwaInstall() {
         return choice;
     }, [deferredPrompt]);
 
-    const dismiss = useCallback(() => {
-        dismissPwaInstallPrompt();
-        setDismissed(true);
-    }, []);
-
     const canNativeInstall = Boolean(deferredPrompt);
     const showIosHint = isIos && !isInstalled;
-    const shouldShowPrompt = !isInstalled && !dismissed && (canNativeInstall || showIosHint);
 
     return {
         isInstalled,
         isIos,
         canNativeInstall,
         showIosHint,
-        shouldShowPrompt,
         promptInstall,
-        dismiss,
     };
 }

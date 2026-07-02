@@ -8,7 +8,6 @@ import AuthPageCard from "../components/auth/AuthPageCard.jsx";
 import { useAuth } from "../context/authContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { getLoginErrorMessage, isServerUnavailableError } from "../utils/apiErrors.js";
-import InstallPwaPrompt from "../components/pwa/InstallPwaPrompt.jsx";
 
 export default function LoginPage() {
     const { signin } = useAuth();
@@ -172,8 +171,6 @@ export default function LoginPage() {
                             Volver al inicio
                         </Link>
                     </div>
-
-                    <InstallPwaPrompt variant="card" className="mt-4" />
                 </form>
             </AuthPageCard>
         </AuthPageLayout>
