@@ -39,7 +39,7 @@ export default function RestrictedAccessShell({
         ? "text-xs sm:text-sm font-normal font-sans text-white/90 max-w-md mx-auto leading-snug"
         : "text-sm font-normal font-sans text-white/90 max-w-lg mx-auto leading-relaxed";
 
-    const bodyPadding = isCompact ? "p-3 sm:p-4 space-y-2.5 flex flex-col flex-1 min-h-0 overflow-hidden" : "p-6 sm:p-8 space-y-6";
+    const bodyPadding = isCompact ? "p-3 sm:p-4 space-y-2.5 flex flex-col flex-1 min-h-0 overflow-y-auto" : "p-6 sm:p-8 space-y-6";
 
     return (
         <div className={shellClass}>

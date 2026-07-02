@@ -13,6 +13,7 @@ import {
     isFirstTimeSubscriber as checkFirstTimeSubscriber,
     isExpiredSubscriber as checkExpiredSubscriber,
 } from "../utils/subscriptionAccess.js";
+import { resolveTenantBusinessId } from "../utils/resolveTenantBusinessId.js";
 import { markLoginAnnouncementsPending } from "../announcements/announcementTriggers.js";
 
 export const AuthContext = createContext();
@@ -38,16 +39,18 @@ export const AuthProvider = ({ children }) => {
     const [loginSessionKey, setLoginSessionKey] = useState(0);
 
     useEffect(() => {
-        const businessId =
-            businessSelected?.userBusinessBusinessId ??
-            businessSelected?.businessId ??
-            null;
+        const businessId = resolveTenantBusinessId({ businessSelected, business });
         if (businessId) {
             sessionStorage.setItem("appsfly_business_id", businessId);
         } else {
             sessionStorage.removeItem("appsfly_business_id");
         }
-    }, [businessSelected]);
+    }, [businessSelected, business]);
+
+    const activeBusinessId = useMemo(
+        () => resolveTenantBusinessId({ businessSelected, business }),
+        [businessSelected, business],
+    );
 
     const subscriptionAccess = useMemo(
         () => getSubscriptionAccessState(subscriptions),
@@ -82,8 +85,7 @@ export const AuthProvider = ({ children }) => {
     const refreshSubscriptions = useCallback(async (overrideBusinessId) => {
         const businessId =
             overrideBusinessId ??
-            businessSelected?.userBusinessBusinessId ??
-            businessSelected?.businessId;
+            resolveTenantBusinessId({ businessSelected, business });
         if (!businessId) {
             setSubscriptions([]);
             return [];
@@ -98,7 +100,7 @@ export const AuthProvider = ({ children }) => {
             setSubscriptions([]);
             return [];
         }
-    }, [businessSelected]);
+    }, [businessSelected, business]);
 
     /** Recarga negocio, suscripciones y datos del tenant tras crear negocio o cambiar contexto. */
     const reloadTenantContext = useCallback(async (userId) => {
@@ -367,6 +369,7 @@ export const AuthProvider = ({ children }) => {
                 searchUserGuestExists,
                 isSuperAdmin,
                 business,
+                activeBusinessId,
                 loginSessionKey,
 
             }}

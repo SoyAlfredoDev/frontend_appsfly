@@ -5,8 +5,13 @@ import App from './App.jsx'
 
 import './index.css';
 
-registerSW({
+const updateSW = registerSW({
   immediate: true,
+  onNeedRefresh() {
+    if (window.confirm("Hay una nueva versión de AppsFly. ¿Actualizar ahora?")) {
+      updateSW(true);
+    }
+  },
   onRegisteredSW(swUrl, registration) {
     if (registration) {
       registration.update().catch(() => {});

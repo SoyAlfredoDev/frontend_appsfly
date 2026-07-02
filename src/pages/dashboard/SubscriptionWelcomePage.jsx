@@ -1,15 +1,99 @@
+import { useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaRocket, FaUserCircle, FaGift } from "react-icons/fa";
+import { FaRocket, FaUserCircle, FaGift, FaSpinner } from "react-icons/fa";
 import { useAuth } from "../../context/authContext.jsx";
+import { useToast } from "../../context/ToastContext.jsx";
 import Subscription from "../../components/Subscriptions.jsx";
 import RestrictedAccessShell from "../../components/layout/RestrictedAccessShell.jsx";
+import { usePromoFreeTrialSubscription } from "../../hooks/mercadopago/index.js";
+import { FREE_TRIAL_PLAN_ID } from "../../utils/subscriptionAccess.js";
+import { getMercadoPagoStatusMessage } from "../../config/mercadopago/mpStatusMessages.js";
+import { isMercadoPagoTestMode } from "../../config/mercadopago/mpConfig.js";
 
 /**
  * Escenario A: negocio nuevo sin historial de suscripción.
  * Oferta promocional P001 — 2 meses gratis.
  */
 export default function SubscriptionWelcomePage({ embedded = false, fullScreen = false }) {
-    const { user, business } = useAuth();
+    const {
+        user,
+        business,
+        hasBusiness,
+        activeBusinessId,
+        canClaimFreeTrial,
+        refreshSubscriptions,
+        reloadTenantContext,
+    } = useAuth();
+    const toast = useToast();
+
+    useEffect(() => {
+        if (user?.userId && hasBusiness && !activeBusinessId) {
+            reloadTenantContext(user.userId);
+        }
+    }, [user?.userId, hasBusiness, activeBusinessId, reloadTenantContext]);
+
+    const handlePaymentError = useCallback(
+        (error) => {
+            const statusDetail = error.statusDetail || error.message;
+            const fromApi =
+                error.response?.data?.message ??
+                error.response?.data?.error;
+            const message =
+                fromApi && !String(fromApi).startsWith("cc_")
+                    ? fromApi
+                    : getMercadoPagoStatusMessage(statusDetail, {
+                          testMode: isMercadoPagoTestMode(),
+                      });
+            toast.error("Error al activar la prueba gratuita", message);
+        },
+        [toast],
+    );
+
+    const handlePromoSuccess = useCallback(() => {
+        toast.success(
+            "Prueba activada",
+            "Tu trial de 2 meses está activo. Revisa tu correo — te enviamos la bienvenida con los detalles.",
+        );
+    }, [toast]);
+
+    const { loading, activateFreeTrial } = usePromoFreeTrialSubscription({
+        refreshSubscriptions,
+        onSuccess: handlePromoSuccess,
+        onError: handlePaymentError,
+    });
+
+    const handleActivate = useCallback(() => {
+        if (loading) return;
+
+        if (!activeBusinessId) {
+            toast.error(
+                "Negocio no listo",
+                "Espera un momento y vuelve a intentar. Si persiste, cierra sesión e ingresa de nuevo.",
+            );
+            return;
+        }
+
+        if (!canClaimFreeTrial) {
+            toast.error(
+                "Promoción no disponible",
+                "Este negocio ya tiene historial de suscripción y no califica para la prueba gratuita.",
+            );
+            return;
+        }
+
+        activateFreeTrial({
+            businessId: activeBusinessId,
+            planId: FREE_TRIAL_PLAN_ID,
+        }).catch(() => {});
+    }, [
+        loading,
+        activeBusinessId,
+        canClaimFreeTrial,
+        activateFreeTrial,
+        toast,
+    ]);
+
+    const activateDisabled = loading || !canClaimFreeTrial || !activeBusinessId;
 
     return (
         <RestrictedAccessShell
@@ -38,23 +122,37 @@ export default function SubscriptionWelcomePage({ embedded = false, fullScreen =
 
                 <div
                     id="activar-plan"
-                    className="flex-1 min-h-0 overflow-hidden rounded-lg border border-slate-100 bg-slate-50/40"
+                    className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-slate-100 bg-slate-50/40"
                 >
-                    <Subscription embedded compact offerType="trial" />
+                    <Subscription
+                        embedded
+                        compact
+                        offerType="trial"
+                        onActivateTrial={handleActivate}
+                        activateTrialLoading={loading}
+                        activateTrialDisabled={activateDisabled}
+                    />
                 </div>
 
                 <div className="shrink-0 flex flex-col sm:flex-row gap-2 pt-0.5">
-                    <a
-                        href="#activar-plan"
-                        className="btn-primary flex-1 justify-center no-underline !py-2.5 !text-sm"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            document.getElementById("activar-plan")?.scrollIntoView({ behavior: "smooth" });
-                        }}
+                    <button
+                        type="button"
+                        onClick={handleActivate}
+                        disabled={activateDisabled}
+                        className="btn-primary flex-1 justify-center !py-2.5 !text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                        <FaGift className="text-sm" />
-                        Activar 2 meses gratis
-                    </a>
+                        {loading ? (
+                            <>
+                                <FaSpinner className="text-sm animate-spin" />
+                                Activando…
+                            </>
+                        ) : (
+                            <>
+                                <FaGift className="text-sm" />
+                                Activar 2 meses gratis
+                            </>
+                        )}
+                    </button>
                     <Link
                         to="/profile"
                         className="btn-ghost flex-1 justify-center no-underline border-slate-200 !py-2.5 !text-sm"

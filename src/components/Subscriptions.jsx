@@ -5,6 +5,7 @@ import { getPlansRequest } from "../api/plans.js";
 import { motion as Motion } from "framer-motion";
 import { FaCheck, FaStar, FaCreditCard } from "react-icons/fa";
 import { FREE_TRIAL_PLAN_ID } from "../utils/subscriptionAccess.js";
+import { resolveTenantBusinessId } from "../utils/resolveTenantBusinessId.js";
 import { getMercadoPagoStatusMessage } from "../config/mercadopago/mpStatusMessages.js";
 import { isMercadoPagoTestMode } from "../config/mercadopago/mpConfig.js";
 import {
@@ -44,18 +45,21 @@ const FALLBACK_PAID_PLAN = {
  * - trial: promoción P001 — sin Mercado Pago
  * - paid: plan comercial — Checkout Pro Mercado Pago Chile
  */
-export default function Subscription({ embedded = false, compact = false, offerType = "trial" }) {
-    const { businessSelected, business, refreshSubscriptions, canClaimFreeTrial } = useAuth();
+export default function Subscription({
+    embedded = false,
+    compact = false,
+    offerType = "trial",
+    onActivateTrial,
+    activateTrialLoading = false,
+    activateTrialDisabled = false,
+}) {
+    const { businessSelected, business, refreshSubscriptions, canClaimFreeTrial, activeBusinessId } =
+        useAuth();
     const [paidPlan, setPaidPlan] = useState(null);
     const toast = useToast();
 
     const isPaidOffer = offerType === "paid";
-    const businessId =
-        businessSelected?.userBusinessBusinessId ??
-        business?.businessId ??
-        businessSelected?.businessId ??
-        sessionStorage.getItem("appsfly_business_id") ??
-        null;
+    const businessId = activeBusinessId ?? resolveTenantBusinessId({ businessSelected, business });
 
     useEffect(() => {
         if (!isPaidOffer) return;
@@ -281,7 +285,9 @@ export default function Subscription({ embedded = false, compact = false, offerT
                                     <PromoFreeTrialButton
                                         businessId={businessId}
                                         planId={plan.planId}
-                                        disabled={!canClaimFreeTrial || !businessId}
+                                        disabled={!canClaimFreeTrial || !businessId || activateTrialDisabled}
+                                        loading={activateTrialLoading}
+                                        onActivate={onActivateTrial}
                                         refreshSubscriptions={refreshSubscriptions}
                                         onSuccess={handlePromoSuccess}
                                         onError={handlePaymentError}
