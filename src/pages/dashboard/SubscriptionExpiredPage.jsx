@@ -1,19 +1,18 @@
 import { Link } from "react-router-dom";
 import {
     FaExclamationTriangle,
-    FaCreditCard,
     FaCalendarTimes,
     FaUserCircle,
 } from "react-icons/fa";
 import { useAuth } from "../../context/authContext.jsx";
 import formatDate from "../../utils/formatDate.js";
 import { getLatestSubscription } from "../../utils/subscriptionAccess.js";
-import Subscription from "../../components/Subscriptions.jsx";
+import SubscriptionPlanPicker from "../../components/subscription/SubscriptionPlanPicker.jsx";
 import RestrictedAccessShell from "../../components/layout/RestrictedAccessShell.jsx";
 
 /**
  * Escenario B: negocio con historial de suscripción vencida/suspendida.
- * Solo plan comercial de pago — sin promoción P001.
+ * Planes P002 comercial y P003 profesional — sin promoción P001.
  */
 export default function SubscriptionExpiredPage({ embedded = false, fullScreen = false }) {
     const { user, business, subscriptions } = useAuth();
@@ -23,7 +22,7 @@ export default function SubscriptionExpiredPage({ embedded = false, fullScreen =
         <RestrictedAccessShell
             icon={FaCalendarTimes}
             title="Suscripción vencida"
-            subtitle="Contrata un plan comercial para recuperar ventas, inventario y reportes."
+            subtitle="Elige el plan comercial o profesional para recuperar ventas, inventario y reportes."
             headerClassName="bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700"
             embedded={embedded}
             fullScreen={fullScreen}
@@ -70,23 +69,12 @@ export default function SubscriptionExpiredPage({ embedded = false, fullScreen =
 
                 <div
                     id="renovar-plan"
-                    className="flex-1 min-h-0 overflow-hidden rounded-lg border border-slate-100 bg-slate-50/40"
+                    className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-slate-100 bg-slate-50/40"
                 >
-                    <Subscription embedded compact offerType="paid" />
+                    <SubscriptionPlanPicker variant="expired" />
                 </div>
 
                 <div className="shrink-0 flex flex-col sm:flex-row gap-2 pt-0.5">
-                    <a
-                        href="#renovar-plan"
-                        className="btn-primary flex-1 justify-center no-underline !py-2.5 !text-sm"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            document.getElementById("mp-subscription-checkout")?.click();
-                        }}
-                    >
-                        <FaCreditCard className="text-sm" />
-                        Contratar plan comercial
-                    </a>
                     <Link
                         to="/profile"
                         className="btn-ghost flex-1 justify-center no-underline border-slate-200 !py-2.5 !text-sm"

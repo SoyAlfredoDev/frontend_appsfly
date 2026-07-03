@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { FaRocket, FaUserCircle, FaGift } from "react-icons/fa";
 import { useAuth } from "../../context/authContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
-import SubscriptionWelcomePlans from "../../components/subscription/SubscriptionWelcomePlans.jsx";
+import SubscriptionPlanPicker from "../../components/subscription/SubscriptionPlanPicker.jsx";
 import RestrictedAccessShell from "../../components/layout/RestrictedAccessShell.jsx";
 import { usePromoFreeTrialSubscription } from "../../hooks/mercadopago/index.js";
 import { FREE_TRIAL_PLAN_ID } from "../../utils/subscriptionAccess.js";
@@ -124,7 +124,8 @@ export default function SubscriptionWelcomePage({ embedded = false, fullScreen =
                     id="activar-plan"
                     className="flex-1 min-h-0 overflow-y-auto rounded-lg border border-slate-100 bg-slate-50/40"
                 >
-                    <SubscriptionWelcomePlans
+                    <SubscriptionPlanPicker
+                        variant="welcome"
                         onActivateTrial={handleActivateTrial}
                         activateTrialLoading={loading}
                         activateTrialDisabled={activateTrialDisabled}
