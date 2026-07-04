@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 import MercadoPagoProvider from "../components/mercadopago/MercadoPagoProvider.jsx";
 import PaymentModalComponent from "../components/mercadopago/PaymentModalComponent.jsx";
 import useMercadoPagoCheckout from "../hooks/mercadopago/useMercadoPagoCheckout.js";
+import { getPlanTotalWithIva } from "../utils/planPricing.js";
 
 const PaymentModalContext = createContext(null);
 
@@ -122,7 +123,14 @@ export function PaymentModalProvider({ children }) {
                     loading={checkout.loading}
                     processing={processing}
                     planName={checkout.planName ?? sessionPlan?.planName}
-                    amount={checkout.amount ?? sessionPlan?.planPrice}
+                    amount={
+                        checkout.amount
+                        ?? (sessionPlan?.planPrice != null
+                            ? getPlanTotalWithIva(sessionPlan.planPrice)
+                            : null)
+                    }
+                    netAmount={checkout.netAmount ?? sessionPlan?.planPrice ?? null}
+                    ivaAmount={checkout.ivaAmount ?? null}
                     currency={checkout.currency ?? "CLP"}
                     preferenceId={checkout.preferenceId}
                     paymentId={checkout.paymentId}

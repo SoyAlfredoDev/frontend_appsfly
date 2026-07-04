@@ -14,6 +14,7 @@ import {
 } from "../../api/subscriptionBilling.js";
 import { getPlansRequest } from "../../api/plans.js";
 import formatCurrency from "../../utils/formatCurrency.js";
+import { getPlanPricing } from "../../utils/planPricing.js";
 import {
     isCancelConfirmationValid,
     SUBSCRIPTION_CANCEL_CONFIRMATION_PHRASE,
@@ -452,7 +453,16 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
                             </p>
                             <p className="text-2xl font-bold text-primary mt-1">
                                 {formatCurrency(plan.planPrice ?? 0, "es-CL", plan.planCurrency || "CLP")}
-                                <span className="text-xs font-medium text-gray-400 ml-1">/ mes</span>
+                                <span className="text-xs font-medium text-gray-400 ml-1">neto / mes</span>
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Total con IVA:{" "}
+                                {formatCurrency(
+                                    getPlanPricing(plan.planPrice ?? 0).total,
+                                    "es-CL",
+                                    plan.planCurrency || "CLP",
+                                )}
+                                / mes
                             </p>
                             <div className="mt-4">
                                 <MercadoPagoCheckoutButton

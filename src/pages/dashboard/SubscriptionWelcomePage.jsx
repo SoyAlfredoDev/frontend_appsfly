@@ -111,8 +111,8 @@ export default function SubscriptionWelcomePage({ embedded = false, fullScreen =
                     <p className="text-[11px] sm:text-xs text-slate-700 leading-snug">
                         Hola <span className="font-semibold">{user?.userFirstName}</span>,{" "}
                         <span className="font-semibold">{business?.businessName ?? "tu negocio"}</span>{" "}
-                        puede activar la promoción de 2 meses gratis, contratar el plan comercial ($9.990/mes)
-                        o el plan profesional ($39.990/mes). Mientras tanto, solo{" "}
+                        puede activar la promoción de 2 meses gratis, contratar el plan comercial ($9.990 neto/mes)
+                        o el plan profesional ($39.990 neto/mes). Al pagar se suma IVA (19%). Mientras tanto, solo{" "}
                         <Link to="/profile" className="text-secondary font-semibold no-underline">
                             Mi perfil
                         </Link>{" "}

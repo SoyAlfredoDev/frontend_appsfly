@@ -5,6 +5,7 @@ import { FaCheckCircle } from 'react-icons/fa';
 import { getPlansRequest } from '../../api/plans.js';
 import { parsePlanFeatures } from '../../utils/planUtils.js';
 import { FREE_TRIAL_PLAN_ID } from '../../utils/subscriptionAccess.js';
+import { getPlanPricing } from '../../utils/planPricing.js';
 import GradientText from '../../components/web/GradientText.jsx';
 
 const BASIC_MONTHLY_PRICE = 9990;
@@ -93,7 +94,9 @@ function buildDisplayPlans(rawPlans) {
             priceSuffix: '/mes',
             promoLabel: isTrial ? `🎁 ${plan.planDuration} meses gratis` : null,
             promoNote: isTrial ? 'Sin costo los primeros 2 meses al registrarte' : null,
-            monthlyNote: isTrial ? `Luego ${formatPrice(monthlyPrice)} mensual` : 'Pago mensual recurrente',
+            monthlyNote: isTrial
+                ? `Luego ${formatPrice(monthlyPrice)} neto + IVA mensual`
+                : `Total aprox. ${formatPrice(getPlanPricing(monthlyPrice).total)}/mes (IVA incl.)`,
         };
     });
 }
@@ -149,8 +152,8 @@ export default function PlansHome() {
                         💎 Planes <GradientText>Flexibles</GradientText>
                     </h2>
                     <p className="text-gray-500 text-base max-w-2xl mx-auto">
-                        🎁 Plan Básico a {formatPrice(BASIC_MONTHLY_PRICE)}/mes con 2 meses gratis,
-                        o Plan Profesional a {formatPrice(39990)}/mes.
+                        🎁 Plan Básico a {formatPrice(BASIC_MONTHLY_PRICE)} neto/mes (+ IVA) con 2 meses gratis,
+                        o Plan Profesional a {formatPrice(39990)} neto/mes (+ IVA).
                     </p>
                 </div>
 

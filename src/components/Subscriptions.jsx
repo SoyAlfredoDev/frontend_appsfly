@@ -6,6 +6,7 @@ import { motion as Motion } from "framer-motion";
 import { FaCheck, FaStar, FaCreditCard } from "react-icons/fa";
 import { FREE_TRIAL_PLAN_ID } from "../utils/subscriptionAccess.js";
 import { resolveTenantBusinessId } from "../utils/resolveTenantBusinessId.js";
+import { getPlanPricing, getPlanNetPrice } from "../utils/planPricing.js";
 import { getMercadoPagoStatusMessage } from "../config/mercadopago/mpStatusMessages.js";
 import { isMercadoPagoTestMode } from "../config/mercadopago/mpConfig.js";
 import {
@@ -141,7 +142,10 @@ export default function Subscription({
         ? "relative w-full max-w-[260px] sm:max-w-[272px] bg-white rounded-lg shadow-md overflow-hidden border border-gray-100"
         : "relative w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100 transform transition-all duration-300 hover:scale-[1.01]";
 
-    const displayPrice = isPaidOffer ? Number(plan?.planPrice ?? 0) : TRIAL_PLAN.promoPrice;
+    const displayPrice = isPaidOffer
+        ? getPlanNetPrice(plan?.planPrice ?? 0)
+        : TRIAL_PLAN.promoPrice;
+    const paidPricing = isPaidOffer ? getPlanPricing(plan?.planPrice ?? 0) : null;
     const priceSuffix = isPaidOffer ? "/ mes" : "Por 2 meses";
     const regularHint = isPaidOffer
         ? "Facturación mensual recurrente"
@@ -237,13 +241,20 @@ export default function Subscription({
                                         </span>
                                         <div className="flex flex-col mb-0.5">
                                             <span className="text-[9px] text-gray-400 font-bold uppercase">
-                                                {priceSuffix}
+                                                {isPaidOffer ? "Neto / mes" : priceSuffix}
                                             </span>
                                             <span className="text-gray-500 text-[10px] font-medium">
-                                                {regularHint}
+                                                {isPaidOffer
+                                                    ? `+ IVA $${paidPricing.iva.toLocaleString("es-CL")}`
+                                                    : regularHint}
                                             </span>
                                         </div>
                                     </div>
+                                    {isPaidOffer && paidPricing && (
+                                        <p className="text-[10px] text-slate-600 mt-1 font-medium">
+                                            Total a pagar: ${paidPricing.total.toLocaleString("es-CL")}/mes
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="bg-gray-50/50 rounded-md p-2.5 mb-3 border border-gray-100">

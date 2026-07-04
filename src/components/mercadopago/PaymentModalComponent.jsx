@@ -16,6 +16,8 @@ export default function PaymentModalComponent({
     processing = false,
     planName,
     amount,
+    netAmount,
+    ivaAmount,
     currency = "CLP",
     preferenceId,
     paymentId,
@@ -26,6 +28,15 @@ export default function PaymentModalComponent({
     const isLocked = loading || processing || success;
     const brickReady = Boolean(paymentId && amount != null);
     const [brickMounted, setBrickMounted] = useState(false);
+    const displayTotal = amount != null ? Math.round(Number(amount)) : null;
+    const displayNet =
+        netAmount != null ? Math.round(Number(netAmount)) : null;
+    const displayIva =
+        ivaAmount != null
+            ? Math.round(Number(ivaAmount))
+            : displayNet != null && displayTotal != null
+              ? displayTotal - displayNet
+              : null;
 
     useEffect(() => {
         if (brickReady) setBrickMounted(true);
@@ -98,12 +109,18 @@ export default function PaymentModalComponent({
                                 {planName && !success && (
                                 <p className="mt-1 text-xs sm:text-sm text-slate-500">
                                     {planName}
-                                    {amount != null && (
+                                    {displayTotal != null && (
                                         <span className="font-semibold text-dark">
                                             {" "}
-                                            · {formatCurrency(amount, "es-CL", currency)}/mes
+                                            · {formatCurrency(displayTotal, "es-CL", currency)}/mes (IVA incl.)
                                         </span>
                                     )}
+                                </p>
+                            )}
+                            {!success && displayNet != null && displayIva != null && (
+                                <p className="mt-1 text-[10px] text-slate-500">
+                                    Neto {formatCurrency(displayNet, "es-CL", currency)} + IVA{" "}
+                                    {formatCurrency(displayIva, "es-CL", currency)}
                                 </p>
                             )}
                             {!success && (

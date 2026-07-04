@@ -6,6 +6,7 @@ import { useAuth } from "../../context/authContext.jsx";
 import { FREE_TRIAL_PLAN_ID } from "../../utils/subscriptionAccess.js";
 import { resolveTenantBusinessId } from "../../utils/resolveTenantBusinessId.js";
 import { parsePlanFeatures, normalizePlan } from "../../utils/planUtils.js";
+import { getPlanPricing } from "../../utils/planPricing.js";
 import { getMercadoPagoStatusMessage } from "../../config/mercadopago/mpStatusMessages.js";
 import { isMercadoPagoTestMode } from "../../config/mercadopago/mpConfig.js";
 import {
@@ -62,7 +63,7 @@ const VARIANTS = {
         title: "Elige tu plan",
         titleAccent: "para comenzar",
         description:
-            "Puedes activar la promoción de 2 meses gratis o contratar directamente el plan comercial o profesional con Mercado Pago.",
+            "Puedes activar la promoción de 2 meses gratis o contratar el plan comercial o profesional con Mercado Pago. Los precios de pago son netos + IVA (19%).",
         gridCols: "md:grid-cols-3",
     },
     expired: {
@@ -70,7 +71,7 @@ const VARIANTS = {
         title: "Renueva tu acceso",
         titleAccent: "con un plan de pago",
         description:
-            "Contrata el plan comercial ($9.990/mes) o el plan profesional ($39.990/mes). Pago seguro con Mercado Pago Chile.",
+            "Contrata el plan comercial o profesional con Mercado Pago. Los precios mostrados son netos; al pagar se suma IVA (19%).",
         gridCols: "md:grid-cols-2",
         showMercadoPagoHint: true,
     },
@@ -99,15 +100,27 @@ function PlanPrice({ plan }) {
 
     return (
         <div className="mt-2 mb-2.5">
-            <div className="flex items-end gap-1.5">
-                <span className="text-3xl font-extrabold text-[#01c676] tracking-tight">
-                    ${Number(plan.planPrice).toLocaleString("es-CL")}
-                </span>
-                <div className="flex flex-col mb-0.5">
-                    <span className="text-[9px] text-gray-400 font-bold uppercase">/ mes</span>
-                    <span className="text-gray-500 text-[10px] font-medium">Facturación recurrente</span>
-                </div>
-            </div>
+            {(() => {
+                const { net, iva, total } = getPlanPricing(plan.planPrice);
+                return (
+                    <>
+                        <div className="flex items-end gap-1.5">
+                            <span className="text-3xl font-extrabold text-[#01c676] tracking-tight">
+                                ${net.toLocaleString("es-CL")}
+                            </span>
+                            <div className="flex flex-col mb-0.5">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Neto / mes</span>
+                                <span className="text-gray-500 text-[10px] font-medium">
+                                    + IVA ${iva.toLocaleString("es-CL")}
+                                </span>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-slate-600 mt-1 font-medium">
+                            Total a pagar: ${total.toLocaleString("es-CL")}/mes
+                        </p>
+                    </>
+                );
+            })()}
         </div>
     );
 }
