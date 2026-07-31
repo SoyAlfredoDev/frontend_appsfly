@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import { Link } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
@@ -17,8 +18,11 @@ import {
     getInventoryStock,
     getInventoryMovements,
 } from "../api/inventory.js";
+import { resolveScanCode } from "../api/scan.js";
 import formatCurrency from "../utils/formatCurrency.js";
 import formatDate from "../utils/formatDate.js";
+import BarcodeScanListener from "../components/scan/BarcodeScanListener.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 import {
     KPI_CARD,
     KPI_ICON_PRIMARY,
@@ -68,6 +72,7 @@ function StockBadge({ qty, isLowStock }) {
 
 export default function InventoryPage() {
     const { can } = useTenantPermissions();
+    const toast = useToast();
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState(null);
     const [stockList, setStockList] = useState([]);
@@ -84,6 +89,27 @@ export default function InventoryPage() {
     const [movementSearch, setMovementSearch] = useState("");
     const [movementType, setMovementType] = useState("ALL");
     const [movementsPage, setMovementsPage] = useState(1);
+    const debouncedStockSearch = useDebouncedValue(stockSearch, 350);
+    const debouncedMovementSearch = useDebouncedValue(movementSearch, 350);
+
+    const handleStockScan = useCallback(
+        async (code) => {
+            try {
+                const res = await resolveScanCode(code);
+                const product = res.data?.product;
+                if (product?.productSKU || product?.productName) {
+                    setStockSearch(product.productSKU || product.productName);
+                    toast.success("Producto encontrado", product.productName);
+                    return;
+                }
+                setStockSearch(code);
+            } catch {
+                setStockSearch(code);
+                toast.info("Búsqueda", "Código no exacto; filtrando por texto…");
+            }
+        },
+        [toast],
+    );
 
     const fetchSummary = useCallback(async () => {
         const res = await getInventorySummary();
@@ -92,22 +118,22 @@ export default function InventoryPage() {
 
     const fetchStock = useCallback(async () => {
         const res = await getInventoryStock({
-            q: stockSearch.trim() || undefined,
+            q: debouncedStockSearch.trim() || undefined,
             lowStockOnly: lowStockOnly || undefined,
         });
         setStockList(res.data ?? []);
-    }, [stockSearch, lowStockOnly]);
+    }, [debouncedStockSearch, lowStockOnly]);
 
     const fetchMovements = useCallback(async () => {
         const res = await getInventoryMovements({
-            q: movementSearch.trim() || undefined,
+            q: debouncedMovementSearch.trim() || undefined,
             type: movementType,
             page: movementsPage,
             limit: 30,
         });
         setMovements(res.data?.rows ?? []);
         setMovementsPagination(res.data?.pagination ?? movementsPagination);
-    }, [movementSearch, movementType, movementsPage]);
+    }, [debouncedMovementSearch, movementType, movementsPage]);
 
     const fetchAll = useCallback(async () => {
         setLoading(true);
@@ -126,11 +152,11 @@ export default function InventoryPage() {
 
     useEffect(() => {
         if (!loading) fetchStock();
-    }, [stockSearch, lowStockOnly, fetchStock, loading]);
+    }, [debouncedStockSearch, lowStockOnly, fetchStock, loading]);
 
     useEffect(() => {
         if (!loading) fetchMovements();
-    }, [movementSearch, movementType, movementsPage, fetchMovements, loading]);
+    }, [debouncedMovementSearch, movementType, movementsPage, fetchMovements, loading]);
 
     const filteredStockCount = stockList.length;
 
@@ -208,7 +234,7 @@ export default function InventoryPage() {
                                     : `${filteredStockCount} producto${filteredStockCount !== 1 ? "s" : ""}`}
                             </p>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:items-center">
                             <label className="flex items-center gap-2 text-xs text-gray-600 px-2">
                                 <input
                                     type="checkbox"
@@ -218,6 +244,11 @@ export default function InventoryPage() {
                                 />
                                 Solo bajo stock
                             </label>
+                            <BarcodeScanListener
+                                onScan={handleStockScan}
+                                placeholder="Escanear para buscar…"
+                                className="w-full sm:w-72"
+                            />
                             <div className="relative w-full sm:w-64">
                                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input

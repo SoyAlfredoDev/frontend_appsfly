@@ -1,23 +1,25 @@
-const BUSINESS_TIMEZONE = "America/Santiago";
+import {
+  DEFAULT_BUSINESS_TIMEZONE,
+  getTodayBusinessDate as getTodayKey,
+  resolveBusinessTimezone,
+  toBusinessDateKey,
+} from "./businessTime.js";
 
-function getBusinessDateFromValue(dateValue) {
-  if (!dateValue) return null;
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-CA", { timeZone: BUSINESS_TIMEZONE });
+function getBusinessDateFromValue(dateValue, timeZone = DEFAULT_BUSINESS_TIMEZONE) {
+  return toBusinessDateKey(dateValue, timeZone) || null;
 }
 
-function getTodayBusinessDate() {
-  return new Date().toLocaleDateString("en-CA", { timeZone: BUSINESS_TIMEZONE });
+function getTodayBusinessDate(timeZone = DEFAULT_BUSINESS_TIMEZONE) {
+  return getTodayKey(timeZone);
 }
 
-function isSameBusinessDay(dateValue) {
-  return getBusinessDateFromValue(dateValue) === getTodayBusinessDate();
+function isSameBusinessDay(dateValue, timeZone = DEFAULT_BUSINESS_TIMEZONE) {
+  return getBusinessDateFromValue(dateValue, timeZone) === getTodayBusinessDate(timeZone);
 }
 
-function isSameBusinessMonth(dateValue) {
-  const businessDate = getBusinessDateFromValue(dateValue);
-  const today = getTodayBusinessDate();
+function isSameBusinessMonth(dateValue, timeZone = DEFAULT_BUSINESS_TIMEZONE) {
+  const businessDate = getBusinessDateFromValue(dateValue, timeZone);
+  const today = getTodayBusinessDate(timeZone);
   return Boolean(businessDate && businessDate.slice(0, 7) === today.slice(0, 7));
 }
 
@@ -49,23 +51,24 @@ export function getDeliveryStatusLabel(status) {
     return null;
 }
 
-export function filterSalesByDashboardView(sales, view) {
+export function filterSalesByDashboardView(sales, view, timeZoneOrBusiness = DEFAULT_BUSINESS_TIMEZONE) {
+  const timeZone = resolveBusinessTimezone(timeZoneOrBusiness);
   if (!Array.isArray(sales)) return [];
 
   switch (view) {
     case "today":
-      return sales.filter((sale) => isSameBusinessDay(sale.createdAt));
+      return sales.filter((sale) => isSameBusinessDay(sale.createdAt, timeZone));
     case "todayIncome":
       return sales.filter(
         (sale) =>
-          isSameBusinessDay(sale.createdAt) && (sale.saleTotalPayments ?? 0) > 0,
+          isSameBusinessDay(sale.createdAt, timeZone) && (sale.saleTotalPayments ?? 0) > 0,
       );
     case "month":
-      return sales.filter((sale) => isSameBusinessMonth(sale.createdAt));
+      return sales.filter((sale) => isSameBusinessMonth(sale.createdAt, timeZone));
     case "pending":
       return sales.filter(
         (sale) =>
-          isSameBusinessMonth(sale.createdAt) && (sale.salePendingAmount ?? 0) > 0,
+          isSameBusinessMonth(sale.createdAt, timeZone) && (sale.salePendingAmount ?? 0) > 0,
       );
     default:
       return sales;

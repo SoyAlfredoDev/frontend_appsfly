@@ -1,4 +1,5 @@
 import { getCustomers } from "../../api/customers.js";
+import { unwrapListPayload } from "../../utils/listPayload.js";
 import { getProductsAndServices } from "../../libs/productsAndServices.js";
 import { useAuth } from "../../context/authContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
@@ -18,13 +19,16 @@ import ReceiptTypeSelector, {
 import SendDocumentEmailOption from "../../components/sales/SendDocumentEmailOption.jsx";
 import SendDocumentWhatsAppOption from "../../components/sales/SendDocumentWhatsAppOption.jsx";
 import { getSaleShareLink } from "../../api/sale.js";
+import { resolveScanCode } from "../../api/scan.js";
 import {
   buildSaleWhatsAppMessage,
   buildSaleWhatsAppShareUrl,
 } from "../../utils/saleShare.js";
 import FacturaReceiverForm from "../../components/billing/FacturaReceiverForm.jsx";
+import BarcodeScanListener from "../../components/scan/BarcodeScanListener.jsx";
 import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/validateSaleStock.js";
 import { isCreditSalesEnabled, isDeliveryControlEnabled } from "../../utils/businessReceiptSettings.js";
+import { isOpticsBusiness } from "../../utils/businessModality.js";
 import {
     isSalePaymentComplete,
     validateSalePaymentsForCreditPolicy,
@@ -123,6 +127,7 @@ export default function NewSalePage() {
     () => isDeliveryControlEnabled(business),
     [business],
   );
+  const isOptics = useMemo(() => isOpticsBusiness(business), [business]);
 
   // Data
   const [customers, setCustomers] = useState([]);
@@ -315,7 +320,7 @@ export default function NewSalePage() {
   const searchCustomers = useCallback(async (signal) => {
     try {
       const res = await getCustomers({ signal });
-      setCustomers(res.data);
+      setCustomers(unwrapListPayload(res.data).rows);
       return res.data;
     } catch (error) {
       if (!isAbortError(error)) console.log(error);
@@ -367,7 +372,7 @@ export default function NewSalePage() {
           getProductsAndServices({ signal }),
         ]);
         if (!signal.aborted) {
-          setCustomers(customersRes.data ?? []);
+          setCustomers(unwrapListPayload(customersRes.data).rows);
           setProductsServices(productsRes ?? []);
         }
         await checkSalesClosureStatus(signal);
@@ -480,6 +485,74 @@ export default function NewSalePage() {
       setTotal(newTotal);
     }
   };
+
+  const handleProductScan = useCallback(
+    async (code) => {
+      if (blockSalesRegistration) return;
+      try {
+        const res = await resolveScanCode(code);
+        const product = res.data?.product;
+        if (!product?.productId) {
+          toast.error("Código no encontrado", "No hay un producto asociado a ese código.");
+          return;
+        }
+
+        setProductsServices((prev) => {
+          if (prev.some((p) => p.productId === product.productId)) return prev;
+          return [...prev, { ...product, type: "PRODUCT" }];
+        });
+
+        setDataTable((prev) => {
+          const existingIdx = prev.findIndex(
+            (r) => r.saleDetailProductServiceId === product.productId,
+          );
+
+          let rows;
+          if (existingIdx >= 0) {
+            rows = prev.map((row, i) => {
+              if (i !== existingIdx) return row;
+              const amount = Number(row.saleDetailAmount || 0) + 1;
+              const price = Number(row.saleDetailPrice || 0);
+              return {
+                ...row,
+                saleDetailAmount: amount,
+                saleDetailTotal: price * amount,
+              };
+            });
+          } else {
+            const emptyIdx = prev.findIndex((r) => !r.saleDetailProductServiceId);
+            const price = Number(product.productPrice || 0);
+            const newLine = {
+              ...createEmptyRow(),
+              saleDetailSKU: product.productSKU || "",
+              saleDetailProductServiceId: product.productId,
+              saleDetailPrice: price,
+              saleDetailAmount: 1,
+              saleDetailTotal: price,
+              saleDetailType: "PRODUCT",
+              saleDetailPriceFixed: product.productPriceFixed ?? true,
+            };
+            if (emptyIdx >= 0) {
+              rows = prev.map((row, i) => (i === emptyIdx ? newLine : row));
+            } else {
+              rows = [...prev, newLine];
+            }
+          }
+
+          setTotal(rows.reduce((sum, item) => sum + Number(item.saleDetailTotal || 0), 0));
+          return rows;
+        });
+
+        toast.success("Producto agregado", product.productName);
+      } catch (error) {
+        const msg =
+          error.response?.data?.message ||
+          "No se pudo resolver el código escaneado.";
+        toast.error("Escaneo", msg);
+      }
+    },
+    [blockSalesRegistration, toast],
+  );
 
   const handleAmountStep = (index, direction) => {
     const rows = [...dataTable];
@@ -665,7 +738,7 @@ export default function NewSalePage() {
       const hasProducts = dataTable.some(
         (row) => row.saleDetailType === "PRODUCT" && row.saleDetailProductServiceId,
       );
-      if (deliveryControlEnabled && hasProducts) {
+      if (deliveryControlEnabled && hasProducts && !isOptics) {
         salePayload.saleDeliveryStatus = "PENDING";
       }
       const res = await createSaleGeneral(
@@ -1047,6 +1120,12 @@ export default function NewSalePage() {
                 </button>
               }
             >
+              <BarcodeScanListener
+                enabled={!blockSalesRegistration && !isLoading}
+                onScan={handleProductScan}
+                placeholder="Escanear barcode / QR / SKU…"
+                className="mb-3"
+              />
               {dataTable.length === 0 ? (
                 <p className="text-xs text-gray-400 py-4 text-center">
                   Sin productos — toca Agregar
@@ -1135,6 +1214,12 @@ export default function NewSalePage() {
                   {formatRecordCount(itemCount)}
                 </p>
               </div>
+              <BarcodeScanListener
+                enabled={!blockSalesRegistration && !isLoading}
+                onScan={handleProductScan}
+                placeholder="Escanear barcode / QR / SKU…"
+                className="w-full sm:w-80"
+              />
             </div>
 
             <div className="overflow-x-auto flex-1">

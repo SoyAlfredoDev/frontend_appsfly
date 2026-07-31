@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { v4 as uuidv4 } from 'uuid';
 import { createDailySales } from "../../api/dailySales.js";
+import { getTodayBusinessDate } from "../../utils/businessTime.js";
+import { useAuth } from "../../context/authContext.jsx";
 
 export default function AddDailySaleModal() {
+    const { business } = useAuth();
+    const today = () => getTodayBusinessDate(business);
     const [data, setData] = useState({});
     const [btnModal, setBtnModal] = useState(false);
     const modalRef = useRef(null);
@@ -12,7 +16,6 @@ export default function AddDailySaleModal() {
             { dailySalesDay: today(), dailySalesId: uuidv4() }
         )
     }, []);
-    const today = () => new Date().toISOString().split("T")[0];
     const handleOnChange = (e) => setData((prevData) => ({ ...prevData, dailySalesDay: e.target.value }));
     const handleClickModal = async () => {
         try {

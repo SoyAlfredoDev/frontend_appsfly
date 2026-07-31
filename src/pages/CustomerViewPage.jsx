@@ -1,16 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getCustomerById } from '../api/customers.js';
 import { getSalesByCustomerIdRequest } from '../api/sale.js';
 import { getPaymentByCustomerId } from '../api/payment.js';
+import { getPrescriptionsByCustomerId } from '../api/prescriptions.js';
 import formatCurrency from '../utils/formatCurrency.js';
 import formatDate from '../utils/formatDate.js';
 import formatName from '../utils/formatName.js'
-import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { FaUser, FaHistory, FaCreditCard, FaArrowLeft, FaEdit, FaPhone, FaIdCard, FaEnvelope } from 'react-icons/fa';
+import { motion as Motion } from 'framer-motion';
+import { FaUser, FaHistory, FaCreditCard, FaArrowLeft, FaEdit, FaPhone, FaIdCard, FaEnvelope, FaBirthdayCake, FaFileMedical } from 'react-icons/fa';
+import { useAuth } from '../context/authContext.jsx';
+import { isOpticsBusiness } from '../utils/businessModality.js';
 
 import AddCustomerModal from '../components/modals/AddCustomerModal.jsx';
 import ImagePreviewModal from '../components/modals/ImagePreviewModal.jsx';
+import CustomerPrescriptionsSection from '../components/customers/CustomerPrescriptionsSection.jsx';
 import PageContainer from "../components/layout/PageContainer.jsx";
 
 export default function CustomerViewPage() {
@@ -18,10 +22,14 @@ export default function CustomerViewPage() {
     const [customer, setCustomer] = useState(null);
     const [sales, setSales] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [prescriptions, setPrescriptions] = useState([]);
+    const [prescriptionsLoading, setPrescriptionsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
     const { id } = useParams();
     const navigate = useNavigate();
+    const { business } = useAuth();
+    const showOptics = isOpticsBusiness(business);
     const methodsPaymets = [
         { methodId: '0', methodName: 'Tarjeta de Débito' },
         { methodId: '1', methodName: 'Tarjeta de Crédito' },
@@ -29,13 +37,38 @@ export default function CustomerViewPage() {
         { methodId: '3', methodName: 'Transferencia Bancaria' },
     ];
 
+    /** En óptica la imagen mostrada es de la última receta con foto (no perfil). */
+    const displayImageUrl = useMemo(() => {
+        if (showOptics) {
+            const withPhoto = prescriptions.find((p) => p?.prescriptionImageUrl);
+            return withPhoto?.prescriptionImageUrl || null;
+        }
+        return customer?.customerImageUrl || null;
+    }, [showOptics, prescriptions, customer?.customerImageUrl]);
+
+    const loadPrescriptions = async () => {
+        if (!showOptics || !id) {
+            setPrescriptions([]);
+            return;
+        }
+        setPrescriptionsLoading(true);
+        try {
+            const res = await getPrescriptionsByCustomerId(id);
+            setPrescriptions(Array.isArray(res.data) ? res.data : []);
+        } catch (error) {
+            console.error("Error loading prescriptions:", error);
+            setPrescriptions([]);
+        } finally {
+            setPrescriptionsLoading(false);
+        }
+    };
+
     const getData = async () => {
         setLoading(true);
         try {
-            const [customerResult, salesResult, paymentsResult] = await Promise.allSettled([
+            const [customerResult, salesResult] = await Promise.allSettled([
                 getCustomerById(id),
                 getSalesByCustomerIdRequest(id),
-                getPaymentByCustomerId(id),
             ]);
 
             if (customerResult.status === "fulfilled") {
@@ -50,23 +83,52 @@ export default function CustomerViewPage() {
                 console.error("Error loading sales:", salesResult.reason);
                 setSales([]);
             }
-
-            if (paymentsResult.status === "fulfilled") {
-                setPayments(Array.isArray(paymentsResult.value.data) ? paymentsResult.value.data : []);
-            } else {
-                console.error("Error loading payments:", paymentsResult.reason);
-                setPayments([]);
-            }
         } catch (error) {
-            console.error(error);
+            console.error("Error loading customer view:", error);
         } finally {
             setLoading(false);
         }
     };
 
+    const loadPayments = async () => {
+        try {
+            const paymentsResult = await getPaymentByCustomerId(id);
+            setPayments(Array.isArray(paymentsResult.data) ? paymentsResult.data : []);
+        } catch (error) {
+            console.error("Error loading payments:", error);
+            setPayments([]);
+        }
+    };
+
+
     useEffect(() => {
         getData();
-    }, [id]);
+    }, [id, showOptics]);
+
+    // Carga diferida de secciones secundarias (no bloquea la ficha principal)
+    useEffect(() => {
+        if (!id) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const paymentsResult = await getPaymentByCustomerId(id);
+                if (!cancelled) {
+                    setPayments(Array.isArray(paymentsResult.data) ? paymentsResult.data : []);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.error("Error loading payments:", error);
+                    setPayments([]);
+                }
+            }
+            if (showOptics) {
+                await loadPrescriptions();
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [id, showOptics]);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -170,39 +232,76 @@ export default function CustomerViewPage() {
                                             {loading ? <div className="h-5 w-24 bg-gray-100 rounded animate-pulse"></div> : customer?.customerEmail}
                                         </div>
                                     </div>
+                                    {showOptics && (
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                                                <FaBirthdayCake className="text-gray-400" /> Fecha de nacimiento
+                                            </label>
+                                            <div className="text-gray-700">
+                                                {loading ? (
+                                                    <div className="h-5 w-24 bg-gray-100 rounded animate-pulse"></div>
+                                                ) : customer?.customerBirthDate ? (
+                                                    formatDate(customer.customerBirthDate)
+                                                ) : (
+                                                    <span className="text-gray-400">—</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Columna 3: Imagen del cliente */}
+                                {/* Columna 3: imagen (óptica = foto de receta) */}
                                 <div className="flex justify-center md:justify-end">
-                                    {loading ? (
+                                    {loading || (showOptics && prescriptionsLoading) ? (
                                         <div className="w-32 h-32 bg-gray-100 rounded-lg animate-pulse border border-gray-200" />
-                                    ) : customer?.customerImageUrl ? (
+                                    ) : displayImageUrl ? (
                                         <button
                                             type="button"
                                             onClick={() => setIsImagePreviewOpen(true)}
                                             className="group relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 shadow-md bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-                                            title="Ver imagen en grande"
-                                            aria-label="Ver imagen del cliente en grande"
+                                            title={showOptics ? "Ver foto de receta" : "Ver imagen en grande"}
+                                            aria-label={showOptics ? "Ver foto de la receta" : "Ver imagen del cliente en grande"}
                                         >
                                             <img
-                                                src={customer.customerImageUrl}
-                                                alt={`Imagen de ${formatName(customer?.customerFirstName) ?? "cliente"}`}
+                                                src={displayImageUrl}
+                                                alt={
+                                                    showOptics
+                                                        ? "Foto de receta"
+                                                        : `Imagen de ${formatName(customer?.customerFirstName) ?? "cliente"}`
+                                                }
                                                 className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                                             />
                                             <span className="absolute inset-x-0 bottom-0 py-1 text-[10px] font-medium text-white text-center bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                Ampliar
+                                                {showOptics ? "Receta" : "Ampliar"}
                                             </span>
                                         </button>
                                     ) : (
                                         <div className="w-32 h-32 bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400 border border-dashed border-gray-300">
-                                            <FaUser size={32} className="mb-2 opacity-60" />
-                                            <span className="text-xs font-medium">Sin imagen</span>
+                                            {showOptics ? (
+                                                <FaFileMedical size={28} className="mb-2 opacity-60" />
+                                            ) : (
+                                                <FaUser size={32} className="mb-2 opacity-60" />
+                                            )}
+                                            <span className="text-xs font-medium">
+                                                {showOptics ? "Sin foto de receta" : "Sin imagen"}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
                     </Motion.div>
+
+                    {showOptics && (
+                        <Motion.div variants={itemVariants}>
+                            <CustomerPrescriptionsSection
+                                customerId={id}
+                                prescriptions={prescriptions}
+                                loading={loading || prescriptionsLoading}
+                                onRefresh={loadPrescriptions}
+                            />
+                        </Motion.div>
+                    )}
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* HISTORIAL DE VENTAS */}
@@ -312,10 +411,22 @@ export default function CustomerViewPage() {
                     <ImagePreviewModal
                         isOpen={isImagePreviewOpen}
                         onClose={() => setIsImagePreviewOpen(false)}
-                        imageUrl={customer?.customerImageUrl}
-                        title={`Imagen — ${formatName(customer?.customerFirstName) ?? ""} ${formatName(customer?.customerLastName) ?? ""}`.trim()}
-                        alt={`Imagen de ${formatName(customer?.customerFirstName) ?? "cliente"}`}
-                        downloadFilename={`cliente-${customer?.customerId ?? "imagen"}`}
+                        imageUrl={displayImageUrl}
+                        title={
+                            showOptics
+                                ? `Receta — ${formatName(customer?.customerFirstName) ?? ""} ${formatName(customer?.customerLastName) ?? ""}`.trim()
+                                : `Imagen — ${formatName(customer?.customerFirstName) ?? ""} ${formatName(customer?.customerLastName) ?? ""}`.trim()
+                        }
+                        alt={
+                            showOptics
+                                ? "Foto de receta"
+                                : `Imagen de ${formatName(customer?.customerFirstName) ?? "cliente"}`
+                        }
+                        downloadFilename={
+                            showOptics
+                                ? `receta-${customer?.customerId ?? "imagen"}`
+                                : `cliente-${customer?.customerId ?? "imagen"}`
+                        }
                     />
                 </div>
             </Motion.div>

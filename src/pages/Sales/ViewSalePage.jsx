@@ -16,7 +16,11 @@ import { IconPrinter } from "../../components/IconComponent.jsx"
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import SimpleTestPDFContent from '../../components/Printables/SimpleTestPDF.jsx'
 import SaleDeliveryBadge from '../../components/sales/SaleDeliveryBadge.jsx'
+import SaleWorkOrdersSection from '../../components/sales/SaleWorkOrdersSection.jsx'
+import SalePurchaseCertificatesSection from '../../components/sales/SalePurchaseCertificatesSection.jsx'
 import { isDeliveryControlEnabled } from '../../utils/businessReceiptSettings.js'
+import { isOpticsBusiness } from '../../utils/businessModality.js'
+import { getWorkOrdersBySaleId } from '../../api/workOrders.js'
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import PageContainer from "../../components/layout/PageContainer.jsx";
 import { 
@@ -36,7 +40,6 @@ import {
     FaTruck,
     FaEnvelope,
     FaWhatsapp,
-    FaShareAlt,
 } from "react-icons/fa";
 
 export default function ViewSalePage() {
@@ -57,6 +60,7 @@ export default function ViewSalePage() {
     const [markingDelivered, setMarkingDelivered] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
     const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+    const [workOrders, setWorkOrders] = useState([]);
 
     const DOCUMENT_LABELS = {
         RECEIPT: "Comprobante de venta",
@@ -74,7 +78,25 @@ export default function ViewSalePage() {
         [tableProductAndService],
     );
 
-    const showDeliverySection = deliveryControlEnabled && hasProducts && sale?.saleDeliveryStatus;
+    const isOptics = useMemo(() => isOpticsBusiness(business), [business]);
+
+    const hasPendingWorkOrders = useMemo(
+        () => workOrders.length > 0 && workOrders.some((wo) => wo.workOrderStatus !== "DELIVERED"),
+        [workOrders],
+    );
+
+    /** Óptica: estado de entrega = OTs. Otras modalidades: saleDeliveryStatus. */
+    const effectiveDeliveryStatus = useMemo(() => {
+        if (isOptics) {
+            if (workOrders.length === 0) return null;
+            return hasPendingWorkOrders ? "PENDING" : "DELIVERED";
+        }
+        return sale?.saleDeliveryStatus || null;
+    }, [isOptics, workOrders.length, hasPendingWorkOrders, sale?.saleDeliveryStatus]);
+
+    const showDeliverySection = isOptics
+        ? workOrders.length > 0
+        : deliveryControlEnabled && hasProducts && Boolean(sale?.saleDeliveryStatus);
 
     const customerEmail = sale?.customer?.customerEmail?.trim() || "";
     const customerPhone = sale?.customer?.customerPhoneNumber?.trim() || "";
@@ -112,10 +134,25 @@ export default function ViewSalePage() {
         }
     };
 
+    const fetchWorkOrders = async () => {
+        if (!isOptics) return;
+        try {
+            const { data } = await getWorkOrdersBySaleId(id);
+            setWorkOrders(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
     // Call search function on initial load
     useEffect(() => {
         searchSaleById();
     }, []);
+
+    useEffect(() => {
+        fetchWorkOrders();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOptics, id]);
 
     const handleAmountChange = (e) => {
         const newAmount = Number(e.target.value);
@@ -190,10 +227,17 @@ export default function ViewSalePage() {
             setSale(data.sale);
             toast.success("Entrega registrada", "La venta quedó marcada como entregada.");
         } catch (error) {
-            toast.error(
-                "No se pudo registrar",
-                error.response?.data?.message ?? "Ocurrió un error al marcar la entrega.",
-            );
+            if (error.response?.data?.code === "WORK_ORDERS_PENDING_DELIVERY") {
+                toast.error(
+                    "Órdenes de trabajo pendientes",
+                    error.response?.data?.message ?? "Existen órdenes de trabajo sin entregar al cliente.",
+                );
+            } else {
+                toast.error(
+                    "No se pudo registrar",
+                    error.response?.data?.message ?? "Ocurrió un error al marcar la entrega.",
+                );
+            }
         } finally {
             setMarkingDelivered(false);
         }
@@ -298,7 +342,7 @@ export default function ViewSalePage() {
                                     #{sale?.saleNumber}
                                 </span>
                                 {showDeliverySection && (
-                                    <SaleDeliveryBadge status={sale.saleDeliveryStatus} className="text-xs" />
+                                    <SaleDeliveryBadge status={effectiveDeliveryStatus} className="text-xs" />
                                 )}
                             </h1>
                         </div>
@@ -317,12 +361,15 @@ export default function ViewSalePage() {
                                 </button>
                             )}
 
-                            {!isLoading && showDeliverySection && sale.saleDeliveryStatus === "PENDING" && (
+                            {!isLoading &&
+                                !isOptics &&
+                                showDeliverySection &&
+                                sale.saleDeliveryStatus === "PENDING" && (
                                 <button
                                     type="button"
                                     onClick={handleMarkDelivered}
                                     disabled={markingDelivered}
-                                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-bold disabled:opacity-60"
+                                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
                                     <FaTruck />
                                     {markingDelivered ? "Registrando..." : "Marcar como entregado"}
@@ -441,14 +488,24 @@ export default function ViewSalePage() {
                                         <div className="flex flex-col">
                                             <span className="text-xs text-gray-500 uppercase font-bold tracking-wider">Estado de entrega</span>
                                             <div className="mt-1">
-                                                <SaleDeliveryBadge status={sale.saleDeliveryStatus} />
+                                                <SaleDeliveryBadge status={effectiveDeliveryStatus} />
                                             </div>
-                                            {sale.saleDeliveryStatus === "DELIVERED" && sale.saleDeliveredAt && (
+                                            {isOptics && hasPendingWorkOrders && (
+                                                <span className="text-xs text-amber-700 mt-1">
+                                                    Hay órdenes de trabajo pendientes de entregar al cliente.
+                                                </span>
+                                            )}
+                                            {!isOptics && sale.saleDeliveryStatus === "DELIVERED" && sale.saleDeliveredAt && (
                                                 <span className="text-xs text-gray-500 mt-1">
                                                     {new Date(sale.saleDeliveredAt).toLocaleString("es-CL")}
                                                     {sale.deliveredBy && (
                                                         <> · {sale.deliveredBy.userFirstName} {sale.deliveredBy.userLastName}</>
                                                     )}
+                                                </span>
+                                            )}
+                                            {isOptics && effectiveDeliveryStatus === "DELIVERED" && (
+                                                <span className="text-xs text-gray-500 mt-1">
+                                                    Todas las OT de esta venta fueron entregadas.
                                                 </span>
                                             )}
                                         </div>
@@ -465,49 +522,6 @@ export default function ViewSalePage() {
                                     </div>
                                 </div>
                             </div>
-
-                            {(customerEmail || customerPhone) && (
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
-                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                                        <FaShareAlt className="text-xs" /> Enviar comprobante al cliente
-                                    </h3>
-                                    <p className="text-xs text-gray-500 leading-relaxed">
-                                        Reenvíe el comprobante por correo (con PDF y enlace) o compártalo por WhatsApp.
-                                    </p>
-                                    <div className="flex flex-col sm:flex-row gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={handleSendEmail}
-                                            disabled={!customerEmail || sendingEmail}
-                                            className="flex items-center justify-center gap-2 flex-1 px-3 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <FaEnvelope />
-                                            {sendingEmail ? "Enviando correo..." : "Enviar por correo"}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleSendWhatsApp}
-                                            disabled={!customerPhone || sendingWhatsApp}
-                                            className="flex items-center justify-center gap-2 flex-1 px-3 py-2.5 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebe57] transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <FaWhatsapp />
-                                            {sendingWhatsApp ? "Preparando..." : "Enviar por WhatsApp"}
-                                        </button>
-                                    </div>
-                                    <div className="text-xs text-gray-500 space-y-1">
-                                        {customerEmail ? (
-                                            <p>Correo: {customerEmail}</p>
-                                        ) : (
-                                            <p className="text-amber-700">Sin correo registrado para este cliente.</p>
-                                        )}
-                                        {customerPhone ? (
-                                            <p>Teléfono: {[customerPhoneCode, customerPhone].filter(Boolean).join(" ")}</p>
-                                        ) : (
-                                            <p className="text-amber-700">Sin teléfono registrado para WhatsApp.</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
 
                             {/* 2. Items Table (Compact) */}
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -550,7 +564,7 @@ export default function ViewSalePage() {
                                 </div>
                             </div>
 
-                            {/* 3. Payments Table (Compact) */}
+                            {/* 3. Payments Table (Compact) — debajo de productos */}
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                                 <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
                                     <h5 className="font-bold text-gray-800 text-sm uppercase">Detalle de Pagos</h5>
@@ -593,6 +607,21 @@ export default function ViewSalePage() {
                                     </table>
                                 </div>
                             </div>
+
+                            {/* 2.5 Órdenes de Trabajo (Óptica) */}
+                            {isOptics && (
+                                <SaleWorkOrdersSection
+                                    saleId={sale.saleId}
+                                    customerId={sale.saleCustomerId || sale.customer?.customerId}
+                                    saleDetails={tableProductAndService}
+                                    onChanged={fetchWorkOrders}
+                                />
+                            )}
+
+                            {/* 2.6 Certificados de Compra (Óptica) */}
+                            {isOptics && sale?.saleId && (
+                                <SalePurchaseCertificatesSection saleId={sale.saleId} />
+                            )}
 
                         </Motion.div>
                     )}

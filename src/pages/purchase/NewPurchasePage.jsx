@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   FaPlus,
@@ -18,13 +18,19 @@ import { useNavigate } from "react-router-dom";
 import formatCurrency from "../../utils/formatCurrency.js";
 import { getProviders } from "../../api/providers.js";
 import { getProducts } from "../../api/product.js";
+import { resolveScanCode } from "../../api/scan.js";
+import { unwrapListPayload } from "../../utils/listPayload.js";
 import { createPurchaseCompleteRequest } from "../../api/purchase.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import PageContainer from "../../components/layout/PageContainer.jsx";
+import { getTodayBusinessDate } from "../../utils/businessTime.js";
+import { useAuth } from "../../context/authContext.jsx";
+import BarcodeScanListener from "../../components/scan/BarcodeScanListener.jsx";
 
 export default function NewPurchasePage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { business } = useAuth();
 
   // --- States ---
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +39,7 @@ export default function NewPurchasePage() {
   const [purchaseData, setPurchaseData] = useState({
     providerId: "",
     documentNumber: "",
-    date: new Date().toISOString().split("T")[0], // YYYY-MM-DD
+    date: getTodayBusinessDate(business),
     applyTax: false, // IVA Toggle
     note: "", // Comments
   });
@@ -60,7 +66,7 @@ export default function NewPurchasePage() {
     try {
       const res = await getProducts();
       // Ensure we have an array
-      setProducts(Array.isArray(res.data) ? res.data : []);
+      setProducts(unwrapListPayload(res.data).rows);
       return res.data;
     } catch (error) {
       console.log(error);
@@ -176,6 +182,63 @@ export default function NewPurchasePage() {
     );
     setFocusedRowId(null);
   };
+
+  const handleProductScan = useCallback(
+    async (code) => {
+      if (isLoading) return;
+      try {
+        const res = await resolveScanCode(code);
+        const product = res.data?.product;
+        if (!product?.productId) {
+          toast.error("Código no encontrado", "No hay un producto asociado a ese código.");
+          return;
+        }
+
+        setProducts((prev) => {
+          if (prev.some((p) => p.productId === product.productId)) return prev;
+          return [...prev, product];
+        });
+
+        setItems((prev) => {
+          const existingIdx = prev.findIndex((r) => r.productId === product.productId);
+          if (existingIdx >= 0) {
+            return prev.map((row, i) => {
+              if (i !== existingIdx) return row;
+              const quantity = Number(row.quantity || 0) + 1;
+              return {
+                ...row,
+                quantity,
+                totalLine: quantity * Number(row.unitCost || 0),
+              };
+            });
+          }
+
+          const unitCost = Number(product.productPrice ?? 0);
+          const emptyIdx = prev.findIndex((r) => !r.productId);
+          const newLine = {
+            id: uuidv4(),
+            productId: product.productId,
+            productName: product.productName || "",
+            quantity: 1,
+            unitCost,
+            totalLine: unitCost,
+          };
+          if (emptyIdx >= 0) {
+            return prev.map((row, i) => (i === emptyIdx ? { ...newLine, id: row.id } : row));
+          }
+          return [...prev, newLine];
+        });
+
+        toast.success("Producto agregado", product.productName);
+      } catch (error) {
+        toast.error(
+          "Escaneo",
+          error.response?.data?.message || "No se pudo resolver el código.",
+        );
+      }
+    },
+    [isLoading, toast],
+  );
 
   const addNewRow = () => {
     setItems((prev) => [
@@ -333,6 +396,13 @@ export default function NewPurchasePage() {
             </div>
 
             <div className="border-b border-gray-200 overflow-visible" ref={searchContainerRef}>
+              <div className="px-3 pt-3">
+                <BarcodeScanListener
+                  enabled={!isLoading}
+                  onScan={handleProductScan}
+                  placeholder="Escanear barcode / QR / SKU…"
+                />
+              </div>
               <div className="overflow-visible">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-gray-50/80 text-gray-500 text-[10px] uppercase font-semibold border-b border-gray-200">

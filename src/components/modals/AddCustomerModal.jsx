@@ -1,14 +1,27 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
-import ImageUploadField from '../inputs/ImageUploadField.jsx';
 import IsRequiredComponent from '../IsRequiredComponent.jsx';
 import { createCustomer, updateCustomer } from '../../api/customers.js';
+import { createPrescription } from '../../api/prescriptions.js';
 import { useAuth } from '../../context/authContext.jsx';
-import { FaPlus, FaTimes, FaSave } from "react-icons/fa";
+import { FaPlus, FaTimes, FaSave, FaFileMedical, FaEdit } from "react-icons/fa";
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '../../context/ToastContext.jsx';
-import { uploadImageToCloudinary, CLOUDINARY_FOLDERS, buildCustomerImagePublicId } from '../../utils/cloudinaryUpload.js';
+import {
+    uploadImageToCloudinary,
+    CLOUDINARY_FOLDERS,
+    buildPrescriptionImagePublicId,
+} from '../../utils/cloudinaryUpload.js';
+import { isOpticsBusiness, toDateInputValue } from '../../utils/businessModality.js';
+import { getTodayBusinessDate } from '../../utils/businessTime.js';
+import PrescriptionFormModal from '../prescriptions/PrescriptionFormModal.jsx';
+import {
+    EMPTY_PRESCRIPTION_FORM,
+    hasPrescriptionMeasurements,
+    resolvePrescriptionEntryMode,
+    summarizePrescriptionEyes,
+} from '../prescriptions/prescriptionFormDefaults.js';
 
 import { PRIMARY_BTN } from '../../utils/expenseUiPatterns.js';
 
@@ -27,16 +40,20 @@ export default function AddCustomerModal({
     onClose: externalOnClose,
     customerToEdit = null
 }) {
-    const { user } = useAuth();
+    const { user, business } = useAuth();
     const toast = useToast();
+    const showOpticsFields = isOpticsBusiness(business);
 
     const isControlled = externalIsOpen !== undefined;
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const isOpen = isControlled ? externalIsOpen : internalIsOpen;
     const [isLoading, setIsLoading] = useState(false);
-    const [imageFile, setImageFile] = useState(null);
-    const [existingImageUrl, setExistingImageUrl] = useState(null);
-    const [imageCleared, setImageCleared] = useState(false);
+
+    /** Receta opcional → tabla Prescription (independiente del Customer) */
+    const [includePrescription, setIncludePrescription] = useState(false);
+    const [rxForm, setRxForm] = useState(EMPTY_PRESCRIPTION_FORM);
+    const [rxImageFile, setRxImageFile] = useState(null);
+    const [rxModalOpen, setRxModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         customerFirstName: "",
@@ -47,6 +64,7 @@ export default function AddCustomerModal({
         customerCodePhoneNumber: "+56",
         customerPhoneNumber: "",
         customerComment: "",
+        customerBirthDate: "",
         createdByUserId: user?.userId || ""
     });
 
@@ -78,6 +96,16 @@ export default function AddCustomerModal({
         ...countryCodes.slice(1).sort((a, b) => a.name.localeCompare(b.name))
     ];
 
+    const resetPrescriptionState = () => {
+        setIncludePrescription(false);
+        setRxForm({
+            ...EMPTY_PRESCRIPTION_FORM,
+            prescriptionDate: getTodayBusinessDate(business),
+        });
+        setRxImageFile(null);
+        setRxModalOpen(false);
+    };
+
     useEffect(() => {
         if (isOpen) {
             if (customerToEdit) {
@@ -90,11 +118,10 @@ export default function AddCustomerModal({
                     customerCodePhoneNumber: customerToEdit.customerCodePhoneNumber || "+56",
                     customerPhoneNumber: customerToEdit.customerPhoneNumber || "",
                     customerComment: customerToEdit.customerComment || "",
+                    customerBirthDate: toDateInputValue(customerToEdit.customerBirthDate),
                     createdByUserId: customerToEdit.createdByUserId || user?.userId
                 });
-                setExistingImageUrl(customerToEdit.customerImageUrl || null);
-                setImageCleared(false);
-                setImageFile(null);
+                resetPrescriptionState();
             } else {
                 handleResetForm();
             }
@@ -106,11 +133,46 @@ export default function AddCustomerModal({
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
+    const saveOptionalPrescription = async (customerId) => {
+        if (!showOpticsFields || !includePrescription) return false;
+
+        const hasManual = hasPrescriptionMeasurements(rxForm);
+        const hasNotes = String(rxForm.prescriptionNotes || "").trim() !== "";
+        if (!rxImageFile && !hasManual && !hasNotes) {
+            toast.info(
+                "Receta incompleta",
+                "Abre el formulario de receta e ingresa la graduación, una foto o una nota.",
+            );
+            throw new Error("PRESCRIPTION_INCOMPLETE");
+        }
+
+        let prescriptionImageUrl = null;
+        if (rxImageFile) {
+            prescriptionImageUrl = await uploadImageToCloudinary(rxImageFile, {
+                folder: CLOUDINARY_FOLDERS.PRESCRIPTION_IMAGES,
+                publicId: buildPrescriptionImagePublicId(customerId),
+            });
+        }
+
+        await createPrescription(customerId, {
+            ...rxForm,
+            prescriptionDate: rxForm.prescriptionDate || null,
+            prescriptionExpiresAt: rxForm.prescriptionExpiresAt || null,
+            prescriptionImageUrl,
+            entryMode: resolvePrescriptionEntryMode({
+                hasImage: Boolean(prescriptionImageUrl),
+                hasManual,
+            }),
+            createdByUserId: user?.userId,
+        });
+        return true;
+    };
+
     const handleOnSubmit = async (e) => {
         e.preventDefault();
 
-        if (!formData.customerFirstName || !formData.customerLastName || !formData.customerDocumentNumber) {
-            toast.info('Campos Incompletos', 'Por favor completa los campos obligatorios (Nombre, Apellido, Documento).');
+        if (!formData.customerFirstName?.trim()) {
+            toast.info('Campo incompleto', 'El nombre es obligatorio.');
             return;
         }
 
@@ -121,42 +183,45 @@ export default function AddCustomerModal({
             let resultId;
 
             if (customerToEdit) {
-                let customerImageUrl = null;
-
-                if (imageFile) {
-                    customerImageUrl = await uploadImageToCloudinary(imageFile, {
-                        folder: CLOUDINARY_FOLDERS.CUSTOMER_PROFILE,
-                        publicId: buildCustomerImagePublicId(customerToEdit.customerId),
-                    });
-                } else if (!imageCleared && existingImageUrl) {
-                    customerImageUrl = existingImageUrl;
-                }
-
                 const payload = {
                     ...formData,
-                    customerImageUrl: customerImageUrl || null,
+                    customerBirthDate: showOpticsFields
+                        ? (formData.customerBirthDate || null)
+                        : (customerToEdit.customerBirthDate ?? null),
                 };
 
                 await updateCustomer(customerToEdit.customerId, payload);
                 resultId = customerToEdit.customerId;
                 toast.success('¡Cliente Actualizado!', 'El cliente se ha actualizado correctamente.');
             } else {
-                const createPayload = { ...formData, customerImageUrl: null };
+                const createPayload = {
+                    ...formData,
+                    customerBirthDate: showOpticsFields ? (formData.customerBirthDate || null) : null,
+                    customerImageUrl: null,
+                };
                 const customerCreated = await createCustomer(createPayload);
                 resultId = customerCreated.data.customer.customerId;
 
-                if (imageFile) {
-                    const customerImageUrl = await uploadImageToCloudinary(imageFile, {
-                        folder: CLOUDINARY_FOLDERS.CUSTOMER_PROFILE,
-                        publicId: buildCustomerImagePublicId(resultId),
-                    });
-                    await updateCustomer(resultId, {
-                        ...formData,
-                        customerImageUrl,
-                    });
-                }
-
                 toast.success('¡Cliente Creado!', 'El cliente se ha registrado correctamente.');
+            }
+
+            try {
+                const rxSaved = await saveOptionalPrescription(resultId);
+                if (rxSaved) {
+                    toast.success(
+                        'Receta registrada',
+                        'La fórmula médica se guardó en el historial del paciente.',
+                    );
+                }
+            } catch (rxError) {
+                if (rxError?.message === "PRESCRIPTION_INCOMPLETE") {
+                    return;
+                }
+                console.error(rxError);
+                toast.error(
+                    'Cliente guardado',
+                    'El cliente quedó registrado, pero no se pudo guardar la receta. Puedes agregarla desde la ficha del paciente.',
+                );
             }
 
             if (onCreated) onCreated(resultId);
@@ -184,12 +249,11 @@ export default function AddCustomerModal({
                 customerCodePhoneNumber: "+56",
                 customerPhoneNumber: "",
                 customerComment: "",
+                customerBirthDate: "",
                 createdByUserId: user?.userId || "",
             });
         }
-        setImageFile(null);
-        setExistingImageUrl(null);
-        setImageCleared(false);
+        resetPrescriptionState();
     };
 
     const setIsOpen = (val) => {
@@ -206,7 +270,7 @@ export default function AddCustomerModal({
 
     const modalTitle = title || (customerToEdit ? 'Editar Cliente' : 'Nuevo Cliente');
     const submitButtonText = isLoading
-        ? (imageFile ? 'Subiendo imagen...' : 'Guardando...')
+        ? (rxImageFile ? 'Subiendo imágenes...' : 'Guardando...')
         : customerToEdit
             ? 'Actualizar Cliente'
             : 'Crear Cliente';
@@ -267,10 +331,11 @@ export default function AddCustomerModal({
                                             onChange={handleInputChange}
                                         />
                                         <InputFloatingComponent
-                                            label="Apellido *"
+                                            label="Apellido"
                                             name="customerLastName"
                                             value={formData.customerLastName}
                                             onChange={handleInputChange}
+                                            required={false}
                                         />
                                     </div>
 
@@ -296,11 +361,12 @@ export default function AddCustomerModal({
                                         </div>
                                         <div className="md:col-span-8">
                                             <InputFloatingComponent
-                                                label="Número de Documento *"
+                                                label="Número de Documento"
                                                 type="text"
                                                 name="customerDocumentNumber"
                                                 value={formData.customerDocumentNumber}
                                                 onChange={handleInputChange}
+                                                required={false}
                                             />
                                         </div>
                                     </div>
@@ -334,18 +400,45 @@ export default function AddCustomerModal({
                                                 name="customerPhoneNumber"
                                                 value={formData.customerPhoneNumber}
                                                 onChange={handleInputChange}
+                                                required={false}
                                             />
                                         </div>
                                     </div>
 
-                                    <InputFloatingComponent
-                                        label="Correo electrónico"
-                                        type="email"
-                                        name="customerEmail"
-                                        value={formData.customerEmail}
-                                        onChange={handleInputChange}
-                                        required={false}
-                                    />
+                                    {showOpticsFields ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                                            <InputFloatingComponent
+                                                label="Correo electrónico"
+                                                type="email"
+                                                name="customerEmail"
+                                                value={formData.customerEmail}
+                                                onChange={handleInputChange}
+                                                required={false}
+                                            />
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                                                    Fecha de nacimiento
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    name="customerBirthDate"
+                                                    value={formData.customerBirthDate}
+                                                    onChange={handleInputChange}
+                                                    disabled={isLoading}
+                                                    className="block w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <InputFloatingComponent
+                                            label="Correo electrónico"
+                                            type="email"
+                                            name="customerEmail"
+                                            value={formData.customerEmail}
+                                            onChange={handleInputChange}
+                                            required={false}
+                                        />
+                                    )}
 
                                     <div>
                                         <label htmlFor="customerComment" className="block text-sm font-medium text-gray-700 mb-2">
@@ -361,22 +454,102 @@ export default function AddCustomerModal({
                                         />
                                     </div>
 
-                                    <ImageUploadField
-                                        file={imageFile}
-                                        onFileChange={(file) => {
-                                            setImageFile(file);
-                                            if (file) setImageCleared(false);
-                                        }}
-                                        onRemove={() => {
-                                            setImageFile(null);
-                                            setImageCleared(true);
-                                            setExistingImageUrl(null);
-                                        }}
-                                        existingImageUrl={!imageCleared && !imageFile ? existingImageUrl : null}
-                                        disabled={isLoading}
-                                        label="Foto de perfil (opcional)"
-                                        previewShape="rounded-lg"
-                                    />
+                                    {showOpticsFields && (
+                                        <div className="space-y-3">
+                                            {!includePrescription ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setRxForm((prev) => ({
+                                                            ...EMPTY_PRESCRIPTION_FORM,
+                                                            ...prev,
+                                                            prescriptionDate:
+                                                                prev.prescriptionDate ||
+                                                                getTodayBusinessDate(business),
+                                                        }));
+                                                        setRxModalOpen(true);
+                                                    }}
+                                                    disabled={isLoading}
+                                                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
+                                                >
+                                                    <FaFileMedical className="text-teal-600" />
+                                                    Agregar receta
+                                                </button>
+                                            ) : (
+                                                (() => {
+                                                    const summary = summarizePrescriptionEyes(rxForm);
+                                                    return (
+                                                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                                                                    <FaFileMedical className="text-teal-600" />
+                                                                    Receta agregada
+                                                                </h4>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setIncludePrescription(false);
+                                                                        setRxImageFile(null);
+                                                                        setRxForm(EMPTY_PRESCRIPTION_FORM);
+                                                                        setRxModalOpen(false);
+                                                                    }}
+                                                                    disabled={isLoading}
+                                                                    className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                                                                >
+                                                                    Quitar
+                                                                </button>
+                                                            </div>
+
+                                                            {summary.hasData || rxImageFile || rxForm.prescriptionNotes ? (
+                                                                <div className="text-xs text-slate-700 space-y-1.5">
+                                                                    {summary.typeLabel && (
+                                                                        <p>
+                                                                            <span className="font-semibold text-slate-500">Tipo:</span>{" "}
+                                                                            {summary.typeLabel}
+                                                                        </p>
+                                                                    )}
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[12px]">
+                                                                        <p>
+                                                                            <span className="font-sans font-semibold text-slate-500">OD:</span>{" "}
+                                                                            {summary.od}
+                                                                        </p>
+                                                                        <p>
+                                                                            <span className="font-sans font-semibold text-slate-500">OI:</span>{" "}
+                                                                            {summary.oi}
+                                                                        </p>
+                                                                    </div>
+                                                                    {rxImageFile && (
+                                                                        <p className="text-teal-700 font-medium">Foto de receta adjunta</p>
+                                                                    )}
+                                                                    {rxForm.prescriptionNotes?.trim() && (
+                                                                        <p className="text-slate-600 italic line-clamp-2">
+                                                                            {rxForm.prescriptionNotes}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-md px-3 py-2">
+                                                                    Aún no hay datos de receta. Ábrela para cargar la fórmula.
+                                                                </p>
+                                                            )}
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setRxModalOpen(true)}
+                                                                disabled={isLoading}
+                                                                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                                            >
+                                                                <FaEdit className="text-[11px]" />
+                                                                {summary.hasData || rxImageFile
+                                                                    ? "Editar receta"
+                                                                    : "Abrir formulario de receta"}
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })()
+                                            )}
+                                        </div>
+                                    )}
 
                                     <IsRequiredComponent />
                                 </form>
@@ -410,6 +583,20 @@ export default function AddCustomerModal({
                 </AnimatePresence>,
                 document.body
             )}
+
+            <PrescriptionFormModal
+                isOpen={rxModalOpen}
+                onClose={() => setRxModalOpen(false)}
+                initialForm={rxForm}
+                initialImageFile={rxImageFile}
+                title="Completar receta del paciente"
+                confirmLabel="Usar esta receta"
+                onConfirm={({ form, imageFile }) => {
+                    setRxForm(form);
+                    setRxImageFile(imageFile);
+                    setIncludePrescription(true);
+                }}
+            />
         </>
     );
 }

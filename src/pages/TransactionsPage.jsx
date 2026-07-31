@@ -17,6 +17,8 @@ import ExpenseTableCard, {
   ExpenseTableLoading,
 } from "../components/ui/ExpenseTableCard.jsx";
 import { getTransactions, getTransactionsSummary } from "../api/transaction.js";
+import { unwrapListPayload } from "../utils/listPayload.js";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import formatDate from "../utils/formatDate.js";
 import {
   parseTransactionAmount,
@@ -47,10 +49,11 @@ export default function TransactionsPage() {
     setLoading(true);
     try {
       const [txRes, summaryRes] = await Promise.all([
-        getTransactions(),
+        getTransactions({ page: 1, limit: 50, q: undefined }),
         getTransactionsSummary(),
       ]);
-      setTransactions(Array.isArray(txRes.data) ? txRes.data : []);
+      const { rows } = unwrapListPayload(txRes.data);
+      setTransactions(rows);
       setSummary(summaryRes.data ?? null);
     } catch (error) {
       console.error("Error loading transactions:", error);

@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaTimes, FaShoppingCart } from "react-icons/fa";
-import { getDashboardSalesView, getSales } from "../../api/sale.js";
-import { filterSalesByDashboardView } from "../../utils/salesFilters.js";
+import { getDashboardSalesView } from "../../api/sale.js";
 import SalesTable from "../sales/SalesTable.jsx";
 
 export default function DashboardSalesDetailModal({
@@ -48,25 +47,7 @@ export default function DashboardSalesDetailModal({
           setSales(Array.isArray(response.data) ? response.data : []);
         }
       } catch (error) {
-        const status = error?.response?.status;
-        if (status === 404 || status === 400) {
-          try {
-            const fallback = await getSales();
-            if (!cancelled) {
-              setSales(
-                filterSalesByDashboardView(
-                  Array.isArray(fallback.data) ? fallback.data : [],
-                  filterView,
-                ),
-              );
-            }
-            return;
-          } catch (fallbackError) {
-            console.error("Error loading sales fallback for dashboard detail:", fallbackError);
-          }
-        } else {
-          console.error("Error loading sales for dashboard detail:", error);
-        }
+        console.error("Error loading sales for dashboard detail:", error);
         if (!cancelled) setSales([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -142,6 +123,7 @@ export default function DashboardSalesDetailModal({
                 sectionTitle="Detalle de ventas"
                 emptyTitle="No hay ventas para este periodo."
                 className="shadow-sm"
+                disableAnimation
               />
             </div>
 

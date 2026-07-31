@@ -242,9 +242,14 @@ export default function ProductsServicesPage() {
                                                 onChange={e => setActiveCategories(prev => ({ ...prev, [cat.categoryId]: e.target.checked }))}
                                                 className="rounded text-primary focus:ring-primary border-gray-300"
                                             />
-                                            <span className="text-sm text-gray-600 group-hover:text-gray-900 truncate" title={cat.categoryName}>
+                                            <span className="text-sm text-gray-600 group-hover:text-gray-900 truncate flex-1" title={cat.categoryName}>
                                                 {cat.categoryName}
                                             </span>
+                                            {cat.isSystem && (
+                                                <span className="shrink-0 text-[9px] uppercase tracking-wide px-1 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">
+                                                    Sis
+                                                </span>
+                                            )}
                                         </label>
                                     );
                                 })}

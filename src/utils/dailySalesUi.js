@@ -39,11 +39,15 @@ export function formatMoney(value) {
   });
 }
 
-export function getCurrentMonthKey(date = new Date()) {
+export function getCurrentMonthKey(date = new Date(), timeZone) {
+  if (timeZone) {
+    const key = new Date(date).toLocaleDateString("en-CA", { timeZone });
+    return key.slice(0, 7);
+  }
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export function isDailySalesDayInCurrentMonth(dailySalesDay, date = new Date()) {
+export function isDailySalesDayInCurrentMonth(dailySalesDay, date = new Date(), timeZone) {
   if (!dailySalesDay) return false;
-  return dailySalesDay.startsWith(getCurrentMonthKey(date));
+  return dailySalesDay.startsWith(getCurrentMonthKey(date, timeZone));
 }

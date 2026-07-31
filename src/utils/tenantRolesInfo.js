@@ -13,10 +13,12 @@ export const TENANT_ROLE_SUMMARIES = {
         "Operación diaria: clientes, ventas y consulta de catálogo e inventario.",
 };
 
-/** Vistas del menú lateral visibles por rol */
+/** Vistas del menú lateral visibles por rol (lista plana de referencia) */
 export function getNavLabelsForRole(role) {
     return NAV_ITEMS.filter(
-        (item) => !item.permission || hasTenantPermission(role, item.permission),
+        (item) =>
+            !item.opticsOnly &&
+            (!item.permission || hasTenantPermission(role, item.permission)),
     ).map((item) => item.name);
 }
 

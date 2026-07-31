@@ -56,6 +56,15 @@ import ViewPurchasePage from "./pages/purchase/ViewPurchasePage.jsx";
 import PageDailySales from "./pages/PageDailySales.jsx";
 import ViewDailySalePage from "./pages/dailySales/ViewDailySalePage.jsx";
 
+/* Optics: Work Orders (OT) */
+import LaboratoriesPage from "./pages/optics/LaboratoriesPage.jsx";
+import WorkOrdersPage from "./pages/optics/WorkOrdersPage.jsx";
+import WorkOrderViewPage from "./pages/optics/WorkOrderViewPage.jsx";
+import LabDispatchesPage from "./pages/optics/LabDispatchesPage.jsx";
+import LabDispatchViewPage from "./pages/optics/LabDispatchViewPage.jsx";
+import PurchaseCertificatesPage from "./pages/optics/PurchaseCertificatesPage.jsx";
+import PurchaseCertificateViewPage from "./pages/optics/PurchaseCertificateViewPage.jsx";
+
 /* Business */
 import RegisterBusinessPage from "./pages/business/RegisterBusinessPage.jsx";
 
@@ -152,6 +161,13 @@ function App() {
                   <Route path="/quotations" element={<QuotationsPage />} />
                   <Route path="/purchase" element={<PurchasePage />} />
                   <Route path="/providers" element={<ProviderPage />} />
+                  <Route path="/laboratories" element={<LaboratoriesPage />} />
+                  <Route path="/work-orders" element={<WorkOrdersPage />} />
+                  <Route path="/work-orders/:id" element={<WorkOrderViewPage />} />
+                  <Route path="/lab-dispatches" element={<LabDispatchesPage />} />
+                  <Route path="/lab-dispatches/:id" element={<LabDispatchViewPage />} />
+                  <Route path="/purchase-certificates" element={<PurchaseCertificatesPage />} />
+                  <Route path="/purchase-certificates/:id" element={<PurchaseCertificateViewPage />} />
                   <Route path="/purchase/register" element={<NewPurchasePage />} />
                   <Route path="/purchase/view/:id" element={<ViewPurchasePage />} />
                   <Route path="/daily-sales/view/:id" element={<ViewDailySalePage />} />

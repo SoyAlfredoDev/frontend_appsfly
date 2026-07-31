@@ -1,4 +1,5 @@
 import { getCustomers } from "../../api/customers.js";
+import { unwrapListPayload } from "../../utils/listPayload.js";
 import { getProductsAndServices } from "../../libs/productsAndServices.js";
 import { useAuth } from "../../context/authContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
@@ -138,7 +139,7 @@ export default function NewQuotationPage() {
   const searchCustomers = useCallback(async (signal) => {
     try {
       const res = await getCustomers({ signal });
-      setCustomers(res.data);
+      setCustomers(unwrapListPayload(res.data).rows);
       return res.data;
     } catch (error) {
       if (!isAbortError(error)) console.log(error);
@@ -155,7 +156,7 @@ export default function NewQuotationPage() {
           getProductsAndServices({ signal }),
         ]);
         if (!signal.aborted) {
-          setCustomers(customersRes.data ?? []);
+          setCustomers(unwrapListPayload(customersRes.data).rows);
           setProductsServices(productsRes ?? []);
         }
       } catch (error) {

@@ -11,9 +11,15 @@ import {
   DELIVERY_FILTERS,
   filterSalesByDeliveryStatus,
 } from "../../utils/salesFilters.js";
+import { unwrapListPayload } from "../../utils/listPayload.js";
+import useDebouncedValue from "../../hooks/useDebouncedValue.js";
 
 export default function SalesPage() {
   const [salesData, setSalesData] = useState([]);
+  const [pagination, setPagination] = useState({ total: 0, pages: 1, currentPage: 1, limit: 50 });
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 350);
+  const [page, setPage] = useState(1);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [deliveryFilter, setDeliveryFilter] = useState(DELIVERY_FILTERS.ALL);
@@ -25,21 +31,41 @@ export default function SalesPage() {
   );
 
   useEffect(() => {
-    fetchSales();
-  }, []);
+    setPage(1);
+  }, [debouncedSearch, deliveryFilter]);
 
-  const fetchSales = async () => {
-    try {
-      const response = await getSales();
-      setSalesData(response.data || []);
-    } catch (error) {
-      console.error("Error fetching sales:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    let cancelled = false;
+    const fetchSales = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getSales({
+          page,
+          limit: 50,
+          q: debouncedSearch.trim() || undefined,
+          deliveryStatus:
+            deliveryControlEnabled && deliveryFilter !== DELIVERY_FILTERS.ALL
+              ? deliveryFilter
+              : undefined,
+        });
+        if (cancelled) return;
+        const { rows, pagination: paging } = unwrapListPayload(response.data);
+        setSalesData(rows);
+        if (paging) setPagination(paging);
+      } catch (error) {
+        console.error("Error fetching sales:", error);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+    fetchSales();
+    return () => {
+      cancelled = true;
+    };
+  }, [page, debouncedSearch, deliveryFilter, deliveryControlEnabled]);
 
   const filteredSales = useMemo(() => {
+    // Delivery already filtered server-side when enabled; keep client fallback for safety
     if (!deliveryControlEnabled) return salesData;
     return filterSalesByDeliveryStatus(salesData, deliveryFilter);
   }, [salesData, deliveryControlEnabled, deliveryFilter]);
@@ -61,6 +87,10 @@ export default function SalesPage() {
         showDeliveryColumn={deliveryControlEnabled}
         deliveryFilter={deliveryFilter}
         onDeliveryFilterChange={deliveryControlEnabled ? setDeliveryFilter : undefined}
+        searchValue={search}
+        onSearchChange={setSearch}
+        pagination={pagination}
+        onPageChange={setPage}
       />
     </ExpensePageLayout>
   );

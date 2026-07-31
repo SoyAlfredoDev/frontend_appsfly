@@ -49,11 +49,15 @@ import {
   ACTION_VIEW,
 } from "../utils/expenseUiPatterns.js";
 import { formatClosureDate, formatMoney, isDailySalesDayInCurrentMonth } from "../utils/dailySalesUi.js";
+import { getTodayBusinessDate, resolveBusinessTimezone } from "../utils/businessTime.js";
+import { useAuth } from "../context/authContext.jsx";
 
 export default function PageDailySales() {
   const toast = useToast();
   const confirm = useConfirm();
   const navigate = useNavigate();
+  const { business } = useAuth();
+  const businessTimezone = resolveBusinessTimezone(business);
   const [dailySales, setDailySales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -156,13 +160,16 @@ export default function PageDailySales() {
   };
 
   const handleCreateClose = async () => {
-    const today = new Date().toLocaleDateString("en-CA");
+    const today = getTodayBusinessDate(businessTimezone);
     await handleCreateCloseForDate(today);
   };
 
   const monthlyDailySales = useMemo(
-    () => dailySales.filter((row) => isDailySalesDayInCurrentMonth(row.dailySalesDay)),
-    [dailySales]
+    () =>
+      dailySales.filter((row) =>
+        isDailySalesDayInCurrentMonth(row.dailySalesDay, new Date(), businessTimezone),
+      ),
+    [dailySales, businessTimezone]
   );
 
   const summary = useMemo(() => {

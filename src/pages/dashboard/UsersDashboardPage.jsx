@@ -9,6 +9,8 @@ import {
 import { calculateTotalAvailableByPaymentMethod } from "../../utils/financeUtils.js";
 import { useAuth } from "../../context/authContext.jsx";
 import useTenantPermissions from "../../hooks/useTenantPermissions.js";
+import { isOpticsBusiness } from "../../utils/businessModality.js";
+import { getTodayBusinessDate } from "../../utils/businessTime.js";
 import KpiComponent from "../../components/KpiComponent.jsx";
 import DashboardSalesDetailModal from "../../components/dashboard/DashboardSalesDetailModal.jsx";
 import { PageHeader } from "../../components/layout/PageContainer.jsx";
@@ -27,8 +29,9 @@ import {
 } from "react-icons/fa";
 
 export default function UsersDashboardPage() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, business } = useAuth();
   const { isTenantAdmin, can } = useTenantPermissions();
+  const isOptics = isOpticsBusiness(business);
 
   const [monthlySales, setMonthlySales] = useState(null);
   const [salePendingAmount, setSalePendingAmount] = useState(null);
@@ -48,50 +51,33 @@ export default function UsersDashboardPage() {
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      const month = new Date().getMonth() + 1;
-      const year = new Date().getFullYear();
-      const day = new Date().getDate();
+      const today = getTodayBusinessDate(business);
+      const [year, month, day] = today.split("-").map(Number);
 
-      try {
-        const resDay = await getDaySales(day, month, year);
-        setDaySales(resDay.data);
-      } catch (error) {
-        console.error("Error al obtener las ventas del dia:", error);
-      }
-      if (isTenantAdmin) {
-        try {
-          const resMonth = await getMonthlySalesNow();
-          setMonthlySales(resMonth.data.saleTotal);
-          setSalePendingAmount(resMonth.data.salePendingAmount);
-        } catch (error) {
-          console.error("Error al obtener las ventas mensuales:", error);
-        }
-        try {
-          const totalCash = await calculateTotalAvailableByPaymentMethod(2);
-          setCashAvailable(totalCash);
-        } catch (error) {
-          console.error("Error al obtener el total de efectivo disponible:", error);
-        }
-        try {
-          const countRes = await countSalesMonthRequest(month, year);
-          setCountSalesMonth(countRes.data);
-        } catch (error) {
-          console.error("Error al obtener el conteo de ventas mensuales:", error);
-        }
-      } else {
-        try {
-          const resMonth = await getMonthlySalesNow();
-          setMonthlySales(resMonth.data.saleTotal);
-        } catch (error) {
-          console.error("Error al obtener las ventas mensuales:", error);
-        }
-        try {
-          const countRes = await countSalesMonthRequest(month, year);
-          setCountSalesMonth(countRes.data);
-        } catch (error) {
-          console.error("Error al obtener el conteo de ventas mensuales:", error);
-        }
-      }
+      const dayPromise = getDaySales(day, month, year)
+        .then((res) => setDaySales(res.data))
+        .catch((error) => console.error("Error al obtener las ventas del dia:", error));
+
+      const monthPromise = getMonthlySalesNow()
+        .then((res) => {
+          setMonthlySales(res.data.saleTotal);
+          if (isTenantAdmin) setSalePendingAmount(res.data.salePendingAmount);
+        })
+        .catch((error) => console.error("Error al obtener las ventas mensuales:", error));
+
+      const countPromise = countSalesMonthRequest(month, year)
+        .then((res) => setCountSalesMonth(res.data))
+        .catch((error) => console.error("Error al obtener el conteo de ventas mensuales:", error));
+
+      const cashPromise = isTenantAdmin
+        ? calculateTotalAvailableByPaymentMethod(2)
+            .then((totalCash) => setCashAvailable(totalCash))
+            .catch((error) =>
+              console.error("Error al obtener el total de efectivo disponible:", error),
+            )
+        : Promise.resolve();
+
+      await Promise.all([dayPromise, monthPromise, countPromise, cashPromise]);
     } catch (err) {
       console.error("Dashboard error:", err);
     } finally {
@@ -172,9 +158,9 @@ export default function UsersDashboardPage() {
               title="Efectivo Disponible"
               icon={<FaMoneyBillWave />}
               value={cashAvailable}
-              footer="Caja disponible · Ver transacciones"
+              footer={isOptics ? "Caja disponible" : "Caja disponible · Ver transacciones"}
               loading={loading}
-              to="/transactions"
+              to={isOptics ? undefined : "/transactions"}
             />
           </>
         )}
@@ -214,7 +200,7 @@ export default function UsersDashboardPage() {
               tone="secondary"
             />
           )}
-          {can("transactions:read") && (
+          {can("transactions:read") && !isOptics && (
             <QuickAccessLink
               to="/transactions"
               label="Transacciones"

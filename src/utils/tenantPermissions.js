@@ -36,6 +36,8 @@ const ROLE_PERMISSIONS = {
         "finance:view",
         "billing:manage",
         "settings:manage",
+        "optics:read",
+        "optics:manage",
     ],
     USER: [
         "dashboard:view",
@@ -50,6 +52,8 @@ const ROLE_PERMISSIONS = {
         "profile:view",
         "subscription:read",
         "support:view",
+        "optics:read",
+        "optics:manage",
     ],
 };
 
@@ -65,6 +69,10 @@ export const NAV_PERMISSION_BY_PATH = {
     "/sales/dailySales": "daily-closures:read",
     "/purchase": "purchases:manage",
     "/providers": "providers:manage",
+    "/laboratories": "optics:manage",
+    "/work-orders": "optics:read",
+    "/lab-dispatches": "optics:read",
+    "/purchase-certificates": "optics:read",
     "/expenses": "expenses:manage",
     "/reports": "reports:read",
     "/billing": "billing:manage",
@@ -141,6 +149,12 @@ export function canAccessRoute(role, pathname) {
     }
     if (pathname.startsWith("/inventory")) {
         return hasTenantPermission(role, "inventory:read");
+    }
+    if (pathname.startsWith("/laboratories")) {
+        return hasTenantPermission(role, "optics:manage");
+    }
+    if (pathname.startsWith("/work-orders") || pathname.startsWith("/lab-dispatches") || pathname.startsWith("/purchase-certificates")) {
+        return hasTenantPermission(role, "optics:read");
     }
     if (isAdminRoute(pathname)) {
         return normalizeTenantRole(role) === TENANT_ROLES.ADMIN;

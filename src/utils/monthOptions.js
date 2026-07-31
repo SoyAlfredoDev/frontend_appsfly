@@ -1,3 +1,9 @@
+import {
+  DEFAULT_BUSINESS_TIMEZONE,
+  getTodayBusinessDate,
+  resolveBusinessTimezone,
+} from "./businessTime.js";
+
 const MONTH_NAMES = [
   "Enero",
   "Febrero",
@@ -13,12 +19,10 @@ const MONTH_NAMES = [
   "Diciembre",
 ];
 
-export const getCurrentMonthYear = () => {
-  const now = new Date();
-  return {
-    month: now.getMonth() + 1,
-    year: now.getFullYear(),
-  };
+export const getCurrentMonthYear = (timeZoneOrBusiness = DEFAULT_BUSINESS_TIMEZONE) => {
+  const today = getTodayBusinessDate(resolveBusinessTimezone(timeZoneOrBusiness));
+  const [year, month] = today.split("-").map(Number);
+  return { month, year };
 };
 
 export const toMonthYearKey = (month, year) => `${year}-${month}`;
@@ -33,14 +37,22 @@ export const formatMonthYearLabel = (month, year) => {
   return `${name} ${year}`;
 };
 
-export const generateMonthOptions = (count = 24) => {
+export const generateMonthOptions = (
+  count = 24,
+  timeZoneOrBusiness = DEFAULT_BUSINESS_TIMEZONE,
+) => {
   const options = [];
-  const now = new Date();
+  const { month: currentMonth, year: currentYear } = getCurrentMonthYear(
+    timeZoneOrBusiness,
+  );
 
   for (let i = 0; i < count; i++) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
+    let month = currentMonth - i;
+    let year = currentYear;
+    while (month <= 0) {
+      month += 12;
+      year -= 1;
+    }
 
     options.push({
       value: toMonthYearKey(month, year),

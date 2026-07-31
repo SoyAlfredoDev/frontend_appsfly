@@ -9,11 +9,14 @@ import formatCurrency from "../utils/formatCurrency";
 import formatDate from "../utils/formatDate";
 import { useToast } from "../context/ToastContext";
 import PageContainer from "../components/layout/PageContainer.jsx";
+import AddProductModal from "../components/modals/AddProductModal.jsx";
+import useTenantPermissions from "../hooks/useTenantPermissions.js";
 
 export default function ProductsServicesViewPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
+    const { can } = useTenantPermissions();
     
     const [loading, setLoading] = useState(true);
     const [tableLoading, setTableLoading] = useState(false);
@@ -189,13 +192,21 @@ export default function ProductsServicesViewPage() {
                             <h1 className="text-3xl md:text-4xl font-bold text-dark font-display tracking-wide">
                                 {product?.productName}
                             </h1>
-                            <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-3 mt-2 flex-wrap">
                                 <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
                                     SKU: {product?.productSKU}
                                 </span>
                                 <span className="text-gray-500 text-sm flex items-center gap-1">
                                     <FaLayerGroup /> {product?.category?.categoryName || 'Sin Categoría'}
                                 </span>
+                                {can("products:write") && product?.productId && (
+                                    <AddProductModal
+                                        title="Editar producto"
+                                        productToEdit={product}
+                                        trigger="edit"
+                                        onUpdated={() => fetchProductData(pagination.currentPage || 1)}
+                                    />
+                                )}
                             </div>
                         </div>
                         <div className="bg-white border border-gray-100 p-4 rounded-xl flex items-center gap-6 shadow-sm">
@@ -227,6 +238,57 @@ export default function ProductsServicesViewPage() {
                            </div>
                         </div>
                     </Motion.div>
+
+                    {Array.isArray(product?.codes) && product.codes.length > 0 && (
+                        <Motion.div
+                            variants={itemVariants}
+                            className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm"
+                        >
+                            <h2 className="text-sm font-semibold text-gray-800 mb-3">Códigos</h2>
+                            <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                {product.codes.map((code) => (
+                                    <div key={code.scanCodeId || `${code.codeType}-${code.codeValue}`} className="min-w-0">
+                                        <dt className="text-xs text-gray-400 uppercase tracking-wide">
+                                            {code.codeType === "SKU_ALIAS"
+                                                ? "SKU"
+                                                : code.codeType === "QR"
+                                                  ? "QR"
+                                                  : "Barcode"}
+                                        </dt>
+                                        <dd className="text-sm font-medium text-gray-800 font-mono truncate">
+                                            {code.codeValue}
+                                        </dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        </Motion.div>
+                    )}
+
+                    {Array.isArray(product?.attributeValues) && product.attributeValues.length > 0 && (
+                        <Motion.div
+                            variants={itemVariants}
+                            className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm"
+                        >
+                            <h2 className="text-sm font-semibold text-gray-800 mb-3">Atributos</h2>
+                            <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                {product.attributeValues.map((row) => {
+                                    const label =
+                                        row.categoryAttribute?.attributeLabel ||
+                                        row.categoryAttribute?.attributeKey ||
+                                        row.categoryAttributeId;
+                                    let display = row.value ?? "—";
+                                    if (display === "true") display = "Sí";
+                                    if (display === "false") display = "No";
+                                    return (
+                                        <div key={row.productAttributeValueId || row.categoryAttributeId} className="min-w-0">
+                                            <dt className="text-xs text-gray-400 uppercase tracking-wide">{label}</dt>
+                                            <dd className="text-sm font-medium text-gray-800 truncate">{display}</dd>
+                                        </div>
+                                    );
+                                })}
+                            </dl>
+                        </Motion.div>
+                    )}
 
                     {/* Analytics Section */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

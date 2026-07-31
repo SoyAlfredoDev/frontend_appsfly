@@ -1,5 +1,5 @@
 import axios from "./axios.js"
-export const getSales = () => axios.get('/sales');
+export const getSales = (params = {}, config) => axios.get('/sales', { ...config, params: { ...params, ...(config?.params || {}) } });
 export const getDashboardSalesView = (view) => axios.get(`/sales/dashboard/${view}`);
 export const createSale = (data) => axios.post('/sales', data);
 export const getSaleById = (id) => axios.get(`/sales/${id}`);
@@ -11,4 +11,3 @@ export const countSalesMonthRequest = (month, year) => axios.get(`/sales/count/$
 export const markSaleDeliveredRequest = (saleId) => axios.patch(`/sales/${saleId}/delivery`);
 export const sendSaleEmail = (saleId) => axios.post(`/sales/${saleId}/send-email`);
 export const getSaleShareLink = (saleId) => axios.get(`/sales/${saleId}/share-link`);
-

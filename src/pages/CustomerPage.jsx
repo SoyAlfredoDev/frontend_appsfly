@@ -2,10 +2,11 @@ import {
     useReactTable,
     getCoreRowModel,
     getSortedRowModel,
-    getFilteredRowModel,
 } from "@tanstack/react-table";
 import { getCustomers, deleteCustomerById } from "../api/customers.js";
 import { useEffect, useState } from "react";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
+import { unwrapListPayload } from "../utils/listPayload.js";
 import AddCustomerModal from "../components/modals/AddCustomerModal.jsx";
 import validateRut from '../libs/validateRut.js';
 import { FaEye, FaEdit, FaTrash, FaPlus, FaUsers } from "react-icons/fa";
@@ -27,33 +28,60 @@ import {
     ACTION_DELETE,
 } from "../utils/expenseUiPatterns.js";
 
+const PAGE_LIMIT = 50;
+
 export default function CustomerPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const confirm = useConfirm();
     const { can } = useTenantPermissions();
     const [customers, setCustomers] = useState([]);
+    const [pagination, setPagination] = useState({
+        total: 0,
+        pages: 1,
+        currentPage: 1,
+        limit: PAGE_LIMIT,
+    });
     const [sorting, setSorting] = useState([]);
-    const [globalFilter, setGlobalFilter] = useState("");
+    const [search, setSearch] = useState("");
+    const debouncedSearch = useDebouncedValue(search, 350);
+    const [page, setPage] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState(null);
-
-    const fetchCustomers = async () => {
-        setIsLoading(true);
-        try {
-            const result = await getCustomers();
-            setCustomers(result.data);
-        } catch (error) {
-            console.log(error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const [reloadToken, setReloadToken] = useState(0);
 
     useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const fetchCustomers = async () => {
+            setIsLoading(true);
+            try {
+                const result = await getCustomers({
+                    page,
+                    limit: PAGE_LIMIT,
+                    q: debouncedSearch.trim() || undefined,
+                });
+                if (cancelled) return;
+                const { rows, pagination: paging } = unwrapListPayload(result.data);
+                setCustomers(rows);
+                if (paging) setPagination(paging);
+            } catch (error) {
+                console.error("Error fetching customers:", error);
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        };
         fetchCustomers();
-    }, []);
+        return () => {
+            cancelled = true;
+        };
+    }, [page, debouncedSearch, reloadToken]);
+
+    const refreshCustomers = () => setReloadToken((n) => n + 1);
 
     const handleViewCustomer = (customerId) => navigate(`/customers/${customerId}`);
 
@@ -70,6 +98,9 @@ export default function CustomerPage() {
         setIsModalOpen(true);
     };
 
+    const formatName = (name) =>
+        name?.charAt(0).toUpperCase() + name?.slice(1).toLowerCase();
+
     const handleDeleteCustomer = async (customerId, firstName = '', lastName = '') => {
         try {
             const isConfirmed = await confirm({
@@ -83,7 +114,7 @@ export default function CustomerPage() {
             if (isConfirmed) {
                 const res = await deleteCustomerById(customerId);
                 if (res.status === 200) {
-                    fetchCustomers();
+                    refreshCustomers();
                     toast.success('Cliente Eliminado', 'El cliente ha sido eliminado con éxito.');
                 }
                 if (res.status === 400) {
@@ -99,9 +130,6 @@ export default function CustomerPage() {
             }
         }
     };
-
-    const formatName = (name) =>
-        name?.charAt(0).toUpperCase() + name?.slice(1).toLowerCase();
 
     const columns = [
         {
@@ -149,7 +177,7 @@ export default function CustomerPage() {
             header: 'Acciones',
             id: "actions",
             cell: ({ row }) => (
-                <div className="flex items-center justify-center gap-1">
+                <div className="flex items-center gap-1 justify-center">
                     <button type="button" className={ACTION_VIEW} onClick={() => handleViewCustomer(row.original.customerId)} title="Ver detalle">
                         <FaEye />
                     </button>
@@ -169,15 +197,12 @@ export default function CustomerPage() {
     const table = useReactTable({
         data: customers,
         columns,
-        state: { sorting, globalFilter },
+        state: { sorting },
         onSortingChange: setSorting,
-        onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
+        manualFiltering: true,
     });
-
-    const filteredCount = table.getFilteredRowModel().rows.length;
 
     return (
         <>
@@ -192,10 +217,10 @@ export default function CustomerPage() {
             >
                 <ExpenseTableCard
                     sectionTitle="Listado de clientes"
-                    recordCount={filteredCount}
+                    recordCount={pagination.total}
                     loading={isLoading}
-                    searchValue={globalFilter}
-                    onSearchChange={setGlobalFilter}
+                    searchValue={search}
+                    onSearchChange={setSearch}
                     searchPlaceholder="Buscar por nombre, documento..."
                 >
                     <ExpenseTableScroll>
@@ -209,13 +234,43 @@ export default function CustomerPage() {
                                     <ExpenseTableEmpty
                                         colSpan={columns.length}
                                         icon={<FaUsers className="text-4xl text-gray-300" />}
-                                        title={globalFilter ? "No se encontraron clientes con ese criterio." : "No hay clientes registrados."}
-                                        hint={!globalFilter ? 'Usa el botón "Nuevo Cliente" para registrar el primero.' : undefined}
+                                        title={search ? "No se encontraron clientes con ese criterio." : "No hay clientes registrados."}
+                                        hint={!search ? 'Usa el botón "Nuevo Cliente" para registrar el primero.' : undefined}
                                     />
                                 }
                             />
                         </table>
                     </ExpenseTableScroll>
+
+                    {pagination.pages > 1 && (
+                        <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
+                            <span>
+                                Página <strong>{pagination.currentPage}</strong> de{" "}
+                                <strong>{pagination.pages}</strong>
+                                <span className="text-gray-400 ml-2">
+                                    ({pagination.total} en total)
+                                </span>
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    className="rounded-lg border border-gray-200 px-3 py-1.5 disabled:opacity-40"
+                                    disabled={pagination.currentPage <= 1 || isLoading}
+                                    onClick={() => setPage(pagination.currentPage - 1)}
+                                >
+                                    Anterior
+                                </button>
+                                <button
+                                    type="button"
+                                    className="rounded-lg border border-gray-200 px-3 py-1.5 disabled:opacity-40"
+                                    disabled={pagination.currentPage >= pagination.pages || isLoading}
+                                    onClick={() => setPage(pagination.currentPage + 1)}
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </ExpenseTableCard>
             </ExpensePageLayout>
 
@@ -226,7 +281,7 @@ export default function CustomerPage() {
                     setEditingCustomer(null);
                 }}
                 customerToEdit={editingCustomer}
-                onCreated={fetchCustomers}
+                onCreated={refreshCustomers}
             />
         </>
     );

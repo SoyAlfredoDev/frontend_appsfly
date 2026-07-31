@@ -148,11 +148,19 @@ export default function SalesTable({
   showDeliveryColumn = false,
   deliveryFilter = "all",
   onDeliveryFilterChange,
+  searchValue,
+  onSearchChange,
+  pagination = null,
+  onPageChange,
   className = "",
+  disableAnimation = false,
 }) {
   const navigate = useNavigate();
   const [sorting, setSorting] = useState([]);
-  const [globalFilter, setGlobalFilter] = useState("");
+  const [localFilter, setLocalFilter] = useState("");
+  const isServerSearch = typeof onSearchChange === "function";
+  const globalFilter = isServerSearch ? (searchValue ?? "") : localFilter;
+  const setGlobalFilter = isServerSearch ? onSearchChange : setLocalFilter;
   const columns = useMemo(
     () => buildSalesColumns(navigate, showDeliveryColumn),
     [navigate, showDeliveryColumn],
@@ -161,15 +169,16 @@ export default function SalesTable({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter: isServerSearch ? "" : globalFilter },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: isServerSearch ? undefined : setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    manualFiltering: isServerSearch,
   });
 
-  const filteredCount = table.getFilteredRowModel().rows.length;
+  const filteredCount = pagination?.total ?? table.getFilteredRowModel().rows.length;
 
   const deliveryFilterToolbar = showDeliveryColumn && onDeliveryFilterChange ? (
     <div className="flex flex-wrap gap-1.5">
@@ -201,6 +210,7 @@ export default function SalesTable({
       showSearch={showSearch}
       toolbarExtra={deliveryFilterToolbar}
       className={className}
+      disableAnimation={disableAnimation}
     >
       <ExpenseTableScroll>
         <table className="w-full text-left border-collapse">
@@ -229,6 +239,32 @@ export default function SalesTable({
           />
         </table>
       </ExpenseTableScroll>
+      {pagination && pagination.pages > 1 && onPageChange && (
+        <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
+          <span>
+            Página <strong>{pagination.currentPage}</strong> de{" "}
+            <strong>{pagination.pages}</strong>
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-lg border border-gray-200 px-3 py-1.5 disabled:opacity-40"
+              disabled={pagination.currentPage <= 1}
+              onClick={() => onPageChange(pagination.currentPage - 1)}
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-gray-200 px-3 py-1.5 disabled:opacity-40"
+              disabled={pagination.currentPage >= pagination.pages}
+              onClick={() => onPageChange(pagination.currentPage + 1)}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
     </ExpenseTableCard>
   );
 }

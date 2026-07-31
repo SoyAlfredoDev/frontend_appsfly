@@ -1,5 +1,4 @@
 import { flexRender } from "@tanstack/react-table";
-import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import {
   THEAD,
@@ -53,32 +52,28 @@ export function ExpenseTableBody({
 }) {
   const rows = table.getRowModel().rows;
 
+  if (isLoading) {
+    return <tbody className={TBODY}>{loadingRow}</tbody>;
+  }
+
+  if (rows.length === 0) {
+    return <tbody className={TBODY}>{emptyRow}</tbody>;
+  }
+
   return (
     <tbody className={TBODY}>
-      <AnimatePresence mode="wait">
-        {isLoading
-          ? loadingRow
-          : rows.length === 0
-            ? emptyRow
-            : rows.map((row) => (
-                <Motion.tr
-                  key={row.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className={TR_ROW}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className={cell.column.id === "actions" ? TD : TD_MUTED}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </Motion.tr>
-              ))}
-      </AnimatePresence>
+      {rows.map((row) => (
+        <tr key={row.id} className={TR_ROW}>
+          {row.getVisibleCells().map((cell) => (
+            <td
+              key={cell.id}
+              className={cell.column.id === "actions" ? TD : TD_MUTED}
+            >
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </td>
+          ))}
+        </tr>
+      ))}
     </tbody>
   );
 }

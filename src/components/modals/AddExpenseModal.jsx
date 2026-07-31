@@ -5,9 +5,12 @@ import { createExpense } from '../../api/expense.js'
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { FaPlus, FaTimes, FaCloudUploadAlt, FaFileImage } from "react-icons/fa";
 import { useToast } from '../../context/ToastContext.jsx';
+import { getTodayBusinessDate } from '../../utils/businessTime.js';
+import { useAuth } from '../../context/authContext.jsx';
 
 export default function AddExpenseModal({ onExpenseAdded }) {
     const toast = useToast();
+    const { business } = useAuth();
     // ----------------------------------------------------------------------
     // 1. STATE MANAGEMENT
     // ----------------------------------------------------------------------
@@ -18,7 +21,7 @@ export default function AddExpenseModal({ onExpenseAdded }) {
         expenseDescription: "",
         expensePaymentMethod: "2",
         expenseAmount: "", // Changed to empty string for better input handling
-        expenseDate: new Date().toISOString().split("T")[0],
+        expenseDate: getTodayBusinessDate(business),
         expenseImageUrl: null,
     });
 
@@ -153,7 +156,7 @@ export default function AddExpenseModal({ onExpenseAdded }) {
                     expenseDescription: "",
                     expensePaymentMethod: "2",
                     expenseAmount: "",
-                    expenseDate: new Date().toISOString().split("T")[0],
+                    expenseDate: getTodayBusinessDate(business),
                     expenseImageUrl: null
                 });
                 setFileToUpload(null);

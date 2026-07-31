@@ -39,9 +39,14 @@ export const CLOUDINARY_FOLDERS = {
     EXPENSE_RECEIPT: "ticket_receipts",
     SUPPORT: "tickets_support",
     BUSINESS_LOGO: "business_logos",
+    PRESCRIPTION_IMAGES: "prescription_images",
 };
 
 /** Public ID único por subida — evita sobrescribir y permite borrar la imagen anterior. */
 export function buildCustomerImagePublicId(customerId) {
     return `customer-${customerId}-${Date.now()}`;
+}
+
+export function buildPrescriptionImagePublicId(customerId) {
+    return `prescription-${customerId}-${Date.now()}`;
 }

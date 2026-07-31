@@ -14,6 +14,8 @@ import {
     FaUserTie,
 } from "react-icons/fa";
 import ExpensePageLayout from "../components/ui/ExpensePageLayout.jsx";
+import { DEFAULT_BUSINESS_TIMEZONE, resolveBusinessTimezone } from "../utils/businessTime.js";
+import { useAuth } from "../context/authContext.jsx";
 import {
     KPI_CARD,
     KPI_ICON_PRIMARY,
@@ -41,7 +43,6 @@ import {
 import { generateReportRequest } from "../api/reports.js";
 import { getCategories } from "../api/category.js";
 import { getBusinessMembersRequest } from "../api/userBusiness.js";
-import { useAuth } from "../context/authContext.jsx";
 import { isAbortError } from "../hooks/useAbortEffect.js";
 import { downloadReportCsv, downloadReportPdf } from "../utils/reportExport.jsx";
 import formatCurrency from "../utils/formatCurrency.js";
@@ -99,20 +100,10 @@ const panelMotion = {
     transition: { duration: 0.22, ease: "easeOut" },
 };
 
-function toLocalDateKey(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-}
-
-function defaultInventoryRange() {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    return {
-        startDate: toLocalDateKey(start),
-        endDate: toLocalDateKey(now),
-    };
+function defaultInventoryRange(timeZone) {
+    const endDate = new Date().toLocaleDateString("en-CA", { timeZone });
+    const startDate = `${endDate.slice(0, 7)}-01`;
+    return { startDate, endDate };
 }
 
 function validateReportParams(reportId, params) {
@@ -316,11 +307,21 @@ function PreviewSkeleton() {
 
 export default function ReportsPage() {
     const toast = useToast();
-    const { businessSelected } = useAuth();
+    const { businessSelected, business } = useAuth();
     const businessId = businessSelected?.userBusinessBusinessId;
-    const monthOptions = useMemo(() => generateMonthOptions(36), []);
-    const currentPeriod = useMemo(() => getCurrentMonthYear(), []);
-    const inventoryDefaults = useMemo(() => defaultInventoryRange(), []);
+    const businessTimezone = resolveBusinessTimezone(business);
+    const monthOptions = useMemo(
+        () => generateMonthOptions(36, businessTimezone),
+        [businessTimezone],
+    );
+    const currentPeriod = useMemo(
+        () => getCurrentMonthYear(businessTimezone),
+        [businessTimezone],
+    );
+    const inventoryDefaults = useMemo(
+        () => defaultInventoryRange(businessTimezone),
+        [businessTimezone],
+    );
 
     const [activeReport, setActiveReport] = useState(null);
     const [exportFormat, setExportFormat] = useState("pdf");
