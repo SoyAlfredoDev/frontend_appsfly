@@ -1,10 +1,10 @@
-import { getCustomers } from "../../api/customers.js";
+import { getCustomers, getCustomerById } from "../../api/customers.js";
 import { unwrapListPayload } from "../../utils/listPayload.js";
 import { getProductsAndServices } from "../../libs/productsAndServices.js";
 import { useAuth } from "../../context/authContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import formatName from "../../utils/formatName.js";
 import formatCurrency from "../../utils/formatCurrency.js";
@@ -26,6 +26,7 @@ import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineItem.jsx";
 import RegisterCustomerBar from "../../components/sales/RegisterCustomerBar.jsx";
 import FormFlatSection from "../../components/forms/FormFlatSection.jsx";
+import useDebouncedValue from "../../hooks/useDebouncedValue.js";
 import {
   PRIMARY_BTN,
   PRIMARY_BTN_BLOCK,
@@ -72,6 +73,7 @@ export default function NewQuotationPage() {
 
   // Data
   const [customers, setCustomers] = useState([]);
+  const [selectedCustomerCache, setSelectedCustomerCache] = useState(null);
   const [productsServices, setProductsServices] = useState([]);
   const [dataTable, setDataTable] = useState([createEmptyRow()]);
 
@@ -92,6 +94,8 @@ export default function NewQuotationPage() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
   const [sendByEmail, setSendByEmail] = useState(false);
+  const debouncedCustomerSearch = useDebouncedValue(customerSearch, 300);
+  const customerSearchReadyRef = useRef(false);
 
   const canFinalizeQuotation = total > 0;
 
@@ -105,10 +109,16 @@ export default function NewQuotationPage() {
   const netTotal = useMemo(() => Math.round(total / (1 + IVA_RATE)), [total]);
   const ivaTotal = useMemo(() => total - netTotal, [total, netTotal]);
 
-  const selectedCustomer = useMemo(
-    () => customers.find((c) => c.customerId === dataQuotation.quotationCustomerId),
-    [customers, dataQuotation.quotationCustomerId],
-  );
+  const selectedCustomer = useMemo(() => {
+    if (!dataQuotation.quotationCustomerId) return null;
+    return (
+      customers.find((c) => c.customerId === dataQuotation.quotationCustomerId) ||
+      (selectedCustomerCache &&
+      selectedCustomerCache.customerId === dataQuotation.quotationCustomerId
+        ? selectedCustomerCache
+        : null)
+    );
+  }, [customers, dataQuotation.quotationCustomerId, selectedCustomerCache]);
 
   const customerHasEmail = Boolean(selectedCustomer?.customerEmail?.trim());
 
@@ -118,29 +128,19 @@ export default function NewQuotationPage() {
     }
   }, [customerHasEmail, dataQuotation.quotationCustomerId]);
 
-  const filteredCustomers = useMemo(() => {
-    if (!customerSearch.trim()) return customers;
-    const q = customerSearch.toLowerCase();
-    return customers.filter(
-      (c) =>
-        `${c.customerFirstName} ${c.customerLastName}`
-          .toLowerCase()
-          .includes(q) ||
-        (c.customerDocumentNumber &&
-          c.customerDocumentNumber.toLowerCase().includes(q)) ||
-        (c.customerPhoneNumber &&
-          c.customerPhoneNumber.toLowerCase().includes(q)) ||
-        (c.customerEmail &&
-          c.customerEmail.toLowerCase().includes(q)),
-    );
-  }, [customers, customerSearch]);
+  const filteredCustomers = customers;
 
   // Data loaders
-  const searchCustomers = useCallback(async (signal) => {
+  const searchCustomers = useCallback(async (signal, q = "") => {
     try {
-      const res = await getCustomers({ signal });
-      setCustomers(unwrapListPayload(res.data).rows);
-      return res.data;
+      const query = typeof q === "string" ? q.trim() : "";
+      const res = await getCustomers(
+        { page: 1, limit: 50, ...(query ? { q: query } : {}) },
+        { signal },
+      );
+      const rows = unwrapListPayload(res.data).rows;
+      setCustomers(rows);
+      return rows;
     } catch (error) {
       if (!isAbortError(error)) console.log(error);
       return [];
@@ -152,12 +152,13 @@ export default function NewQuotationPage() {
       setIsDataLoading(true);
       try {
         const [customersRes, productsRes] = await Promise.all([
-          getCustomers({ signal }),
+          getCustomers({ page: 1, limit: 50 }, { signal }),
           getProductsAndServices({ signal }),
         ]);
         if (!signal.aborted) {
           setCustomers(unwrapListPayload(customersRes.data).rows);
           setProductsServices(productsRes ?? []);
+          customerSearchReadyRef.current = true;
         }
       } catch (error) {
         if (!isAbortError(error)) console.error(error);
@@ -168,6 +169,12 @@ export default function NewQuotationPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (!customerSearchReadyRef.current) return;
+    const controller = new AbortController();
+    searchCustomers(controller.signal, debouncedCustomerSearch);
+    return () => controller.abort();
+  }, [debouncedCustomerSearch, searchCustomers]);
   // Table handlers
   const newRow = () => {
     setDataTable((prev) => [...prev, createEmptyRow()]);
@@ -252,17 +259,34 @@ export default function NewQuotationPage() {
 
   // Customer handlers
   const handleChangeCustomerSelect = (customerId) => {
+    const found = customers.find((c) => c.customerId === customerId);
+    if (found) setSelectedCustomerCache(found);
     setDataQuotation((prev) => ({ ...prev, quotationCustomerId: customerId }));
     setIsCustomerDropdownOpen(false);
     setCustomerSearch("");
   };
 
   const handleCreated = async (customerCreatedId) => {
-    const updatedCustomers = await searchCustomers();
-    setCustomers(updatedCustomers);
-    setTimeout(() => {
-      handleChangeCustomerSelect(customerCreatedId);
-    }, 150);
+    try {
+      let created = null;
+      if (customerCreatedId) {
+        const res = await getCustomerById(customerCreatedId);
+        created = res.data?.customer || res.data;
+      }
+      await searchCustomers(undefined, "");
+      if (created?.customerId) {
+        setCustomers((prev) => {
+          if (prev.some((c) => c.customerId === created.customerId)) return prev;
+          return [created, ...prev];
+        });
+        setSelectedCustomerCache(created);
+      }
+      setTimeout(() => {
+        handleChangeCustomerSelect(customerCreatedId);
+      }, 150);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   // Sync totals
@@ -435,9 +459,10 @@ export default function NewQuotationPage() {
             onOpenDropdown={() => setIsCustomerDropdownOpen(true)}
             onCloseDropdown={() => setIsCustomerDropdownOpen(false)}
             onSelectCustomer={handleChangeCustomerSelect}
-            onClearCustomer={() =>
-              setDataQuotation((prev) => ({ ...prev, quotationCustomerId: null }))
-            }
+            onClearCustomer={() => {
+              setSelectedCustomerCache(null);
+              setDataQuotation((prev) => ({ ...prev, quotationCustomerId: null }));
+            }}
             filteredCustomers={filteredCustomers}
             onCustomerCreated={handleCreated}
           />

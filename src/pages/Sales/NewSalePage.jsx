@@ -1,10 +1,10 @@
-import { getCustomers } from "../../api/customers.js";
+import { getCustomers, getCustomerById } from "../../api/customers.js";
 import { unwrapListPayload } from "../../utils/listPayload.js";
 import { getProductsAndServices } from "../../libs/productsAndServices.js";
 import { useAuth } from "../../context/authContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import CardRegisterPayments from "../../components/paymennts/CardRegisterPayments.jsx";
 import formatName from "../../utils/formatName.js";
@@ -28,6 +28,7 @@ import FacturaReceiverForm from "../../components/billing/FacturaReceiverForm.js
 import BarcodeScanListener from "../../components/scan/BarcodeScanListener.jsx";
 import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/validateSaleStock.js";
 import { isCreditSalesEnabled, isDeliveryControlEnabled } from "../../utils/businessReceiptSettings.js";
+import useDebouncedValue from "../../hooks/useDebouncedValue.js";
 import { isOpticsBusiness } from "../../utils/businessModality.js";
 import {
     isSalePaymentComplete,
@@ -131,6 +132,7 @@ export default function NewSalePage() {
 
   // Data
   const [customers, setCustomers] = useState([]);
+  const [selectedCustomerCache, setSelectedCustomerCache] = useState(null);
   const [productsServices, setProductsServices] = useState([]);
   const [dataTable, setDataTable] = useState([createEmptyRow()]);
   const [dataSalePayments, setDataSalePayments] = useState([]);
@@ -167,6 +169,8 @@ export default function NewSalePage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [customerSearch, setCustomerSearch] = useState("");
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const debouncedCustomerSearch = useDebouncedValue(customerSearch, 300);
+  const customerSearchReadyRef = useRef(false);
 
   const isSalesBlocked = closureBlock?.blocked === true;
   /** Ventas bloqueadas por cierre; las cotizaciones siguen habilitadas. */
@@ -224,13 +228,18 @@ export default function NewSalePage() {
   const ivaTotal = useMemo(() => total - netTotal, [total, netTotal]);
 
   // Selected customer object
-  const selectedCustomer = useMemo(
-    () =>
+  const selectedCustomer = useMemo(() => {
+    if (!dataSale.saleCustomerId) return null;
+    return (
       customers.find(
         (c) => String(c.customerId) === String(dataSale.saleCustomerId ?? ""),
-      ),
-    [customers, dataSale.saleCustomerId],
-  );
+      ) ||
+      (selectedCustomerCache &&
+      String(selectedCustomerCache.customerId) === String(dataSale.saleCustomerId)
+        ? selectedCustomerCache
+        : null)
+    );
+  }, [customers, dataSale.saleCustomerId, selectedCustomerCache]);
 
   const customerHasEmail = Boolean(selectedCustomer?.customerEmail?.trim());
   const customerHasPhone = Boolean(selectedCustomer?.customerPhoneNumber?.trim());
@@ -298,30 +307,20 @@ export default function NewSalePage() {
     ],
   );
 
-  // Filtered customers for search
-  const filteredCustomers = useMemo(() => {
-    if (!customerSearch.trim()) return customers;
-    const q = customerSearch.toLowerCase();
-    return customers.filter(
-      (c) =>
-        `${c.customerFirstName} ${c.customerLastName}`
-          .toLowerCase()
-          .includes(q) ||
-        (c.customerDocumentNumber &&
-          c.customerDocumentNumber.toLowerCase().includes(q)) ||
-        (c.customerPhoneNumber &&
-          c.customerPhoneNumber.toLowerCase().includes(q)) ||
-        (c.customerEmail &&
-          c.customerEmail.toLowerCase().includes(q)),
-    );
-  }, [customers, customerSearch]);
+  // Resultados del servidor (búsqueda remota); sin filtro client-side limitado
+  const filteredCustomers = customers;
 
   // ── Data loaders ────────────────────────────────────
-  const searchCustomers = useCallback(async (signal) => {
+  const searchCustomers = useCallback(async (signal, q = "") => {
     try {
-      const res = await getCustomers({ signal });
-      setCustomers(unwrapListPayload(res.data).rows);
-      return res.data;
+      const query = typeof q === "string" ? q.trim() : "";
+      const res = await getCustomers(
+        { page: 1, limit: 50, ...(query ? { q: query } : {}) },
+        { signal },
+      );
+      const rows = unwrapListPayload(res.data).rows;
+      setCustomers(rows);
+      return rows;
     } catch (error) {
       if (!isAbortError(error)) console.log(error);
       return [];
@@ -368,12 +367,13 @@ export default function NewSalePage() {
       setIsDataLoading(true);
       try {
         const [customersRes, productsRes] = await Promise.all([
-          getCustomers({ signal }),
+          getCustomers({ page: 1, limit: 50 }, { signal }),
           getProductsAndServices({ signal }),
         ]);
         if (!signal.aborted) {
           setCustomers(unwrapListPayload(customersRes.data).rows);
           setProductsServices(productsRes ?? []);
+          customerSearchReadyRef.current = true;
         }
         await checkSalesClosureStatus(signal);
       } catch (error) {
@@ -387,6 +387,49 @@ export default function NewSalePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Búsqueda remota de clientes (todos los registros, no solo los precargados)
+  useEffect(() => {
+    if (!customerSearchReadyRef.current) return;
+    const controller = new AbortController();
+    searchCustomers(controller.signal, debouncedCustomerSearch);
+    return () => controller.abort();
+  }, [debouncedCustomerSearch, searchCustomers]);
+
+  // ── Customer handlers ───────────────────────────────
+  const handleChangeCustomerSelect = (customerId) => {
+    const found = customers.find(
+      (c) => String(c.customerId) === String(customerId),
+    );
+    if (found) setSelectedCustomerCache(found);
+    setDataSale((prev) => ({ ...prev, saleCustomerId: customerId }));
+    setIsCustomerDropdownOpen(false);
+    setCustomerSearch("");
+  };
+
+  const handleCreated = async (customerCreatedId) => {
+    try {
+      let created = null;
+      if (customerCreatedId) {
+        const res = await getCustomerById(customerCreatedId);
+        created = res.data?.customer || res.data;
+      }
+      const rows = await searchCustomers(undefined, "");
+      if (created?.customerId) {
+        setCustomers((prev) => {
+          if (prev.some((c) => c.customerId === created.customerId)) return prev;
+          return [created, ...prev];
+        });
+        setSelectedCustomerCache(created);
+      } else if (Array.isArray(rows)) {
+        setCustomers(rows);
+      }
+      setTimeout(() => {
+        handleChangeCustomerSelect(customerCreatedId);
+      }, 150);
+    } catch (error) {
+      console.error(error);
+    }
+  };
   const handleCloseAllPending = async () => {
     const pendingCount = closureBlock?.fechasPendientes?.length ?? (closureBlock?.fechaPendiente ? 1 : 0);
     if (pendingCount === 0) return;
@@ -566,21 +609,6 @@ export default function NewSalePage() {
       0,
     );
     setTotal(newTotal);
-  };
-
-  // ── Customer handlers ───────────────────────────────
-  const handleChangeCustomerSelect = (customerId) => {
-    setDataSale((prev) => ({ ...prev, saleCustomerId: customerId }));
-    setIsCustomerDropdownOpen(false);
-    setCustomerSearch("");
-  };
-
-  const handleCreated = async (customerCreatedId) => {
-    const updatedCustomers = await searchCustomers();
-    setCustomers(updatedCustomers);
-    setTimeout(() => {
-      handleChangeCustomerSelect(customerCreatedId);
-    }, 150);
   };
 
   // ── Payment handlers ────────────────────────────────
@@ -962,9 +990,10 @@ export default function NewSalePage() {
                 onOpenDropdown={() => setIsCustomerDropdownOpen(true)}
                 onCloseDropdown={() => setIsCustomerDropdownOpen(false)}
                 onSelectCustomer={handleChangeCustomerSelect}
-                onClearCustomer={() =>
-                  setDataSale((prev) => ({ ...prev, saleCustomerId: null }))
-                }
+                onClearCustomer={() => {
+                  setSelectedCustomerCache(null);
+                  setDataSale((prev) => ({ ...prev, saleCustomerId: null }));
+                }}
                 filteredCustomers={filteredCustomers}
                 onCustomerCreated={handleCreated}
                 disabled={blockSalesRegistration}
@@ -1072,9 +1101,10 @@ export default function NewSalePage() {
                 onOpenDropdown={() => setIsCustomerDropdownOpen(true)}
                 onCloseDropdown={() => setIsCustomerDropdownOpen(false)}
                 onSelectCustomer={handleChangeCustomerSelect}
-                onClearCustomer={() =>
-                  setDataSale((prev) => ({ ...prev, saleCustomerId: null }))
-                }
+                onClearCustomer={() => {
+                  setSelectedCustomerCache(null);
+                  setDataSale((prev) => ({ ...prev, saleCustomerId: null }));
+                }}
                 filteredCustomers={filteredCustomers}
                 onCustomerCreated={handleCreated}
                 disabled={blockSalesRegistration}
