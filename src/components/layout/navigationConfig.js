@@ -9,6 +9,7 @@ import {
   FaUserCircle,
   FaReceipt,
   FaExchangeAlt,
+  FaCalendarAlt,
   FaCalendarCheck,
   FaFileAlt,
   FaBoxes,
@@ -41,6 +42,7 @@ export const OPTICS_DISABLED_PATH_PREFIXES = [
 export const NAV_ITEMS = [
   { name: "Dashboard", path: "/dashboard", icon: FaChartLine, permission: "dashboard:view" },
   { name: "Clientes", path: "/customers", icon: FaUsers, permission: "customers:read" },
+  { name: "Citas", path: "/appointments", icon: FaCalendarAlt, permission: "appointments:manage" },
   { name: "Campaña ASMR", path: "/campaigns-asmr", icon: FaBullhorn, permission: "campaigns:manage", hideForOptics: true },
   { name: "Productos", path: "/products_services", icon: FaBoxOpen, permission: "products:read" },
   { name: "Inventario", path: "/inventory", icon: FaBoxes, permission: "inventory:read" },
@@ -80,6 +82,7 @@ export const OPTICS_NAV_TREE = [
     icon: FaUserInjured,
     children: [
       { name: "Clientes", path: "/customers", icon: FaUsers, permission: "customers:read" },
+      { name: "Citas", path: "/appointments", icon: FaCalendarAlt, permission: "appointments:manage" },
       { name: "Certificados de Compra", path: "/purchase-certificates", icon: FaFileMedical, permission: "optics:read" },
     ],
   },

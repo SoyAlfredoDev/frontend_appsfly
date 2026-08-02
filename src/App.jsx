@@ -108,6 +108,8 @@ import EmailCampaignDetailAdminPage from "./pages/admin/emailCampaigns/EmailCamp
 import EmailProspectsAdminPage from "./pages/admin/emailProspects/EmailProspectsAdminPage.jsx";
 import ProspectUnsubscribePage from "./pages/ProspectUnsubscribePage.jsx";
 import PublicSaleReceiptPage from "./pages/public/PublicSaleReceiptPage.jsx";
+import PublicRegisterAppointmentPage from "./pages/public/PublicRegisterAppointmentPage.jsx";
+import AppointmentsPage from "./pages/appointments/AppointmentsPage.jsx";
 import NotificationsAdminPage from "./pages/admin/NotificationsAdminPage.jsx";
 import AgentTasksAdminPage from "./pages/admin/AgentTasksAdminPage.jsx";
 import PlatformOwnerProtectedView from "./components/PlatformOwnerProtectedView.jsx";
@@ -152,12 +154,14 @@ function App() {
               <Route path="/users/:id/confirm-email" element={<ConfirmAccountPage />} />
               <Route path="/prospect-unsubscribe/:token" element={<ProspectUnsubscribePage />} />
               <Route path="/public/receipt/:token" element={<PublicSaleReceiptPage />} />
+              <Route path="/registarcita/:businessId" element={<PublicRegisterAppointmentPage />} />
 
               {/* Authenticated tenant shell */}
               <Route element={<AppLayout />}>
                 <Route element={<TenantContentGate />}>
                   <Route element={<TenantRoleGate />}>
                   <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/appointments" element={<AppointmentsPage />} />
                   <Route path="/customers" element={<CustomerPage />} />
                   <Route path="/customers/:id" element={<CustomerViewPage />} />
                   <Route path="/campaigns-asmr" element={<CampaignsAsmrPage />} />

@@ -11,6 +11,7 @@ const ROLE_PERMISSIONS = {
         "customers:read",
         "customers:write",
         "customers:delete",
+        "appointments:manage",
         "sales:read",
         "sales:create",
         "quotations:read",
@@ -43,6 +44,7 @@ const ROLE_PERMISSIONS = {
         "dashboard:view",
         "customers:read",
         "customers:write",
+        "appointments:manage",
         "sales:read",
         "sales:create",
         "quotations:read",
@@ -61,6 +63,7 @@ const ROLE_PERMISSIONS = {
 export const NAV_PERMISSION_BY_PATH = {
     "/dashboard": "dashboard:view",
     "/customers": "customers:read",
+    "/appointments": "appointments:manage",
     "/campaigns-asmr": "campaigns:manage",
     "/products_services": "products:read",
     "/inventory": "inventory:read",
@@ -131,6 +134,9 @@ export function canAccessRoute(role, pathname) {
     }
     if (pathname.startsWith("/customers")) {
         return hasTenantPermission(role, "customers:read");
+    }
+    if (pathname === "/appointments" || pathname.startsWith("/appointments/")) {
+        return hasTenantPermission(role, "appointments:manage");
     }
     if (pathname.startsWith("/sales/register") || pathname.startsWith("/sales/view")) {
         return hasTenantPermission(role, "sales:read");
