@@ -12,6 +12,7 @@ import {
     FaChevronRight,
     FaTimes,
     FaUserTie,
+    FaClipboardList,
 } from "react-icons/fa";
 import ExpensePageLayout from "../components/ui/ExpensePageLayout.jsx";
 import { DEFAULT_BUSINESS_TIMEZONE, resolveBusinessTimezone } from "../utils/businessTime.js";
@@ -43,11 +44,13 @@ import {
 import { generateReportRequest } from "../api/reports.js";
 import { getCategories } from "../api/category.js";
 import { getBusinessMembersRequest } from "../api/userBusiness.js";
+import { getLaboratories } from "../api/laboratories.js";
 import { isAbortError } from "../hooks/useAbortEffect.js";
 import { downloadReportCsv, downloadReportPdf } from "../utils/reportExport.jsx";
 import formatCurrency from "../utils/formatCurrency.js";
 import { useToast } from "../context/ToastContext.jsx";
-
+import { isOpticsBusiness } from "../utils/businessModality.js";
+import { WORK_ORDER_STATUS_LABELS } from "../utils/workOrderStatus.js";
 const REPORT_CATALOG = [
     {
         id: "monthly-sales",
@@ -81,6 +84,15 @@ const REPORT_CATALOG = [
         iconClass: "p-3 bg-violet-100 rounded-xl text-violet-600",
         accent: "border-violet-200 hover:border-violet-300",
     },
+    {
+        id: "work-orders",
+        title: "Órdenes de Trabajo",
+        description: "OT por estado, laboratorio y tiempos de ciclo (creación → lab → listo → entrega).",
+        icon: FaClipboardList,
+        iconClass: "p-3 bg-emerald-100 rounded-xl text-emerald-600",
+        accent: "border-emerald-200 hover:border-emerald-300",
+        opticsOnly: true,
+    },
 ];
 
 const FORMAT_OPTIONS = [
@@ -107,7 +119,11 @@ function defaultInventoryRange(timeZone) {
 }
 
 function validateReportParams(reportId, params) {
-    if (reportId === "inventory-movements" || reportId === "sales-by-seller") {
+    if (
+        reportId === "inventory-movements" ||
+        reportId === "sales-by-seller" ||
+        reportId === "work-orders"
+    ) {
         if (!params.startDate || !params.endDate) {
             return "Indica fecha de inicio y fin.";
         }
@@ -131,6 +147,14 @@ function buildRequestParams(reportId, params) {
             startDate: params.startDate,
             endDate: params.endDate,
             ...(params.sellerId ? { sellerId: params.sellerId } : {}),
+        };
+    }
+    if (reportId === "work-orders") {
+        return {
+            startDate: params.startDate,
+            endDate: params.endDate,
+            ...(params.laboratoryId ? { laboratoryId: params.laboratoryId } : {}),
+            ...(params.workOrderStatus ? { status: params.workOrderStatus } : {}),
         };
     }
     return {
@@ -263,6 +287,46 @@ function ReportPreviewTable({ reportData }) {
         );
     }
 
+    if (reportData.reportType === "work-orders") {
+        const fmtDays = (value) => (value == null ? "—" : `${value} d`);
+        return (
+            <table className="w-full text-left">
+                <thead className={THEAD}>
+                    <tr>
+                        <th className={TH}>OT</th>
+                        <th className={TH}>Venta</th>
+                        <th className={TH}>Cliente</th>
+                        <th className={TH}>Lab</th>
+                        <th className={TH}>Estado</th>
+                        <th className={TH}>Creada</th>
+                        <th className={TH}>→ Recib.</th>
+                        <th className={TH}>→ Listo</th>
+                        <th className={TH}>→ Entreg.</th>
+                    </tr>
+                </thead>
+                <tbody className={TBODY}>
+                    {reportData.rows.map((row) => (
+                        <tr key={row.id} className={TR_ROW}>
+                            <td className={TD}>{row.number ?? "—"}</td>
+                            <td className={TD}>{row.saleNumber ?? "—"}</td>
+                            <td className={TD}>{row.customer || "—"}</td>
+                            <td className={TD}>{row.laboratory || "—"}</td>
+                            <td className={TD}>{row.statusLabel || row.status}</td>
+                            <td className={TD}>
+                                {row.createdAt
+                                    ? new Date(row.createdAt).toLocaleDateString("es-CL")
+                                    : "—"}
+                            </td>
+                            <td className={TD}>{fmtDays(row.daysCreatedToReceived)}</td>
+                            <td className={TD}>{fmtDays(row.daysCreatedToReady)}</td>
+                            <td className={TD}>{fmtDays(row.daysCreatedToDelivered)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        );
+    }
+
     return (
         <table className="w-full text-left">
             <thead className={THEAD}>
@@ -308,6 +372,11 @@ function PreviewSkeleton() {
 export default function ReportsPage() {
     const toast = useToast();
     const { businessSelected, business } = useAuth();
+    const isOptics = useMemo(() => isOpticsBusiness(business), [business]);
+    const visibleCatalog = useMemo(
+        () => REPORT_CATALOG.filter((report) => !report.opticsOnly || isOptics),
+        [isOptics],
+    );
     const businessId = businessSelected?.userBusinessBusinessId;
     const businessTimezone = resolveBusinessTimezone(business);
     const monthOptions = useMemo(
@@ -331,11 +400,15 @@ export default function ReportsPage() {
         ...inventoryDefaults,
         categoryId: "",
         sellerId: "",
+        laboratoryId: "",
+        workOrderStatus: "",
     });
     const [categories, setCategories] = useState([]);
     const [categoriesLoading, setCategoriesLoading] = useState(false);
     const [members, setMembers] = useState([]);
     const [membersLoading, setMembersLoading] = useState(false);
+    const [laboratories, setLaboratories] = useState([]);
+    const [laboratoriesLoading, setLaboratoriesLoading] = useState(false);
     const [reportData, setReportData] = useState(null);
     const [dataSignature, setDataSignature] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -345,6 +418,7 @@ export default function ReportsPage() {
     const fetchAbortRef = useRef(null);
     const categoriesAbortRef = useRef(null);
     const membersAbortRef = useRef(null);
+    const laboratoriesAbortRef = useRef(null);
 
     const resetFetchState = useCallback(() => {
         fetchAbortRef.current?.abort();
@@ -412,6 +486,27 @@ export default function ReportsPage() {
         }
     }, [businessId]);
 
+    const loadLaboratories = useCallback(async () => {
+        laboratoriesAbortRef.current?.abort();
+        const controller = new AbortController();
+        laboratoriesAbortRef.current = controller;
+
+        setLaboratoriesLoading(true);
+        try {
+            const res = await getLaboratories({ activeOnly: false });
+            if (laboratoriesAbortRef.current !== controller) return;
+            setLaboratories(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            if (!isAbortError(err)) {
+                console.error("[Reports] Error cargando laboratorios:", err);
+            }
+        } finally {
+            if (laboratoriesAbortRef.current === controller) {
+                setLaboratoriesLoading(false);
+            }
+        }
+    }, []);
+
     const handleSelectReport = (reportId) => {
         if (activeReport === reportId) {
             closeReportPanel();
@@ -427,6 +522,9 @@ export default function ReportsPage() {
         }
         if (reportId === "sales-by-seller") {
             loadMembers();
+        }
+        if (reportId === "work-orders") {
+            loadLaboratories();
         }
     };
 
@@ -476,6 +574,16 @@ export default function ReportsPage() {
         if (import.meta.env.DEV) {
             console.log("[Reports] vendedor:", sellerId || "(todos)");
         }
+    };
+
+    const handleLaboratoryChange = (e) => {
+        const laboratoryId = e.target.value;
+        setParams((prev) => ({ ...prev, laboratoryId }));
+    };
+
+    const handleWorkOrderStatusChange = (e) => {
+        const workOrderStatus = e.target.value;
+        setParams((prev) => ({ ...prev, workOrderStatus }));
     };
 
     const handleFormatChange = (formatId) => {
@@ -605,7 +713,7 @@ export default function ReportsPage() {
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {REPORT_CATALOG.map((report) => {
+                {visibleCatalog.map((report) => {
                     const Icon = report.icon;
                     const isActive = activeReport === report.id;
 
@@ -826,6 +934,87 @@ export default function ReportsPage() {
                                                     {members.map((member) => (
                                                         <option key={member.userId} value={member.userId}>
                                                             {member.userFirstName} {member.userLastName}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {activeReport === "work-orders" && (
+                                        <>
+                                            <div>
+                                                <label
+                                                    htmlFor="wo-report-start-date"
+                                                    className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                                >
+                                                    Desde
+                                                </label>
+                                                <input
+                                                    id="wo-report-start-date"
+                                                    type="date"
+                                                    value={params.startDate}
+                                                    onChange={handleStartDateChange}
+                                                    disabled={isBusy}
+                                                    className="input-field h-11 w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label
+                                                    htmlFor="wo-report-end-date"
+                                                    className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                                >
+                                                    Hasta
+                                                </label>
+                                                <input
+                                                    id="wo-report-end-date"
+                                                    type="date"
+                                                    value={params.endDate}
+                                                    onChange={handleEndDateChange}
+                                                    disabled={isBusy}
+                                                    className="input-field h-11 w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label
+                                                    htmlFor="report-laboratory"
+                                                    className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                                >
+                                                    Laboratorio (opcional)
+                                                </label>
+                                                <select
+                                                    id="report-laboratory"
+                                                    value={params.laboratoryId}
+                                                    onChange={handleLaboratoryChange}
+                                                    disabled={isBusy || laboratoriesLoading}
+                                                    className="select-field h-11 w-full"
+                                                >
+                                                    <option value="">Todos los laboratorios</option>
+                                                    {laboratories.map((lab) => (
+                                                        <option key={lab.laboratoryId} value={lab.laboratoryId}>
+                                                            {lab.laboratoryName}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    htmlFor="report-wo-status"
+                                                    className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2"
+                                                >
+                                                    Estado (opcional)
+                                                </label>
+                                                <select
+                                                    id="report-wo-status"
+                                                    value={params.workOrderStatus}
+                                                    onChange={handleWorkOrderStatusChange}
+                                                    disabled={isBusy}
+                                                    className="select-field h-11 w-full"
+                                                >
+                                                    <option value="">Todos los estados</option>
+                                                    {Object.entries(WORK_ORDER_STATUS_LABELS).map(([value, label]) => (
+                                                        <option key={value} value={value}>
+                                                            {label}
                                                         </option>
                                                     ))}
                                                 </select>
@@ -1075,6 +1264,44 @@ export default function ReportsPage() {
                                             </div>
                                         </>
                                     )}
+                                    {reportData.reportType === "work-orders" && (
+                                        <>
+                                            <div className={KPI_CARD}>
+                                                <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600">
+                                                    <FaClipboardList className="text-xl" />
+                                                </div>
+                                                <div>
+                                                    <p className={KPI_LABEL}>Total OT</p>
+                                                    <p className={KPI_VALUE}>{reportData.summary.totalWorkOrders}</p>
+                                                </div>
+                                            </div>
+                                            <div className={KPI_CARD}>
+                                                <div className={KPI_ICON_AMBER}><FaBoxes className="text-xl" /></div>
+                                                <div>
+                                                    <p className={KPI_LABEL}>En lab / QC</p>
+                                                    <p className={KPI_VALUE}>{reportData.summary.inLabCount}</p>
+                                                </div>
+                                            </div>
+                                            <div className={KPI_CARD}>
+                                                <div className={KPI_ICON_PRIMARY}><FaEye className="text-xl" /></div>
+                                                <div>
+                                                    <p className={KPI_LABEL}>Listas</p>
+                                                    <p className={KPI_VALUE}>{reportData.summary.readyCount}</p>
+                                                </div>
+                                            </div>
+                                            <div className={KPI_CARD}>
+                                                <div className={KPI_ICON_SECONDARY}><FaCalendarAlt className="text-xl" /></div>
+                                                <div>
+                                                    <p className={KPI_LABEL}>Prom. días a entrega</p>
+                                                    <p className={KPI_VALUE}>
+                                                        {reportData.summary.avgDaysCreatedToDelivered == null
+                                                            ? "—"
+                                                            : `${reportData.summary.avgDaysCreatedToDelivered} d`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className={TABLE_WRAPPER}>
@@ -1091,6 +1318,12 @@ export default function ReportsPage() {
                                                     {reportData.viewMode === "detail" && reportData.period.sellerName
                                                         ? ` · ${reportData.period.sellerName}`
                                                         : " · Resumen por vendedor"}
+                                                </>
+                                            )}
+                                            {reportData.reportType === "work-orders" && (
+                                                <>
+                                                    {" "}
+                                                    — {reportData.period.startDate} a {reportData.period.endDate}
                                                 </>
                                             )}
                                         </p>

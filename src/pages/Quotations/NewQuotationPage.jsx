@@ -27,6 +27,8 @@ import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineI
 import RegisterCustomerBar from "../../components/sales/RegisterCustomerBar.jsx";
 import FormFlatSection from "../../components/forms/FormFlatSection.jsx";
 import useDebouncedValue from "../../hooks/useDebouncedValue.js";
+import { getPrescriptionsByCustomerId } from "../../api/prescriptions.js";
+import { isOpticsBusiness } from "../../utils/businessModality.js";
 import {
   PRIMARY_BTN,
   PRIMARY_BTN_BLOCK,
@@ -69,13 +71,15 @@ export default function NewQuotationPage() {
   const confirm = useConfirm();
   const navigate = useNavigate();
   const [quotationId, setQuotationId] = useState(uuidv4());
-  const { user } = useAuth();
+  const { user, business } = useAuth();
+  const isOptics = useMemo(() => isOpticsBusiness(business), [business]);
 
   // Data
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerCache, setSelectedCustomerCache] = useState(null);
   const [productsServices, setProductsServices] = useState([]);
   const [dataTable, setDataTable] = useState([createEmptyRow()]);
+  const [prescriptions, setPrescriptions] = useState([]);
 
   // Totals
   const [total, setTotal] = useState(0);
@@ -86,6 +90,7 @@ export default function NewQuotationPage() {
     quotationComment: "",
     quotationCustomerId: null,
     quotationTotal: 0,
+    prescriptionId: "",
   });
 
   // UI states
@@ -261,10 +266,32 @@ export default function NewQuotationPage() {
   const handleChangeCustomerSelect = (customerId) => {
     const found = customers.find((c) => c.customerId === customerId);
     if (found) setSelectedCustomerCache(found);
-    setDataQuotation((prev) => ({ ...prev, quotationCustomerId: customerId }));
+    setDataQuotation((prev) => ({
+      ...prev,
+      quotationCustomerId: customerId,
+      prescriptionId: "",
+    }));
     setIsCustomerDropdownOpen(false);
     setCustomerSearch("");
   };
+
+  useEffect(() => {
+    if (!isOptics || !dataQuotation.quotationCustomerId) {
+      setPrescriptions([]);
+      return;
+    }
+    let cancelled = false;
+    getPrescriptionsByCustomerId(dataQuotation.quotationCustomerId)
+      .then(({ data }) => {
+        if (!cancelled) setPrescriptions(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setPrescriptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOptics, dataQuotation.quotationCustomerId]);
 
   const handleCreated = async (customerCreatedId) => {
     try {
@@ -353,6 +380,7 @@ export default function NewQuotationPage() {
     try {
       const quotationPayload = {
         ...dataQuotation,
+        prescriptionId: dataQuotation.prescriptionId || undefined,
       };
       const res = await createQuotationGeneral(
         quotationPayload,
@@ -461,7 +489,12 @@ export default function NewQuotationPage() {
             onSelectCustomer={handleChangeCustomerSelect}
             onClearCustomer={() => {
               setSelectedCustomerCache(null);
-              setDataQuotation((prev) => ({ ...prev, quotationCustomerId: null }));
+              setPrescriptions([]);
+              setDataQuotation((prev) => ({
+                ...prev,
+                quotationCustomerId: null,
+                prescriptionId: "",
+              }));
             }}
             filteredCustomers={filteredCustomers}
             onCustomerCreated={handleCreated}
@@ -505,6 +538,37 @@ export default function NewQuotationPage() {
                 disabled={isLoading}
               />
             </FormFlatSection>
+
+            {isOptics && (
+              <FormFlatSection title="Receta óptica">
+                <select
+                  className={`${FLAT_INPUT} w-full`}
+                  value={dataQuotation.prescriptionId || ""}
+                  onChange={(e) =>
+                    setDataQuotation((prev) => ({
+                      ...prev,
+                      prescriptionId: e.target.value,
+                    }))
+                  }
+                  disabled={!dataQuotation.quotationCustomerId || isLoading}
+                >
+                  <option value="">Sin receta vinculada</option>
+                  {prescriptions.map((rx) => (
+                    <option key={rx.prescriptionId} value={rx.prescriptionId}>
+                      {rx.prescriptionType || "Receta"} ·{" "}
+                      {rx.prescriptionDate
+                        ? new Date(rx.prescriptionDate).toLocaleDateString("es-CL")
+                        : "s/f"}
+                    </option>
+                  ))}
+                </select>
+                {!dataQuotation.quotationCustomerId ? (
+                  <p className="text-xs text-gray-400 mt-1">Selecciona un cliente para ver sus recetas.</p>
+                ) : prescriptions.length === 0 ? (
+                  <p className="text-xs text-gray-400 mt-1">Este paciente no tiene recetas registradas.</p>
+                ) : null}
+              </FormFlatSection>
+            )}
 
             <FormFlatSection title="Comentarios" bordered={false}>
               <textarea
@@ -716,19 +780,47 @@ export default function NewQuotationPage() {
       {/* Footer desktop */}
       <div className="hidden md:block bg-white border-t border-gray-200 flex-none z-20 w-full shrink-0">
         <div className="w-full flex flex-col lg:flex-row">
-          <div className="flex-1 p-3 border-b lg:border-b-0 lg:border-r border-gray-200">
-            <h2 className={TABLE_SECTION_TITLE}>Comentarios</h2>
-            <textarea
-              className={`${TABLE_INPUT} resize-none w-full min-h-[56px] mt-1.5`}
-              placeholder="Notas y condiciones de la cotización..."
-              value={dataQuotation.quotationComment || ""}
-              onChange={(e) =>
-                setDataQuotation((prev) => ({
-                  ...prev,
-                  quotationComment: e.target.value,
-                }))
-              }
-            />
+          <div className="flex-1 p-3 border-b lg:border-b-0 lg:border-r border-gray-200 space-y-3">
+            {isOptics && (
+              <div>
+                <h2 className={TABLE_SECTION_TITLE}>Receta óptica</h2>
+                <select
+                  className={`${TABLE_INPUT} w-full mt-1.5`}
+                  value={dataQuotation.prescriptionId || ""}
+                  onChange={(e) =>
+                    setDataQuotation((prev) => ({
+                      ...prev,
+                      prescriptionId: e.target.value,
+                    }))
+                  }
+                  disabled={!dataQuotation.quotationCustomerId || isLoading}
+                >
+                  <option value="">Sin receta vinculada</option>
+                  {prescriptions.map((rx) => (
+                    <option key={rx.prescriptionId} value={rx.prescriptionId}>
+                      {rx.prescriptionType || "Receta"} ·{" "}
+                      {rx.prescriptionDate
+                        ? new Date(rx.prescriptionDate).toLocaleDateString("es-CL")
+                        : "s/f"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div>
+              <h2 className={TABLE_SECTION_TITLE}>Comentarios</h2>
+              <textarea
+                className={`${TABLE_INPUT} resize-none w-full min-h-[56px] mt-1.5`}
+                placeholder="Notas y condiciones de la cotización..."
+                value={dataQuotation.quotationComment || ""}
+                onChange={(e) =>
+                  setDataQuotation((prev) => ({
+                    ...prev,
+                    quotationComment: e.target.value,
+                  }))
+                }
+              />
+            </div>
           </div>
 
           {/* Right Summary */}

@@ -45,6 +45,8 @@ function getReportTitle(reportData) {
             }
             return `Ventas por vendedor — ${range}`;
         }
+        case "work-orders":
+            return `Órdenes de trabajo — ${reportData.period.startDate} a ${reportData.period.endDate}`;
         default:
             return "Reporte AppsFly";
     }
@@ -157,6 +159,41 @@ function buildCsvContent(reportData) {
                 ].map(escapeCsvCell).join(","));
             });
         }
+    }
+
+    if (reportData.reportType === "work-orders") {
+        const fmtDays = (value) => (value == null ? "" : value);
+        lines.push(
+            "Resumen",
+            `Total OT,${reportData.summary.totalWorkOrders}`,
+            `En lab/QC,${reportData.summary.inLabCount}`,
+            `Listas,${reportData.summary.readyCount}`,
+            `Entregadas,${reportData.summary.deliveredCount}`,
+            `Prom. días creación→recibido,${reportData.summary.avgDaysCreatedToReceived ?? ""}`,
+            `Prom. días creación→listo,${reportData.summary.avgDaysCreatedToReady ?? ""}`,
+            `Prom. días creación→entrega,${reportData.summary.avgDaysCreatedToDelivered ?? ""}`,
+            `Prom. días listo→entrega,${reportData.summary.avgDaysReadyToDelivered ?? ""}`,
+            "",
+            "OT,Venta,Cliente,Producto,Laboratorio,Estado,Creada,Recibida,Lista,Entregada,Días→Recib,Días→Listo,Días→Entreg,Días Listo→Entreg",
+        );
+        reportData.rows.forEach((row) => {
+            lines.push([
+                row.number ?? "—",
+                row.saleNumber ?? "—",
+                row.customer,
+                row.product,
+                row.laboratory,
+                row.statusLabel || row.status,
+                formatReportDate(row.createdAt),
+                formatReportDate(row.receivedAt),
+                formatReportDate(row.readyForDeliveryAt),
+                formatReportDate(row.deliveredAt),
+                fmtDays(row.daysCreatedToReceived),
+                fmtDays(row.daysCreatedToReady),
+                fmtDays(row.daysCreatedToDelivered),
+                fmtDays(row.daysReadyToDelivered),
+            ].map(escapeCsvCell).join(","));
+        });
     }
 
     return `\uFEFF${lines.join("\n")}`;

@@ -30,6 +30,7 @@ import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/valid
 import { isCreditSalesEnabled, isDeliveryControlEnabled } from "../../utils/businessReceiptSettings.js";
 import useDebouncedValue from "../../hooks/useDebouncedValue.js";
 import { isOpticsBusiness } from "../../utils/businessModality.js";
+import { getPrescriptionsByCustomerId } from "../../api/prescriptions.js";
 import {
     isSalePaymentComplete,
     validateSalePaymentsForCreditPolicy,
@@ -119,6 +120,8 @@ export default function NewSalePage() {
   const [quotationId, setQuotationId] = useState(uuidv4());
   const [sendByEmail, setSendByEmail] = useState(false);
   const [sendByWhatsApp, setSendByWhatsApp] = useState(false);
+  const [quotationPrescriptionId, setQuotationPrescriptionId] = useState("");
+  const [prescriptions, setPrescriptions] = useState([]);
   const { user, business } = useAuth();
   const creditSalesEnabled = useMemo(
     () => isCreditSalesEnabled(business),
@@ -402,9 +405,28 @@ export default function NewSalePage() {
     );
     if (found) setSelectedCustomerCache(found);
     setDataSale((prev) => ({ ...prev, saleCustomerId: customerId }));
+    setQuotationPrescriptionId("");
     setIsCustomerDropdownOpen(false);
     setCustomerSearch("");
   };
+
+  useEffect(() => {
+    if (!isOptics || !isQuotationMode || !dataSale.saleCustomerId) {
+      setPrescriptions([]);
+      return;
+    }
+    let cancelled = false;
+    getPrescriptionsByCustomerId(dataSale.saleCustomerId)
+      .then(({ data }) => {
+        if (!cancelled) setPrescriptions(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setPrescriptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOptics, isQuotationMode, dataSale.saleCustomerId]);
 
   const handleCreated = async (customerCreatedId) => {
     try {
@@ -733,6 +755,9 @@ export default function NewSalePage() {
           quotationCustomerId: dataSale.saleCustomerId,
           quotationTotal: total,
           quotationComment: dataSale.saleComment || "",
+          ...(quotationPrescriptionId
+            ? { prescriptionId: quotationPrescriptionId }
+            : {}),
         };
         const res = await createQuotationGeneral(
           quotationPayload,
@@ -1207,6 +1232,27 @@ export default function NewSalePage() {
               </p>
             )}
 
+            {isOptics && isQuotationMode && (
+              <FormFlatSection title="Receta óptica">
+                <select
+                  className={`${FLAT_INPUT} w-full`}
+                  value={quotationPrescriptionId}
+                  onChange={(e) => setQuotationPrescriptionId(e.target.value)}
+                  disabled={!dataSale.saleCustomerId || isLoading}
+                >
+                  <option value="">Sin receta vinculada</option>
+                  {prescriptions.map((rx) => (
+                    <option key={rx.prescriptionId} value={rx.prescriptionId}>
+                      {rx.prescriptionType || "Receta"} ·{" "}
+                      {rx.prescriptionDate
+                        ? new Date(rx.prescriptionDate).toLocaleDateString("es-CL")
+                        : "s/f"}
+                    </option>
+                  ))}
+                </select>
+              </FormFlatSection>
+            )}
+
             <FormFlatSection title="Envío al cliente">
               <SendDocumentEmailOption
                 checked={sendByEmail}
@@ -1460,6 +1506,29 @@ export default function NewSalePage() {
                   <p className={`${TABLE_SECTION_SUB} mb-3`}>
                     No se registran pagos. El documento se guardará como cotización.
                   </p>
+                  {isOptics && (
+                    <div className="mt-1">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                        Receta óptica
+                      </label>
+                      <select
+                        className={`${TABLE_INPUT} w-full`}
+                        value={quotationPrescriptionId}
+                        onChange={(e) => setQuotationPrescriptionId(e.target.value)}
+                        disabled={!dataSale.saleCustomerId || isLoading}
+                      >
+                        <option value="">Sin receta vinculada</option>
+                        {prescriptions.map((rx) => (
+                          <option key={rx.prescriptionId} value={rx.prescriptionId}>
+                            {rx.prescriptionType || "Receta"} ·{" "}
+                            {rx.prescriptionDate
+                              ? new Date(rx.prescriptionDate).toLocaleDateString("es-CL")
+                              : "s/f"}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>

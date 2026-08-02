@@ -195,6 +195,29 @@ function SalesBySellerDetailTable({ rows, formatCurrency, formatDate }) {
     );
 }
 
+function WorkOrdersTable({ rows }) {
+    const columns = [
+        { key: "number", label: "OT" },
+        { key: "customer", label: "Cliente", wide: true },
+        { key: "status", label: "Estado" },
+        { key: "days", label: "Días→Ent." },
+    ];
+    const fmtDays = (value) => (value == null ? "—" : `${value}`);
+    return (
+        <>
+            <TableHeader columns={columns} />
+            {rows.slice(0, 200).map((row) => (
+                <View key={row.id} style={styles.tableRow}>
+                    <Text style={styles.cell}>{row.number ?? "—"}</Text>
+                    <Text style={styles.cellWide}>{row.customer}</Text>
+                    <Text style={styles.cell}>{row.statusLabel || row.status}</Text>
+                    <Text style={styles.cell}>{fmtDays(row.daysCreatedToDelivered)}</Text>
+                </View>
+            ))}
+        </>
+    );
+}
+
 export default function ReportPdfDocument({
     title,
     reportData,
@@ -242,6 +265,18 @@ export default function ReportPdfDocument({
                             <SummaryLine label="Vendedores" value={summary.sellerCount} formatCurrency={formatCurrency} />
                         </>
                     )}
+                    {reportType === "work-orders" && (
+                        <>
+                            <SummaryLine label="Total OT" value={summary.totalWorkOrders} formatCurrency={formatCurrency} />
+                            <SummaryLine label="En lab/QC" value={summary.inLabCount} formatCurrency={formatCurrency} />
+                            <SummaryLine label="Listas" value={summary.readyCount} formatCurrency={formatCurrency} />
+                            <SummaryLine
+                                label="Prom. días a entrega"
+                                value={summary.avgDaysCreatedToDelivered ?? "—"}
+                                formatCurrency={formatCurrency}
+                            />
+                        </>
+                    )}
                 </View>
 
                 {reportType === "monthly-sales" && (
@@ -262,6 +297,9 @@ export default function ReportPdfDocument({
                 )}
                 {reportType === "sales-by-seller" && reportData.viewMode !== "detail" && (
                     <SalesBySellerSummaryTable rows={reportData.rows} formatCurrency={formatCurrency} />
+                )}
+                {reportType === "work-orders" && (
+                    <WorkOrdersTable rows={reportData.rows} formatDate={formatDate} />
                 )}
 
                 <Text style={styles.footer} fixed>

@@ -7,6 +7,7 @@ import {
     FaTrash,
     FaTruckLoading,
     FaCheckCircle,
+    FaWhatsapp,
 } from "react-icons/fa";
 import {
     getWorkOrderById,
@@ -19,15 +20,23 @@ import { getLaboratories } from "../../api/laboratories.js";
 import { getPrescriptionsByCustomerId } from "../../api/prescriptions.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
+import { useAuth } from "../../context/authContext.jsx";
 import ExpensePageLayout from "../../components/ui/ExpensePageLayout.jsx";
 import WorkOrderStatusBadge from "../../components/optics/WorkOrderStatusBadge.jsx";
+import SendDocumentWhatsAppOption from "../../components/sales/SendDocumentWhatsAppOption.jsx";
 import { WORK_ORDER_STATUS_LABELS, getNextWorkOrderStatuses } from "../../utils/workOrderStatus.js";
+import {
+    buildWorkOrderReadyWhatsAppMessage,
+    buildWorkOrderReadyWhatsAppShareUrl,
+} from "../../utils/workOrderShare.js";
+import { getReceiptBranding } from "../../utils/businessReceiptSettings.js";
 import { PRIMARY_BTN } from "../../utils/expenseUiPatterns.js";
 
 export default function WorkOrderViewPage() {
     const { id } = useParams();
     const toast = useToast();
     const confirm = useConfirm();
+    const { business } = useAuth();
 
     const [workOrder, setWorkOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -35,15 +44,50 @@ export default function WorkOrderViewPage() {
     const [prescriptions, setPrescriptions] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
     const [isAdvancing, setIsAdvancing] = useState(false);
+    const [notifyWhatsApp, setNotifyWhatsApp] = useState(true);
     const [editForm, setEditForm] = useState({ laboratoryId: "", prescriptionId: "", workOrderNotes: "" });
 
     const canEdit = ["CREATED", "PENDING_SHIPMENT"].includes(workOrder?.workOrderStatus);
     const canDelete = canEdit && !workOrder?.labDispatchId;
     const canReceive = workOrder?.workOrderStatus === "SENT_TO_LAB";
+    const isReadyForDelivery = workOrder?.workOrderStatus === "READY_FOR_DELIVERY";
     const nextStatuses = useMemo(
         () => (workOrder ? getNextWorkOrderStatuses(workOrder.workOrderStatus) : []),
         [workOrder],
     );
+
+    const customerPhone = workOrder?.customer?.customerPhoneNumber?.trim() || "";
+    const customerPhoneCode = workOrder?.customer?.customerCodePhoneNumber?.trim() || "";
+    const businessName = useMemo(
+        () => getReceiptBranding(business).displayName,
+        [business],
+    );
+
+    const openReadyWhatsApp = (order = workOrder) => {
+        if (!order) return false;
+        const customerName = [order.customer?.customerFirstName, order.customer?.customerLastName]
+            .filter(Boolean)
+            .join(" ");
+        const message = buildWorkOrderReadyWhatsAppMessage({
+            customerName,
+            businessName,
+            workOrderNumber: order.workOrderNumber,
+            saleNumber: order.sale?.saleNumber,
+            productName: order.saleDetail?.product?.productName,
+        });
+        const shareUrl = buildWorkOrderReadyWhatsAppShareUrl({
+            customerCodePhoneNumber: order.customer?.customerCodePhoneNumber,
+            customerPhoneNumber: order.customer?.customerPhoneNumber,
+            message,
+        });
+        if (!shareUrl) {
+            toast.info("Sin teléfono", "El paciente no tiene número de WhatsApp registrado.");
+            return false;
+        }
+        window.open(shareUrl, "_blank", "noopener,noreferrer");
+        toast.success("WhatsApp", "Se abrió el chat con el aviso de listo para retiro.");
+        return true;
+    };
 
     const fetchWorkOrder = async () => {
         setIsLoading(true);
@@ -116,6 +160,9 @@ export default function WorkOrderViewPage() {
             const { data } = await updateWorkOrderStatus(id, nextStatus);
             setWorkOrder(data);
             toast.success("Estado actualizado", "La orden de trabajo cambió de estado.");
+            if (nextStatus === "READY_FOR_DELIVERY" && notifyWhatsApp) {
+                openReadyWhatsApp(data);
+            }
         } catch (error) {
             toast.error(
                 "No se pudo actualizar",
@@ -287,6 +334,21 @@ export default function WorkOrderViewPage() {
                 {/* Acciones de flujo */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Acciones</h3>
+                    {nextStatuses.includes("READY_FOR_DELIVERY") && (
+                        <div className="mb-3">
+                            <SendDocumentWhatsAppOption
+                                checked={notifyWhatsApp}
+                                onChange={setNotifyWhatsApp}
+                                customerCodePhoneNumber={customerPhoneCode}
+                                customerPhone={customerPhone}
+                                disabled={isAdvancing}
+                                compact
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Al marcar lista para entrega se abrirá WhatsApp con el aviso de retiro.
+                            </p>
+                        </div>
+                    )}
                     <div className="flex flex-wrap gap-2">
                         {nextStatuses.map((status) => (
                             <button
@@ -300,6 +362,16 @@ export default function WorkOrderViewPage() {
                                 {WORK_ORDER_STATUS_LABELS[status] ?? status}
                             </button>
                         ))}
+                        {isReadyForDelivery && (
+                            <button
+                                type="button"
+                                onClick={() => openReadyWhatsApp()}
+                                disabled={isAdvancing || !customerPhone}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white rounded-lg hover:bg-[#1ebe57] transition-colors shadow-sm text-sm font-medium disabled:opacity-60"
+                            >
+                                <FaWhatsapp /> Avisar WhatsApp
+                            </button>
+                        )}
                         {canReceive && (
                             <button
                                 type="button"
@@ -319,7 +391,7 @@ export default function WorkOrderViewPage() {
                                 <FaTrash /> Eliminar OT
                             </button>
                         )}
-                        {nextStatuses.length === 0 && !canReceive && !canDelete && (
+                        {nextStatuses.length === 0 && !canReceive && !canDelete && !isReadyForDelivery && (
                             <p className="text-sm text-gray-500">No hay acciones disponibles para el estado actual.</p>
                         )}
                     </div>

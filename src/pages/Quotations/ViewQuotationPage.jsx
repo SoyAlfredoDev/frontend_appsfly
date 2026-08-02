@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useConfirm } from '../../context/ConfirmationContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
+import { useAuth } from '../../context/authContext.jsx';
 import useReceiptBusiness from '../../hooks/useReceiptBusiness.js';
 import QuotationStatusBadge from '../../components/quotations/QuotationStatusBadge.jsx';
 import QuotationEmailDeliveryBadge from '../../components/quotations/QuotationEmailDeliveryBadge.jsx';
@@ -17,6 +18,8 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import { motion as Motion } from "framer-motion";
 import PageContainer from "../../components/layout/PageContainer.jsx";
 import formatName from '../../utils/formatName.js';
+import { isOpticsBusiness } from '../../utils/businessModality.js';
+import { summarizePrescriptionEyes } from '../../components/prescriptions/prescriptionFormDefaults.js';
 import { 
   FaCalendarAlt, 
   FaUser, 
@@ -32,12 +35,15 @@ import {
   FaExclamationCircle,
   FaWhatsapp,
   FaShareAlt,
+  FaEye,
 } from "react-icons/fa";
 
 export default function ViewQuotationPage() {
     const confirm = useConfirm();
     const toast = useToast();
     const navigate = useNavigate();
+    const { business } = useAuth();
+    const isOptics = useMemo(() => isOpticsBusiness(business), [business]);
     const receiptBusiness = useReceiptBusiness();
     const { id } = useParams();
     
@@ -448,6 +454,49 @@ export default function ViewQuotationPage() {
                                     <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4 border border-gray-100 italic leading-relaxed">
                                         "{quotation?.quotationComment}"
                                     </p>
+                                </Motion.div>
+                            )}
+
+                            {isOptics && quotation?.prescription && (
+                                <Motion.div variants={itemVariants} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                    <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                        <FaEye className="text-primary" />
+                                        Receta vinculada
+                                    </h3>
+                                    <div className="space-y-2 text-sm text-gray-700">
+                                        <p>
+                                            <span className="text-gray-500">Tipo:</span>{" "}
+                                            <span className="font-semibold">
+                                                {quotation.prescription.prescriptionType || "Receta"}
+                                            </span>
+                                        </p>
+                                        <p>
+                                            <span className="text-gray-500">Fecha:</span>{" "}
+                                            {quotation.prescription.prescriptionDate
+                                                ? new Date(quotation.prescription.prescriptionDate).toLocaleDateString("es-CL")
+                                                : "—"}
+                                        </p>
+                                        {quotation.prescription.prescribedBy && (
+                                            <p>
+                                                <span className="text-gray-500">Prescrita por:</span>{" "}
+                                                {quotation.prescription.prescribedBy}
+                                            </p>
+                                        )}
+                                        {(() => {
+                                            const summary = summarizePrescriptionEyes(quotation.prescription);
+                                            if (!summary?.od && !summary?.oi) return null;
+                                            return (
+                                                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 border border-slate-100 rounded-lg p-3">
+                                                    {summary.od && (
+                                                        <p><span className="font-semibold text-gray-500">OD:</span> {summary.od}</p>
+                                                    )}
+                                                    {summary.oi && (
+                                                        <p><span className="font-semibold text-gray-500">OI:</span> {summary.oi}</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
                                 </Motion.div>
                             )}
                         </div>
