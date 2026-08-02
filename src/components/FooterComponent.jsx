@@ -43,7 +43,13 @@ function SocialLink({ href, label, icon, hoverClass }) {
     );
 }
 
-const Footer = () => {
+const Footer = ({
+    sections = LANDING_SECTIONS,
+    sectionHref = landingSectionHref,
+    registerTo = '/register',
+    homeTo = '/',
+    blurb = 'Sistema para registrar ventas. Lleva el control de lo que vendes, tus clientes, inventario y reportes en un solo lugar — simple y claro.',
+}) => {
     const currentYear = new Date().getFullYear();
 
     return (
@@ -56,7 +62,7 @@ const Footer = () => {
                 <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-12 lg:gap-10 mb-14">
                     {/* Marca */}
                     <div className="lg:col-span-4 space-y-5">
-                        <Link to="/" className="inline-block">
+                        <Link to={homeTo} className="inline-block">
                             <img
                                 src="/logo-appsfly-white.png"
                                 alt="AppsFly"
@@ -64,13 +70,12 @@ const Footer = () => {
                             />
                         </Link>
                         <p className="text-sm leading-relaxed text-slate-400 max-w-sm">
-                            Sistema para registrar ventas. Lleva el control de lo que vendes,
-                            tus clientes, inventario y reportes en un solo lugar — simple y claro.
+                            {blurb}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3">
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                 <Link
-                                    to="/register"
+                                    to={registerTo}
                                     className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:bg-[#00b067] transition-colors"
                                 >
                                     Empezar gratis
@@ -94,10 +99,10 @@ const Footer = () => {
                             El sistema
                         </h4>
                         <ul className="space-y-2.5 text-sm">
-                            {LANDING_SECTIONS.map(({ id, label }) => (
+                            {sections.map(({ id, label }) => (
                                 <li key={id}>
                                     <a
-                                        href={landingSectionHref(id)}
+                                        href={sectionHref(id)}
                                         className="text-slate-300 hover:text-primary transition-colors"
                                     >
                                         {label}

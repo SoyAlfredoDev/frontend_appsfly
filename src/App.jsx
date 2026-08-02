@@ -15,6 +15,7 @@ import AdminProtectedView from "./components/AdminProtectedView.jsx";
 
 /* Public pages */
 import HomePage from "./pages/HomePage";
+import OpticsLandingPage from "./pages/OpticsLandingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
@@ -22,6 +23,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import TermsPage from "./pages/TermsPage.jsx";
 import PrivacyPage from "./pages/PrivacyPage.jsx";
 import AboutUsPage from "./pages/web/us/AboutUsPage.jsx";
+import { isOpticsPromoHost } from "./utils/opticsPromoHost.js";
 
 /* Dashboards */
 import DashboardPage from "./pages/DashboardPage";
@@ -112,6 +114,13 @@ import PlatformOwnerProtectedView from "./components/PlatformOwnerProtectedView.
 import SubscriptionPaymentReturnPage from "./pages/dashboard/SubscriptionPaymentReturnPage.jsx";
 import OfflineScreen from "./components/pwa/OfflineScreen.jsx";
 
+function PublicHome() {
+  if (isOpticsPromoHost()) {
+    return <OpticsLandingPage basePath="/" />;
+  }
+  return <HomePage />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -124,7 +133,11 @@ function App() {
             <PaymentModalProvider>
             <Routes>
               {/* Public */}
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<PublicHome />} />
+              <Route
+                path="/optica"
+                element={<OpticsLandingPage basePath="/optica" />}
+              />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/logout" element={<LogoutPage />} />
@@ -214,7 +227,7 @@ function App() {
                 </Route>
               </Route>
 
-              <Route path="*" element={<HomePage />} />
+              <Route path="*" element={<PublicHome />} />
             </Routes>
             </PaymentModalProvider>
             <Analytics />

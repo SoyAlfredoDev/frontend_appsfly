@@ -10,7 +10,9 @@ export default function RouteSeo() {
     const { pathname } = useLocation();
 
     useEffect(() => {
-        const seo = resolveSeoForPath(pathname);
+        const seo = resolveSeoForPath(pathname, {
+            hostname: typeof window !== "undefined" ? window.location.hostname : "",
+        });
         applySeo(seo);
     }, [pathname]);
 

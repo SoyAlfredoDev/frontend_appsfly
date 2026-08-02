@@ -116,7 +116,11 @@ function PlanCardSkeleton() {
     );
 }
 
-export default function PlansHome() {
+export default function PlansHome({
+    registerTo = "/register",
+    heading = null,
+    subtitle = null,
+}) {
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -149,11 +153,15 @@ export default function PlansHome() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="text-center mb-12 md:mb-16">
                     <h2 className="text-3xl md:text-4xl font-bold text-[#021f41] font-display mb-3">
-                        💎 Planes <GradientText>Flexibles</GradientText>
+                        {heading ?? (
+                            <>
+                                💎 Planes <GradientText>Flexibles</GradientText>
+                            </>
+                        )}
                     </h2>
                     <p className="text-gray-500 text-base max-w-2xl mx-auto">
-                        🎁 Plan Básico a {formatPrice(BASIC_MONTHLY_PRICE)} neto/mes (+ IVA) con 2 meses gratis,
-                        o Plan Profesional a {formatPrice(39990)} neto/mes (+ IVA).
+                        {subtitle ??
+                            `🎁 Plan Básico a ${formatPrice(BASIC_MONTHLY_PRICE)} neto/mes (+ IVA) con 2 meses gratis, o Plan Profesional a ${formatPrice(39990)} neto/mes (+ IVA).`}
                     </p>
                 </div>
 
@@ -237,7 +245,7 @@ export default function PlansHome() {
                                 </ul>
 
                                 <MotionLink
-                                    to="/register"
+                                    to={registerTo}
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     className={`w-full py-3.5 rounded-xl font-bold text-center flex justify-center items-center transition-all font-display tracking-wide text-sm ${

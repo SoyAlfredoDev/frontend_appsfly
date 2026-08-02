@@ -5,9 +5,13 @@ import { SUPPORT_WHATSAPP_PHONE } from '../../constants/supportContact.js';
 
 export default function FloatingWhatsApp({
     phone = SUPPORT_WHATSAPP_PHONE,
+    message = '',
     className = '',
 }) {
-    const href = `https://wa.me/${phone.replace(/\D/g, '')}`;
+    const digits = phone.replace(/\D/g, '');
+    const href = message
+        ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+        : `https://wa.me/${digits}`;
 
     return (
         <div

@@ -3,6 +3,11 @@
  * URLs absolutas requeridas por WhatsApp / Facebook / LinkedIn para og:image.
  */
 
+import {
+    isOpticsPromoHost,
+    OPTICS_PROMO_SITE_URL,
+} from "../utils/opticsPromoHost.js";
+
 const trimTrailingSlash = (url) => String(url || "").replace(/\/$/, "");
 
 /** URL pública canónica del sitio (producción: VITE_FRONTEND_URL). */
@@ -25,9 +30,22 @@ export const DEFAULT_SEO = {
     siteName: "AppsFly",
 };
 
+export const OPTICS_LANDING_SEO = {
+    title: "AppsFly Óptica | Sistema de gestión para ópticas en Chile",
+    description:
+        "Software para ópticas: recetas OD/OI, órdenes de trabajo, laboratorios, inventario de lentes y ventas. Prueba AppsFly gratis 2 meses o solicita información.",
+    keywords:
+        "sistema para ópticas chile, software óptica, gestión recetas ópticas, órdenes de trabajo óptica, laboratorio óptico software, inventario lentes armazones, appsfly óptica, erp óptica",
+    ogType: "website",
+    twitterCard: "summary_large_image",
+    locale: "es_CL",
+    siteName: "AppsFly Óptica",
+};
+
 /** Rutas públicas indexables (whitelist). El resto recibe noindex,nofollow. */
 export const PUBLIC_INDEXED_ROUTES = new Set([
     "/",
+    "/optica",
     "/about-us",
     "/terminos",
     "/politicas",
@@ -37,6 +55,7 @@ export const PUBLIC_INDEXED_ROUTES = new Set([
 /** Meta específica por ruta pública (opcional). */
 export const ROUTE_SEO_OVERRIDES = {
     "/": DEFAULT_SEO,
+    "/optica": OPTICS_LANDING_SEO,
     "/about-us": {
         ...DEFAULT_SEO,
         title: "AppsFly | Conoce nuestra plataforma de gestión para ópticas",
@@ -65,17 +84,41 @@ export function isPublicIndexedRoute(pathname) {
     return PUBLIC_INDEXED_ROUTES.has(pathname);
 }
 
-export function resolveSeoForPath(pathname) {
+/**
+ * @param {string} pathname
+ * @param {{ hostname?: string }} [options]
+ */
+export function resolveSeoForPath(pathname, options = {}) {
+    const hostname =
+        options.hostname ??
+        (typeof window !== "undefined" ? window.location.hostname : "");
+    const opticsHost = isOpticsPromoHost(hostname);
+
+    if (opticsHost && (pathname === "/" || pathname === "/optica")) {
+        return {
+            ...OPTICS_LANDING_SEO,
+            canonicalUrl: `${OPTICS_PROMO_SITE_URL}/`,
+            robots: "index, follow",
+            ogImage: `${OPTICS_PROMO_SITE_URL}${OG_IMAGE_PATH}`,
+            ogUrl: `${OPTICS_PROMO_SITE_URL}/`,
+        };
+    }
+
     const override = ROUTE_SEO_OVERRIDES[pathname];
     const base = override ?? DEFAULT_SEO;
     const canonicalPath = pathname === "/" ? "" : pathname;
-    const canonicalUrl = `${SITE_URL}${canonicalPath}`;
+    const siteUrl =
+        pathname === "/optica" ? OPTICS_PROMO_SITE_URL : SITE_URL;
+    const canonicalUrl =
+        pathname === "/optica"
+            ? `${OPTICS_PROMO_SITE_URL}/`
+            : `${SITE_URL}${canonicalPath}`;
 
     return {
         ...base,
         canonicalUrl,
         robots: isPublicIndexedRoute(pathname) ? "index, follow" : "noindex, nofollow",
-        ogImage: OG_IMAGE_URL,
+        ogImage: pathname === "/optica" ? `${siteUrl}${OG_IMAGE_PATH}` : OG_IMAGE_URL,
         ogUrl: canonicalUrl,
     };
 }
