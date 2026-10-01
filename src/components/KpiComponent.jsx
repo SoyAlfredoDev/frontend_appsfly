@@ -13,6 +13,8 @@ export default function KpiComponent({
   onClick,
 }) {
   const isClickable = Boolean(to || onClick);
+  const numericValue = Number(value);
+  const hasValue = value !== null && value !== undefined && Number.isFinite(numericValue);
 
   const cardBody = (
     <>
@@ -27,15 +29,15 @@ export default function KpiComponent({
         <span className="text-xl sm:text-2xl font-bold text-dark text-right">
           {loading ? (
             <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          ) : value === null ? (
+          ) : !hasValue ? (
             <FaExclamationCircle className="text-amber-500 text-2xl" />
           ) : isCurrency ? (
-            value.toLocaleString("es-CL", {
+            numericValue.toLocaleString("es-CL", {
               style: "currency",
               currency: "CLP",
             })
           ) : (
-            value
+            numericValue
           )}
         </span>
       </div>

@@ -229,9 +229,12 @@ export default function AddCustomerModal({
             handleResetForm();
         } catch (error) {
             console.error(error);
+            const serverMessage = error.response?.data?.message || error.response?.data?.error;
             const msg = error.message?.includes("Cloudinary")
                 ? error.message
-                : 'No se pudo procesar la solicitud. Verifica los datos e inténtalo de nuevo.';
+                : serverMessage || (error.response?.status >= 500
+                    ? 'El servidor no pudo guardar el cliente. Tus datos siguen en el formulario; intenta nuevamente.'
+                    : 'No se pudo procesar la solicitud. Revisa los campos indicados.');
             toast.error('Error', msg);
         } finally {
             setIsLoading(false);

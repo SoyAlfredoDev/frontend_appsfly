@@ -55,26 +55,37 @@ export default function UsersDashboardPage() {
       const [year, month, day] = today.split("-").map(Number);
 
       const dayPromise = getDaySales(day, month, year)
-        .then((res) => setDaySales(res.data))
-        .catch((error) => console.error("Error al obtener las ventas del dia:", error));
+        .then((res) => setDaySales(Number(res.data ?? 0)))
+        .catch((error) => {
+          setDaySales(null);
+          console.error("Error al obtener las ventas del dia:", error);
+        });
 
       const monthPromise = getMonthlySalesNow()
         .then((res) => {
-          setMonthlySales(res.data.saleTotal);
-          if (isTenantAdmin) setSalePendingAmount(res.data.salePendingAmount);
+          setMonthlySales(Number(res.data?.saleTotal ?? 0));
+          if (isTenantAdmin) setSalePendingAmount(Number(res.data?.salePendingAmount ?? 0));
         })
-        .catch((error) => console.error("Error al obtener las ventas mensuales:", error));
+        .catch((error) => {
+          setMonthlySales(null);
+          if (isTenantAdmin) setSalePendingAmount(null);
+          console.error("Error al obtener las ventas mensuales:", error);
+        });
 
       const countPromise = countSalesMonthRequest(month, year)
-        .then((res) => setCountSalesMonth(res.data))
-        .catch((error) => console.error("Error al obtener el conteo de ventas mensuales:", error));
+        .then((res) => setCountSalesMonth(Number(res.data ?? 0)))
+        .catch((error) => {
+          setCountSalesMonth(null);
+          console.error("Error al obtener el conteo de ventas mensuales:", error);
+        });
 
       const cashPromise = isTenantAdmin
         ? calculateTotalAvailableByPaymentMethod(2)
-            .then((totalCash) => setCashAvailable(totalCash))
-            .catch((error) =>
-              console.error("Error al obtener el total de efectivo disponible:", error),
-            )
+            .then((totalCash) => setCashAvailable(Number(totalCash ?? 0)))
+            .catch((error) => {
+              setCashAvailable(null);
+              console.error("Error al obtener el total de efectivo disponible:", error);
+            })
         : Promise.resolve();
 
       await Promise.all([dayPromise, monthPromise, countPromise, cashPromise]);

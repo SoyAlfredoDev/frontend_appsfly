@@ -47,6 +47,7 @@ export default function CustomerPage() {
     const debouncedSearch = useDebouncedValue(search, 350);
     const [page, setPage] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [reloadToken, setReloadToken] = useState(0);
@@ -59,6 +60,7 @@ export default function CustomerPage() {
         let cancelled = false;
         const fetchCustomers = async () => {
             setIsLoading(true);
+            setLoadError(null);
             try {
                 const result = await getCustomers({
                     page,
@@ -71,6 +73,14 @@ export default function CustomerPage() {
                 if (paging) setPagination(paging);
             } catch (error) {
                 console.error("Error fetching customers:", error);
+                if (!cancelled) {
+                    setCustomers([]);
+                    setLoadError(
+                        error.response?.data?.message ||
+                        error.response?.data?.error ||
+                        "No pudimos cargar los clientes. Intenta nuevamente.",
+                    );
+                }
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
@@ -234,8 +244,8 @@ export default function CustomerPage() {
                                     <ExpenseTableEmpty
                                         colSpan={columns.length}
                                         icon={<FaUsers className="text-4xl text-gray-300" />}
-                                        title={search ? "No se encontraron clientes con ese criterio." : "No hay clientes registrados."}
-                                        hint={!search ? 'Usa el botón "Nuevo Cliente" para registrar el primero.' : undefined}
+                                        title={loadError || (search ? "No se encontraron clientes con ese criterio." : "No hay clientes registrados.")}
+                                        hint={loadError ? "Revisa el estado del negocio o vuelve a intentarlo." : (!search ? 'Usa el botón "Nuevo Cliente" para registrar el primero.' : undefined)}
                                     />
                                 }
                             />

@@ -150,9 +150,16 @@ export default function RegisterBusinessPage() {
 
                 navigate("/dashboard");
             } else if (businessCreated.status === 202) {
-                await reloadTenantContext(user?.userId);
-                toast.success("Tu negocio se ha registrado", "pero requiere revisión adicional.");
-                navigate("/dashboard");
+                const failedStep = businessCreated.data?.processStatus?.lastError;
+                setError(
+                    failedStep
+                        ? `El espacio de trabajo no pudo terminar de configurarse. Detalle: ${failedStep}`
+                        : "El espacio de trabajo todavía se está configurando. Intenta nuevamente en unos minutos o contacta a soporte.",
+                );
+                toast.warning(
+                    "Configuración incompleta",
+                    "El negocio fue registrado, pero aún no está listo para operar.",
+                );
             } else {
                 setError(businessCreated.data?.message || "Ocurrió un error inesperado.");
             }
