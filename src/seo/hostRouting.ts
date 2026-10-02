@@ -1,4 +1,15 @@
-import { INDEXABLE_PATHS } from './publicSeo'
+// El middleware debe mantener este catálogo liviano: importar publicSeo
+// ejecuta código de prerender de Vite dentro del runtime de Vercel.
+const PUBLIC_PATHS = new Set([
+  '/',
+  '/software-para-opticas',
+  '/precios',
+  '/optica',
+  '/about-us',
+  '/terminos',
+  '/politicas',
+  '/register',
+])
 
 /** Prefijos de la aplicación autenticada. Una ruta nueva en App.jsx tiene que entrar aquí. */
 export const APP_PATH_PREFIXES = [
@@ -58,7 +69,7 @@ export function classifyRequestPath(pathname: string): RequestClass {
   const path = normalizePath(pathname)
   if (path === '/') return 'static'
   if (/\.[a-z0-9]+$/i.test(path)) return 'static'
-  if (INDEXABLE_PATHS.has(path)) return 'static'
+  if (PUBLIC_PATHS.has(path)) return 'static'
   if (APP_PATH_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) {
     return 'app'
   }
