@@ -14,7 +14,7 @@ export const InvitationEmail = ({
     const actionUrl =
         registerUrl ||
         loginUrl ||
-        `${import.meta.env.VITE_FRONTEND_URL || "https://appsfly.app"}/register`;
+        `${import.meta.env.VITE_FRONTEND_URL || "https://appsfly.cl"}/register`;
     const roleLabel = getTenantRoleLabel(role);
 
     return (

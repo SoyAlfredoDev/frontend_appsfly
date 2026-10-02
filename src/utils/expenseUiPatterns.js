@@ -114,13 +114,13 @@ export const REGISTER_CUSTOMER_DROPDOWN =
   "absolute z-[60] left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto";
 
 export const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.04 } },
 };
 
 export const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 },
+  hidden: { y: 8 },
+  visible: { y: 0, transition: { duration: 0.2, ease: "easeOut" } },
 };
 
 /** Texto contador bajo título de sección — mismo patrón que Gastos */

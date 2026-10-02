@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import InputFloatingComponent from '../inputs/InputFloatingComponent.jsx';
-import { createExpense } from '../../api/expense.js'
+import { createExpense, getExpenseCategories } from '../../api/expense.js'
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { FaPlus, FaTimes, FaCloudUploadAlt, FaFileImage } from "react-icons/fa";
 import { useToast } from '../../context/ToastContext.jsx';
 import { getTodayBusinessDate } from '../../utils/businessTime.js';
 import { useAuth } from '../../context/authContext.jsx';
+import ExpenseCategoryField from '../expenses/ExpenseCategoryField.tsx';
+import { toExpenseAmount, validateExpenseDraft } from '../../utils/expenseForm.ts';
 
 export default function AddExpenseModal({ onExpenseAdded }) {
     const toast = useToast();
@@ -21,9 +23,13 @@ export default function AddExpenseModal({ onExpenseAdded }) {
         expenseDescription: "",
         expensePaymentMethod: "2",
         expenseAmount: "", // Changed to empty string for better input handling
+        expenseCategoryId: "",
         expenseDate: getTodayBusinessDate(business),
         expenseImageUrl: null,
     });
+    const [categories, setCategories] = useState([]);
+    const [categoryStatus, setCategoryStatus] = useState("loading");
+    const [categoryError, setCategoryError] = useState(null);
 
     const [fileToUpload, setFileToUpload] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -44,6 +50,31 @@ export default function AddExpenseModal({ onExpenseAdded }) {
             setData((prev) => ({ ...prev, expenseImageUrl: "" }));
         }
     };
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        let cancelled = false;
+        setCategoryStatus("loading");
+        setCategoryError(null);
+
+        getExpenseCategories()
+            .then((response) => {
+                if (cancelled) return;
+                setCategories(response.data?.categories ?? []);
+                setCategoryStatus("ready");
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setCategories([]);
+                setCategoryStatus("error");
+                setCategoryError("No se pudieron cargar las categorías.");
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen]);
 
     const openModal = () => setIsOpen(true);
     const closeModal = () => {
@@ -100,14 +131,17 @@ export default function AddExpenseModal({ onExpenseAdded }) {
         try {
             const finalData = {
                 ...expenseData,
-                expenseAmount: parseFloat(expenseData.expenseAmount),
-                expensePaymentMethod: parseInt(expenseData.expensePaymentMethod)
+                expenseAmount: toExpenseAmount(expenseData.expenseAmount),
+                expensePaymentMethod: parseInt(expenseData.expensePaymentMethod, 10)
             };
             const res = await createExpense(finalData);
             return res;
         } catch (error) {
             console.error("Error al crear el gasto:", error);
-            return { status: 500, message: "Error de API al crear el gasto" };
+            return {
+                status: error?.response?.status ?? 500,
+                message: error?.response?.data?.error || "Error de API al crear el gasto",
+            };
         };
     };
 
@@ -118,11 +152,17 @@ export default function AddExpenseModal({ onExpenseAdded }) {
         setLoading(true);
         try {
             // 1. VALIDATION
-            if (data.expenseDescription.trim() === "" || !data.expenseAmount || parseFloat(data.expenseAmount) <= 0) {
-                toast.info('Campos incompletos', 'Por favor, complete la Descripción y el Monto.');
+            const draftError = validateExpenseDraft(data);
+            if (draftError) {
+                toast.info('Campos incompletos', draftError);
                 setLoading(false);
                 return;
-            };
+            }
+            if (categoryStatus !== "ready") {
+                toast.error('Categorías', categoryError || 'Espera a que carguen las categorías.');
+                setLoading(false);
+                return;
+            }
 
             let imageUrl = "";
 
@@ -156,6 +196,7 @@ export default function AddExpenseModal({ onExpenseAdded }) {
                     expenseDescription: "",
                     expensePaymentMethod: "2",
                     expenseAmount: "",
+                    expenseCategoryId: "",
                     expenseDate: getTodayBusinessDate(business),
                     expenseImageUrl: null
                 });
@@ -166,7 +207,7 @@ export default function AddExpenseModal({ onExpenseAdded }) {
                 if (onExpenseAdded) onExpenseAdded();
 
             } else {
-                toast.error('Error', 'No se pudo agregar el gasto. Por favor, intente nuevamente.');
+                toast.error('Error', res?.message || 'No se pudo agregar el gasto. Por favor, intente nuevamente.');
             };
         } catch (error) {
             console.error("Error general al procesar el gasto:", error);
@@ -204,7 +245,7 @@ export default function AddExpenseModal({ onExpenseAdded }) {
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-2xl bg-white rounded-xl shadow-xl overflow-hidden"
+                            className="relative w-full max-w-3xl bg-white rounded-xl shadow-xl overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Header */}
@@ -220,8 +261,8 @@ export default function AddExpenseModal({ onExpenseAdded }) {
 
                             {/* Body */}
                             <div className="p-6 space-y-6">
-                                {/* Fila 1: Fecha y Método de Pago */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Fila 1: Fecha, categoría y método de pago */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
                                         <InputFloatingComponent
                                             label="Fecha del Gasto"
@@ -233,6 +274,15 @@ export default function AddExpenseModal({ onExpenseAdded }) {
                                             readOnly={true}
                                         />
                                     </div>
+                                    <ExpenseCategoryField
+                                        categories={categories}
+                                        value={data.expenseCategoryId}
+                                        onChange={(expenseCategoryId) =>
+                                            setData((prev) => ({ ...prev, expenseCategoryId }))
+                                        }
+                                        status={categoryStatus}
+                                        errorMessage={categoryError}
+                                    />
                                     <div className="relative">
                                         <select
                                             name="expensePaymentMethod"
@@ -273,6 +323,8 @@ export default function AddExpenseModal({ onExpenseAdded }) {
                                             name="expenseAmount"
                                             value={data.expenseAmount}
                                             placeholder="0"
+                                            min="1"
+                                            step="1"
                                             onChange={handleOnChange}
                                         />
                                     </div>

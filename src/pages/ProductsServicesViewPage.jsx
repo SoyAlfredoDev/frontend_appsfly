@@ -9,6 +9,7 @@ import formatCurrency from "../utils/formatCurrency";
 import formatDate from "../utils/formatDate";
 import { useToast } from "../context/ToastContext";
 import PageContainer from "../components/layout/PageContainer.jsx";
+import { DetailFieldsSkeleton, TableRowsSkeleton } from "../components/ui/DataSkeleton.tsx";
 import AddProductModal from "../components/modals/AddProductModal.jsx";
 import useTenantPermissions from "../hooks/useTenantPermissions.js";
 
@@ -155,18 +156,26 @@ export default function ProductsServicesViewPage() {
 
     // Animation Variants
     const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.04 } }
     };
     const itemVariants = {
-        hidden: { opacity: 0, y: 10 },
-        visible: { opacity: 1, y: 0 }
+        hidden: { y: 8 },
+        visible: { y: 0 }
     };
 
     if (loading) return (
         <PageContainer>
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="space-y-6">
+                <button
+                    onClick={() => navigate('/products_services')}
+                    className="flex items-center gap-2 text-gray-400 hover:text-dark transition-colors text-sm font-medium"
+                >
+                    <FaArrowLeft /> Volver al catálogo
+                </button>
+                <h1 className="text-3xl font-bold text-dark font-display tracking-wide">Producto</h1>
+                <DetailFieldsSkeleton label="Cargando producto" />
+                <TableRowsSkeleton label="Cargando movimientos del producto" />
             </div>
         </PageContainer>
     );

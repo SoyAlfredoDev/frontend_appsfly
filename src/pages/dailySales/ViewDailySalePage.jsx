@@ -24,6 +24,8 @@ import {
 import { getDailySaleDetail } from "../../api/dailySales.js";
 import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import ExpensePageLayout, { ExpenseAnimatedSection } from "../../components/ui/ExpensePageLayout.jsx";
+import DataErrorPanel from "../../components/ui/DataErrorPanel.tsx";
+import { DetailFieldsSkeleton, TableRowsSkeleton } from "../../components/ui/DataSkeleton.tsx";
 import ExpenseTableCard, { ExpenseTableScroll } from "../../components/ui/ExpenseTableCard.jsx";
 import {
   KPI_CARD,
@@ -54,21 +56,28 @@ export default function ViewDailySalePage() {
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [retryToken, setRetryToken] = useState(0);
 
   useAbortEffect((signal) => {
     const fetchDetail = async () => {
       try {
         setLoading(true);
+        setLoadError("");
         const res = await getDailySaleDetail(id, { signal });
         setDetail(res.data);
       } catch (error) {
-        if (!isAbortError(error)) console.error("Error fetching detail:", error);
+        if (!isAbortError(error)) {
+          console.error("Error fetching detail:", error);
+          setDetail(null);
+          setLoadError("No se pudo cargar el detalle del cierre.");
+        }
       } finally {
         if (!signal.aborted) setLoading(false);
       }
     };
     fetchDetail();
-  }, [id]);
+  }, [id, retryToken]);
 
   const closure = detail?.closure;
   const totals = detail?.totals;
@@ -159,14 +168,31 @@ export default function ViewDailySalePage() {
     },
   };
 
-  if (loading) {
+  const backLink = (
+    <Link
+      to="/sales/dailySales"
+      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+    >
+      <FaArrowLeft /> Volver
+    </Link>
+  );
+
+  if (loading || loadError) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-gray-500">Cargando detalle del cierre...</p>
-        </div>
-      </div>
+      <ExpensePageLayout
+        title="Detalle de Cierre Diario"
+        subtitle={loading ? "Los totales aparecen en cuanto responde el servidor" : "No se pudo mostrar el cierre"}
+        actions={backLink}
+      >
+        {loading ? (
+          <div className="space-y-4">
+            <DetailFieldsSkeleton label="Cargando detalle del cierre" />
+            <TableRowsSkeleton label="Cargando ventas del cierre" />
+          </div>
+        ) : (
+          <DataErrorPanel message={loadError} onRetry={() => setRetryToken((value) => value + 1)} />
+        )}
+      </ExpensePageLayout>
     );
   }
 

@@ -11,7 +11,11 @@ import WhyHome from './web/WhyHome.jsx';
 import NewsLetterHome from './web/NewsLetterHome.jsx';
 import Footer from '../components/FooterComponent.jsx';
 import FloatingWhatsApp from '../components/web/FloatingWhatsApp.jsx';
+import FaqSection from '../components/seo/FaqSection.tsx';
+import { requirePublicPage } from '../seo/publicSeo.ts';
 import { SUPPORT_WHATSAPP_PHONE } from '../constants/supportContact.js';
+
+const homeFaqs = requirePublicPage('/').faqs;
 
 const HomePage = () => { 
     return (
@@ -54,6 +58,8 @@ const HomePage = () => {
                 <div id="planes" className="scroll-mt-20">
                     <PlansHome />
                 </div>
+
+                <FaqSection faqs={homeFaqs} />
 
                 <div id="newsletter" className="scroll-mt-20">
                     <NewsLetterHome />

@@ -3,9 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import { FaArrowLeft, FaPrint } from "react-icons/fa";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { getPurchaseCertificateById } from "../../api/purchaseCertificates.js";
-import { useToast } from "../../context/ToastContext.jsx";
 import useReceiptBusiness from "../../hooks/useReceiptBusiness.js";
 import ExpensePageLayout from "../../components/ui/ExpensePageLayout.jsx";
+import DataErrorPanel from "../../components/ui/DataErrorPanel.tsx";
+import { DetailFieldsSkeleton } from "../../components/ui/DataSkeleton.tsx";
 import EditPurchaseCertificateModal from "../../components/modals/EditPurchaseCertificateModal.jsx";
 import PurchaseCertificatePDF from "../../components/Printables/PurchaseCertificatePDF.jsx";
 import {
@@ -18,20 +19,23 @@ import { PRIMARY_BTN } from "../../utils/expenseUiPatterns.js";
 
 export default function PurchaseCertificateViewPage() {
     const { id } = useParams();
-    const toast = useToast();
     const receiptBusiness = useReceiptBusiness();
     const [certificate, setCertificate] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const load = async () => {
         setIsLoading(true);
+        setLoadError("");
         try {
             const { data } = await getPurchaseCertificateById(id);
             setCertificate(data);
+            if (!data) setLoadError("No se encontró el certificado.");
         } catch (error) {
             console.error(error);
-            toast.error("Error", "No se pudo cargar el certificado.");
+            setCertificate(null);
+            setLoadError(error.response?.data?.message || "No se pudo cargar el certificado.");
         } finally {
             setIsLoading(false);
         }
@@ -95,10 +99,10 @@ export default function PurchaseCertificateViewPage() {
                 </div>
             }
         >
-            {isLoading || !certificate ? (
-                <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">
-                    Cargando...
-                </div>
+            {isLoading ? (
+                <DetailFieldsSkeleton label="Cargando certificado" />
+            ) : !certificate ? (
+                <DataErrorPanel message={loadError || "No se encontró el certificado."} onRetry={load} />
             ) : (
                 <div className="space-y-4">
                     <div className="bg-white rounded-xl border border-gray-100 p-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">

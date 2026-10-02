@@ -115,6 +115,10 @@ import AgentTasksAdminPage from "./pages/admin/AgentTasksAdminPage.jsx";
 import PlatformOwnerProtectedView from "./components/PlatformOwnerProtectedView.jsx";
 import SubscriptionPaymentReturnPage from "./pages/dashboard/SubscriptionPaymentReturnPage.jsx";
 import OfflineScreen from "./components/pwa/OfflineScreen.jsx";
+import SeoJsonLd from "./components/seo/SeoJsonLd.tsx";
+import NotFoundPage from "./pages/web/NotFoundPage.tsx";
+import SoftwareOpticasPage from "./pages/web/SoftwareOpticasPage.tsx";
+import PreciosPage from "./pages/web/PreciosPage.tsx";
 
 function PublicHome() {
   if (isOpticsPromoHost()) {
@@ -131,6 +135,7 @@ function App() {
           <BrowserRouter>
             <AnnouncementProvider>
             <RouteSeo />
+            <SeoJsonLd />
             <OfflineScreen />
             <PaymentModalProvider>
             <Routes>
@@ -151,6 +156,8 @@ function App() {
               <Route path="/terminos" element={<TermsPage />} />
               <Route path="/politicas" element={<PrivacyPage />} />
               <Route path="/about-us" element={<AboutUsPage />} />
+              <Route path="/software-para-opticas" element={<SoftwareOpticasPage />} />
+              <Route path="/precios" element={<PreciosPage />} />
               <Route path="/users/:id/confirm-email" element={<ConfirmAccountPage />} />
               <Route path="/prospect-unsubscribe/:token" element={<ProspectUnsubscribePage />} />
               <Route path="/public/receipt/:token" element={<PublicSaleReceiptPage />} />
@@ -231,7 +238,7 @@ function App() {
                 </Route>
               </Route>
 
-              <Route path="*" element={<PublicHome />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
             </PaymentModalProvider>
             <Analytics />

@@ -16,6 +16,7 @@ import {
 import formatCurrency from "../utils/formatCurrency.js";
 import formatDate from "../utils/formatDate.js";
 import PageContainer, { PageHeader } from "../components/layout/PageContainer.jsx";
+import DataErrorPanel from "../components/ui/DataErrorPanel.tsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../context/ConfirmationContext.jsx";
 import {
@@ -109,10 +110,12 @@ export default function ExpensesPage() {
 
     return expenses.filter((expense) => {
       const description = expense?.expenseDescription?.toLowerCase() ?? "";
+      const category = expense?.category?.expenseCategoryName?.toLowerCase() ?? "";
       const userName = `${expense?.user?.userFirstName ?? ""} ${expense?.user?.userLastName ?? ""}`.toLowerCase();
       const payment = getPaymentMethodLabel(expense?.expensePaymentMethod).toLowerCase();
       return (
         description.includes(query) ||
+        category.includes(query) ||
         userName.includes(query) ||
         payment.includes(query)
       );
@@ -134,33 +137,16 @@ export default function ExpensesPage() {
       : 0;
 
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: {},
     visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05 },
+      transition: { staggerChildren: 0.04 },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0 },
+    hidden: { y: 8 },
+    visible: { y: 0 },
   };
-
-  if (error) {
-    return (
-      <PageContainer>
-        <div className="flex justify-center items-center min-h-screen ">
-          <div
-            className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg relative max-w-md"
-            role="alert"
-          >
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">{error}</span>
-          </div>
-        </div>
-      </PageContainer>
-    );
-  }
 
   return (
     <PageContainer>
@@ -199,6 +185,10 @@ export default function ExpensesPage() {
             }
           />
 
+          {error ? (
+            <DataErrorPanel message={error} onRetry={fetchData} />
+          ) : (
+          <>
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Motion.div
@@ -275,7 +265,7 @@ export default function ExpensesPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar por descripción, usuario..."
+                  placeholder="Buscar por descripción, categoría, usuario..."
                   className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm shadow-sm"
                 />
               </div>
@@ -287,6 +277,7 @@ export default function ExpensesPage() {
                   <tr>
                     <th className="px-6 py-4">Fecha</th>
                     <th className="px-6 py-4">Descripción</th>
+                    <th className="px-6 py-4">Categoría</th>
                     <th className="px-6 py-4">Método de pago</th>
                     <th className="px-6 py-4">Monto</th>
                     <th className="px-6 py-4">Usuario</th>
@@ -297,7 +288,7 @@ export default function ExpensesPage() {
                   <AnimatePresence mode="wait">
                     {loading ? (
                       <tr key="loading">
-                        <td colSpan="6" className="px-6 py-12 text-center">
+                        <td colSpan="7" className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center justify-center gap-3">
                             <div className="animate-spin h-8 w-8 border-2 border-primary rounded-full border-t-transparent" />
                             <p className="text-gray-500 text-sm">
@@ -308,7 +299,7 @@ export default function ExpensesPage() {
                       </tr>
                     ) : filteredExpenses.length === 0 ? (
                       <tr key="empty">
-                        <td colSpan="6" className="px-6 py-12 text-center">
+                        <td colSpan="7" className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center justify-center gap-3 text-gray-500">
                             <FaMoneyBillWave className="text-4xl text-gray-300" />
                             <p className="text-sm font-medium">
@@ -339,6 +330,11 @@ export default function ExpensesPage() {
                           <td className="px-6 py-4 text-gray-800 font-medium text-sm max-w-xs">
                             <span className="line-clamp-2">
                               {expense?.expenseDescription || "—"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                              {expense?.category?.expenseCategoryName || "Sin categoría"}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -398,6 +394,8 @@ export default function ExpensesPage() {
               </table>
             </div>
           </Motion.div>
+          </>
+          )}
         </Motion.div>
 
       <ViewExpenseReceiptModal

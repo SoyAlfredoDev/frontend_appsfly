@@ -5,6 +5,8 @@ import { getLabDispatchById, receiveLabDispatch } from "../../api/labDispatches.
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
 import ExpensePageLayout from "../../components/ui/ExpensePageLayout.jsx";
+import DataErrorPanel from "../../components/ui/DataErrorPanel.tsx";
+import { DetailFieldsSkeleton, TableRowsSkeleton } from "../../components/ui/DataSkeleton.tsx";
 import LabDispatchStatusBadge from "../../components/optics/LabDispatchStatusBadge.jsx";
 import WorkOrderStatusBadge from "../../components/optics/WorkOrderStatusBadge.jsx";
 import { PRIMARY_BTN } from "../../utils/expenseUiPatterns.js";
@@ -16,6 +18,7 @@ export default function LabDispatchViewPage() {
 
     const [dispatch, setDispatch] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [selectedIds, setSelectedIds] = useState([]);
     const [isReceiving, setIsReceiving] = useState(false);
 
@@ -27,13 +30,15 @@ export default function LabDispatchViewPage() {
 
     const fetchDispatch = async () => {
         setIsLoading(true);
+        setLoadError("");
         try {
             const { data } = await getLabDispatchById(id);
             setDispatch(data);
             setSelectedIds([]);
         } catch (error) {
             console.log(error);
-            toast.error("Error", "No se pudo cargar el despacho.");
+            setDispatch(null);
+            setLoadError(error.response?.data?.message || "No se pudo cargar el despacho.");
         } finally {
             setIsLoading(false);
         }
@@ -86,20 +91,33 @@ export default function LabDispatchViewPage() {
         }
     };
 
-    if (isLoading) {
-        return (
-            <ExpensePageLayout title="Despacho a Laboratorio" subtitle="Cargando...">
-                <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin h-10 w-10 border-4 border-primary rounded-full border-t-transparent" />
-                </div>
-            </ExpensePageLayout>
-        );
-    }
+    const backLink = (
+        <Link
+            to="/lab-dispatches"
+            className="flex items-center gap-2 px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-sm font-medium"
+        >
+            <FaArrowLeft /> Volver
+        </Link>
+    );
 
-    if (!dispatch) {
+    if (isLoading || !dispatch) {
         return (
-            <ExpensePageLayout title="Despacho no encontrado">
-                <Link to="/lab-dispatches" className="text-primary hover:underline">Volver al listado</Link>
+            <ExpensePageLayout
+                title="Despacho a Laboratorio"
+                subtitle={isLoading ? "El detalle aparece en cuanto responde el servidor" : "No se pudo mostrar el despacho"}
+                actions={backLink}
+            >
+                {isLoading ? (
+                    <div className="space-y-4">
+                        <DetailFieldsSkeleton label="Cargando despacho" />
+                        <TableRowsSkeleton label="Cargando órdenes del despacho" />
+                    </div>
+                ) : (
+                    <DataErrorPanel
+                        message={loadError || "No se encontró el despacho."}
+                        onRetry={fetchDispatch}
+                    />
+                )}
             </ExpensePageLayout>
         );
     }

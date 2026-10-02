@@ -49,16 +49,16 @@ export default function HeroHomePage() {
                                 variants={itemVariants}
                                 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight mb-6 text-dark leading-[1.08] font-display"
                             >
-                                ✨ AppsFly: tu negocio{' '}
-                                <GradientText>en un solo lugar</GradientText>
+                                AppsFly: sistema para registrar ventas{' '}
+                                <GradientText>en Chile</GradientText>
                             </motion.h1>
 
                             <motion.p
                                 variants={itemVariants}
                                 className="text-lg sm:text-xl text-gray-600 mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed"
                             >
-                                Ventas, inventario, gastos y reportes en una plataforma clara y fácil de usar.
-                                Diseñada para que entiendas tu negocio de un vistazo.
+                                Ventas, inventario y clientes en una plataforma clara, para ópticas,
+                                minimarkets, restaurantes y comercios en Chile.
                             </motion.p>
 
                             <motion.div

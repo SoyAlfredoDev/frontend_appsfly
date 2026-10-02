@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { FaCashRegister, FaMoneyBillWave, FaShoppingCart, FaStore } from 'react-icons/fa';
 import BusinessGallery from './BusinessGallery.jsx';
 import GradientText from '../../components/web/GradientText.jsx';
+import { Link } from 'react-router-dom';
+import { HOME_LEAD, HOME_SUPPORT } from '../../seo/publicSeo.ts';
 
 const HIGHLIGHTS = [
     {
@@ -56,21 +58,17 @@ export default function WhatIsAppsFlyHome() {
                         </span>
 
                         <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-dark leading-tight mb-5">
-                            🏪 ¿Qué es{' '}
+                            ¿Qué es{' '}
                             <GradientText>AppsFly</GradientText>
                             ?
                         </h2>
 
                         <p className="text-gray-600 text-base sm:text-lg leading-relaxed mb-6 max-w-xl mx-auto lg:mx-0">
-                            AppsFly es un sistema de venta pensado para que registres lo que vendes
-                            de forma rápida y ordenada. Cada vez que atiendes a un cliente, dejas
-                            la venta guardada: qué vendiste, cuánto cobraste y cómo pagó.
+                            {HOME_LEAD}
                         </p>
 
                         <p className="text-gray-500 text-sm sm:text-base leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0">
-                            No necesitas ser experto en tecnología. Si vendes todos los días —en una
-                            óptica, un mini market, un restaurante o tu propio emprendimiento— AppsFly
-                            te ayuda a llevar el registro de tus ventas sin complicaciones.
+                            {HOME_SUPPORT}
                         </p>
 
                         <ul className="space-y-4 mb-8 text-left max-w-xl mx-auto lg:mx-0">
@@ -101,6 +99,11 @@ export default function WhatIsAppsFlyHome() {
                                 </span>
                             ))}
                         </div>
+                        <p className="mt-6 text-sm text-slate-500">
+                            <Link to="/software-para-opticas" className="font-semibold text-secondary hover:text-primary">
+                                Software para ópticas en Chile
+                            </Link>
+                        </p>
                     </motion.div>
                 </div>
             </div>

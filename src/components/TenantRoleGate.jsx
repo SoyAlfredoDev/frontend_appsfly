@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import useTenantPermissions from "../hooks/useTenantPermissions.js";
 import { useAuth } from "../context/authContext.jsx";
+import { PageDataSkeleton } from "./ui/DataSkeleton.tsx";
 
 export default function TenantRoleGate() {
     const location = useLocation();
@@ -11,14 +12,7 @@ export default function TenantRoleGate() {
     const { canAccessRoute, isTenantAdmin } = useTenantPermissions();
 
     if (loadingAuth || !tenantAccessReady) {
-        return (
-            <div className="flex min-h-[50vh] items-center justify-center">
-                <div className="inline-flex items-center gap-3 text-sm text-slate-500">
-                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-                    Verificando permisos…
-                </div>
-            </div>
-        );
+        return <PageDataSkeleton label="Verificando permisos" />;
     }
 
     if (!canAccessRoute(location.pathname)) {

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { FaArrowRight } from "react-icons/fa";
 import { OPTICS_PROMO_REGISTER_TO } from "../../../utils/opticsPromoHost.js";
+import { OPTICS_H1, OPTICS_LEAD } from "../../../seo/publicSeo.ts";
 import { SUPPORT_WHATSAPP_URL } from "../../../constants/supportContact.js";
 
 const WHATSAPP_INFO_URL = `${SUPPORT_WHATSAPP_URL}?text=${encodeURIComponent(
@@ -38,12 +39,11 @@ export default function OpticsHero() {
                         </p>
 
                         <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-[4.25rem] font-bold text-white leading-[1.05] tracking-tight mb-6">
-                            El sistema pensado para tu óptica
+                            {OPTICS_H1}
                         </h1>
 
                         <p className="text-base sm:text-lg text-slate-200/90 leading-relaxed mb-10 max-w-xl">
-                            Recetas, ventas, órdenes de trabajo, laboratorios e inventario en un solo
-                            lugar. Prueba gratis o pide información sin compromiso.
+                            {OPTICS_LEAD}
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">

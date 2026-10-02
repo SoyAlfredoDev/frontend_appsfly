@@ -1,13 +1,15 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 export default function PageContainer({ children, className = "" }) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <div className={`page-container ${className}`}>
       <motion.div
         className="page-inner"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        initial={reduceMotion ? false : { y: 6 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
       >
         {children}
       </motion.div>

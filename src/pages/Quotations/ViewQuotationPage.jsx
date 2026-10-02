@@ -17,6 +17,8 @@ import QuotationReceiptPDFContent from '../../components/Printables/QuotationRec
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { motion as Motion } from "framer-motion";
 import PageContainer from "../../components/layout/PageContainer.jsx";
+import DataErrorPanel from "../../components/ui/DataErrorPanel.tsx";
+import { DetailFieldsSkeleton, TableRowsSkeleton } from "../../components/ui/DataSkeleton.tsx";
 import formatName from '../../utils/formatName.js';
 import { isOpticsBusiness } from '../../utils/businessModality.js';
 import { summarizePrescriptionEyes } from '../../components/prescriptions/prescriptionFormDefaults.js';
@@ -182,13 +184,13 @@ export default function ViewQuotationPage() {
     };
 
     const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { duration: 0.5, staggerChildren: 0.1 } }
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.04 } }
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 }
+        hidden: { y: 8 },
+        visible: { y: 0 }
     };
 
     const IVA_RATE = 0.19;
@@ -232,40 +234,23 @@ export default function ViewQuotationPage() {
         toast.success("WhatsApp", "Se abrió el chat con el mensaje de la cotización.");
     };
 
-    if (isLoading) {
+    if (isLoading || loadError) {
         return (
             <PageContainer>
-                <div className="flex h-[50vh] items-center justify-center">
-                    <div className="inline-flex items-center gap-3 text-sm text-slate-500">
-                        <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-                        Cargando cotización…
-                    </div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h1 className="text-2xl font-bold text-gray-900">Detalle de Cotización</h1>
+                    <Link to="/quotations" className="flex items-center gap-2 px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-sm font-medium">
+                        <FaArrowLeft /> Volver
+                    </Link>
                 </div>
-            </PageContainer>
-        );
-    }
-
-    if (loadError) {
-        return (
-            <PageContainer>
-                <div className="flex h-[50vh] flex-col items-center justify-center gap-4 px-4 text-center">
-                    <p className="text-sm text-red-600">{loadError}</p>
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                        <button
-                            type="button"
-                            onClick={searchQuotationById}
-                            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
-                        >
-                            Reintentar
-                        </button>
-                        <Link
-                            to="/quotations"
-                            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 no-underline"
-                        >
-                            Volver al listado
-                        </Link>
+                {isLoading ? (
+                    <div className="space-y-4">
+                        <DetailFieldsSkeleton label="Cargando cotización" />
+                        <TableRowsSkeleton label="Cargando líneas de la cotización" />
                     </div>
-                </div>
+                ) : (
+                    <DataErrorPanel message={loadError} onRetry={searchQuotationById} />
+                )}
             </PageContainer>
         );
     }

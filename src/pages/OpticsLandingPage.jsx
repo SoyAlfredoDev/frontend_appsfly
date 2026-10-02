@@ -10,6 +10,10 @@ import FloatingWhatsApp from "../components/web/FloatingWhatsApp.jsx";
 import { SUPPORT_WHATSAPP_PHONE } from "../constants/supportContact.js";
 import { OPTICS_LANDING_SECTIONS } from "../constants/opticsLandingNavigation.js";
 import { OPTICS_PROMO_REGISTER_TO } from "../utils/opticsPromoHost.js";
+import FaqSection from "../components/seo/FaqSection.tsx";
+import { requirePublicPage } from "../seo/publicSeo.ts";
+
+const opticsFaqs = requirePublicPage("/optica").faqs;
 
 /**
  * Landing promocional para ópticas.
@@ -47,6 +51,11 @@ export default function OpticsLandingPage({ basePath = "/" }) {
                         subtitle="Empieza con 2 meses gratis en el Plan Básico, o elige Profesional si necesitas facturación electrónica e IA."
                     />
                 </div>
+
+                <FaqSection
+                    faqs={opticsFaqs}
+                    intro="Respuestas cortas para quien busca un software de óptica en Chile."
+                />
 
                 <div id="empezar" className="scroll-mt-20">
                     <OpticsFinalCta />

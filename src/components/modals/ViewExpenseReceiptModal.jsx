@@ -133,7 +133,7 @@ export default function ViewExpenseReceiptModal({ isOpen, onClose, expense }) {
               </button>
             </div>
 
-            <div className="px-6 py-3 grid grid-cols-2 sm:grid-cols-4 gap-3 border-b border-gray-100 bg-white shrink-0">
+            <div className="px-6 py-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 border-b border-gray-100 bg-white shrink-0">
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
                   Fecha
@@ -148,6 +148,14 @@ export default function ViewExpenseReceiptModal({ isOpen, onClose, expense }) {
                 </p>
                 <p className="text-sm font-bold text-emerald-600">
                   {formatCurrency(expense.expenseAmount)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
+                  Categoría
+                </p>
+                <p className="text-sm font-medium text-gray-800 truncate">
+                  {expense.category?.expenseCategoryName || "Sin categoría"}
                 </p>
               </div>
               <div>

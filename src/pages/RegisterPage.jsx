@@ -12,6 +12,7 @@ import { useToast } from '../context/ToastContext.jsx'
 import { getRegistrationErrorMessage } from '../utils/apiErrors.js'
 import { v4 as uuidv4 } from 'uuid'
 import { getInvitePreviewRequest } from '../api/userGuest.js'
+import { REGISTER_LEAD } from '../seo/publicSeo.ts'
 
 const validateForm = (data) => ({
   userFirstName: data.userFirstName.trim() !== '',
@@ -227,10 +228,11 @@ export default function RegisterPage() {
       <AuthPageCard
         wide
         title={invitationContext ? 'Crear cuenta con invitación' : 'Crear cuenta nueva'}
+        titleAs="h1"
         subtitle={
           invitationContext?.businessName
             ? `Regístrate para unirte a ${invitationContext.businessName}`
-            : 'Gestiona tu negocio de forma simple'
+            : REGISTER_LEAD
         }
         headerSpacing="mb-6"
         footer={

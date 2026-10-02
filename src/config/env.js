@@ -3,7 +3,7 @@ const isDevelopment = import.meta.env.DEV
 const isProduction = import.meta.env.PROD
 
 const PRODUCTION_API_DEFAULT = 'https://api.appsfly.cl/api'
-const PRODUCTION_FRONTEND_DEFAULT = 'https://appsfly.app'
+const PRODUCTION_FRONTEND_DEFAULT = 'https://appsfly.cl'
 
 function resolveProductionApiUrl() {
   const configured = import.meta.env.VITE_API_URL?.trim()

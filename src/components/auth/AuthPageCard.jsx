@@ -7,6 +7,7 @@ export default function AuthPageCard({
     subtitle,
     wide = false,
     footer,
+    titleAs = "h2",
     children,
     headerSpacing = "mb-8",
     centered = true,
@@ -22,9 +23,15 @@ export default function AuthPageCard({
             {(title || subtitle) && (
                 <div className={`${centered ? "text-center" : ""} ${headerSpacing}`}>
                     {title && (
-                        <h2 className="text-2xl font-bold text-dark font-display tracking-tight">
-                            {title}
-                        </h2>
+                        titleAs === "h1" ? (
+                            <h1 className="text-2xl font-bold text-dark font-display tracking-tight">
+                                {title}
+                            </h1>
+                        ) : (
+                            <h2 className="text-2xl font-bold text-dark font-display tracking-tight">
+                                {title}
+                            </h2>
+                        )
                     )}
                     {subtitle && (
                         <p className="text-slate-500 text-sm mt-2 font-sans">{subtitle}</p>

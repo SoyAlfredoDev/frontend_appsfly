@@ -22,6 +22,8 @@ import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
 import { useAuth } from "../../context/authContext.jsx";
 import ExpensePageLayout from "../../components/ui/ExpensePageLayout.jsx";
+import DataErrorPanel from "../../components/ui/DataErrorPanel.tsx";
+import { DetailFieldsSkeleton, TableRowsSkeleton } from "../../components/ui/DataSkeleton.tsx";
 import WorkOrderStatusBadge from "../../components/optics/WorkOrderStatusBadge.jsx";
 import SendDocumentWhatsAppOption from "../../components/sales/SendDocumentWhatsAppOption.jsx";
 import { WORK_ORDER_STATUS_LABELS, getNextWorkOrderStatuses } from "../../utils/workOrderStatus.js";
@@ -40,6 +42,7 @@ export default function WorkOrderViewPage() {
 
     const [workOrder, setWorkOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [laboratories, setLaboratories] = useState([]);
     const [prescriptions, setPrescriptions] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
@@ -91,6 +94,7 @@ export default function WorkOrderViewPage() {
 
     const fetchWorkOrder = async () => {
         setIsLoading(true);
+        setLoadError("");
         try {
             const { data } = await getWorkOrderById(id);
             setWorkOrder(data);
@@ -101,7 +105,8 @@ export default function WorkOrderViewPage() {
             });
         } catch (error) {
             console.log(error);
-            toast.error("Error", "No se pudo cargar la orden de trabajo.");
+            setWorkOrder(null);
+            setLoadError(error.response?.data?.message || "No se pudo cargar la orden de trabajo.");
         } finally {
             setIsLoading(false);
         }
@@ -220,20 +225,33 @@ export default function WorkOrderViewPage() {
         }
     };
 
-    if (isLoading) {
-        return (
-            <ExpensePageLayout title="Orden de Trabajo" subtitle="Cargando...">
-                <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin h-10 w-10 border-4 border-primary rounded-full border-t-transparent" />
-                </div>
-            </ExpensePageLayout>
-        );
-    }
+    const backLink = (
+        <Link
+            to="/work-orders"
+            className="flex items-center gap-2 px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-sm font-medium"
+        >
+            <FaArrowLeft /> Volver
+        </Link>
+    );
 
-    if (!workOrder) {
+    if (isLoading || !workOrder) {
         return (
-            <ExpensePageLayout title="Orden de Trabajo no encontrada">
-                <Link to="/work-orders" className="text-primary hover:underline">Volver al listado</Link>
+            <ExpensePageLayout
+                title="Orden de Trabajo"
+                subtitle={isLoading ? "El detalle aparece en cuanto responde el servidor" : "No se pudo mostrar la orden"}
+                actions={backLink}
+            >
+                {isLoading ? (
+                    <div className="space-y-4">
+                        <DetailFieldsSkeleton label="Cargando orden de trabajo" />
+                        <TableRowsSkeleton label="Cargando detalle de la orden" />
+                    </div>
+                ) : (
+                    <DataErrorPanel
+                        message={loadError || "No se encontró la orden de trabajo."}
+                        onRetry={fetchWorkOrder}
+                    />
+                )}
             </ExpensePageLayout>
         );
     }

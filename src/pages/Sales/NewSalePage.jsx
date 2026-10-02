@@ -56,6 +56,7 @@ import { useMatchMedia } from "../../hooks/useMatchMedia.js";
 import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineItem.jsx";
 import RegisterCustomerBar from "../../components/sales/RegisterCustomerBar.jsx";
 import FormFlatSection from "../../components/forms/FormFlatSection.jsx";
+import { DetailFieldsSkeleton, TableRowsSkeleton } from "../../components/ui/DataSkeleton.tsx";
 import {
   PRIMARY_BTN,
   PRIMARY_BTN_BLOCK,
@@ -914,17 +915,29 @@ export default function NewSalePage() {
 
   // ── Loading skeleton ────────────────────────────────
   if (isDataLoading) {
+    const registerTitle = isQuotationMode ? "Nueva cotización" : "Nueva Venta";
     return (
-      <Motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh items-center justify-center bg-surface"
-      >
-        <div className="text-center space-y-4">
-          <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-slate-500 font-medium">Cargando datos...</p>
+      <div className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface">
+        <div className={FLAT_PAGE_HEADER}>
+          <div className="px-3 py-2 md:px-4 flex items-center gap-2 border-b border-gray-100">
+            <Link
+              to={isQuotationMode ? "/quotations" : "/sales"}
+              className={`${FLAT_TAP_TARGET} -ml-1 text-gray-500 rounded-md`}
+              aria-label={isQuotationMode ? "Volver a cotizaciones" : "Volver a ventas"}
+            >
+              <FaChevronLeft className="text-sm" />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base font-bold text-dark leading-tight">{registerTitle}</h1>
+              <p className="text-[11px] text-gray-400">{todayDate}</p>
+            </div>
+          </div>
         </div>
-      </Motion.div>
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          <DetailFieldsSkeleton label="Cargando datos del registro" fields={4} />
+          <TableRowsSkeleton label="Cargando catálogo" />
+        </div>
+      </div>
     );
   }
 
@@ -935,12 +948,7 @@ export default function NewSalePage() {
   const itemCount = dataTable.filter((d) => d.saleDetailProductServiceId).length;
 
   return (
-    <Motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface md:pb-0"
-    >
+    <div className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface md:pb-0">
         {/* Header plano */}
         <Motion.div className={FLAT_PAGE_HEADER}>
           <div className="md:hidden px-3 py-2 flex items-center gap-2 border-b border-gray-100">
@@ -1721,6 +1729,6 @@ export default function NewSalePage() {
           </div>
         </div>
         </div>
-    </Motion.div>
+    </div>
   );
 }

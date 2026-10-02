@@ -26,6 +26,7 @@ import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineItem.jsx";
 import RegisterCustomerBar from "../../components/sales/RegisterCustomerBar.jsx";
 import FormFlatSection from "../../components/forms/FormFlatSection.jsx";
+import { DetailFieldsSkeleton, TableRowsSkeleton } from "../../components/ui/DataSkeleton.tsx";
 import useDebouncedValue from "../../hooks/useDebouncedValue.js";
 import { getPrescriptionsByCustomerId } from "../../api/prescriptions.js";
 import { isOpticsBusiness } from "../../utils/businessModality.js";
@@ -419,28 +420,34 @@ export default function NewQuotationPage() {
 
   if (isDataLoading) {
     return (
-      <Motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh items-center justify-center bg-surface"
-      >
-        <div className="text-center space-y-4">
-          <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-slate-500 font-medium">Cargando datos...</p>
+      <div className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface">
+        <div className={FLAT_PAGE_HEADER}>
+          <div className="px-3 py-2 md:px-4 flex items-center gap-2 border-b border-gray-100">
+            <Link
+              to="/quotations"
+              className={`${FLAT_TAP_TARGET} -ml-1 text-gray-500 rounded-md`}
+              aria-label="Volver a cotizaciones"
+            >
+              <FaChevronLeft className="text-sm" />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base font-bold text-dark leading-tight">Nueva Cotización</h1>
+              <p className="text-[11px] text-gray-400">{todayDate}</p>
+            </div>
+          </div>
         </div>
-      </Motion.div>
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          <DetailFieldsSkeleton label="Cargando datos de la cotización" fields={4} />
+          <TableRowsSkeleton label="Cargando catálogo" />
+        </div>
+      </div>
     );
   }
 
   const itemCount = dataTable.filter((d) => d.saleDetailProductServiceId).length;
 
   return (
-    <Motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface md:pb-0"
-    >
+    <div className="flex flex-col w-full h-[calc(100dvh-3.5rem)] md:h-dvh bg-surface md:pb-0">
       <Motion.div className={FLAT_PAGE_HEADER}>
         <div className="md:hidden px-3 py-2 flex items-center gap-2 border-b border-gray-100">
           <Link to="/quotations" className={`${FLAT_TAP_TARGET} -ml-1 text-gray-500 rounded-md`} title="Volver">
@@ -906,6 +913,6 @@ export default function NewQuotationPage() {
           </button>
         </div>
       </div>
-    </Motion.div>
+    </div>
   );
 }

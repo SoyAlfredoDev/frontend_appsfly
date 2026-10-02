@@ -131,18 +131,17 @@ export default function CustomerViewPage() {
     }, [id, showOptics]);
 
     const containerVariants = {
-        hidden: { opacity: 0 },
+        hidden: {},
         visible: {
-            opacity: 1,
             transition: {
-                staggerChildren: 0.1
+                staggerChildren: 0.04
             }
         }
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 }
+        hidden: { y: 8 },
+        visible: { y: 0 }
     };
 
     return (

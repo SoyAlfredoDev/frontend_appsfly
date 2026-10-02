@@ -6,6 +6,7 @@ export const LANDING_SECTIONS = [
     { id: 'inteligencia-artificial', label: 'Inteligencia artificial' },
     { id: 'notificaciones-whatsapp', label: 'Notificaciones WhatsApp' },
     { id: 'planes', label: 'Planes' },
+    { id: 'preguntas', label: 'Preguntas' },
 ];
 
 /** Enlaces visibles en el navbar (más cortos para caber en pantalla) */
@@ -19,6 +20,8 @@ export const LANDING_NAVBAR_SECTIONS = [
 
 export const LANDING_COMPANY_LINKS = [
     { to: '/about-us', label: 'Nosotros' },
+    { to: '/precios', label: 'Precios' },
+    { to: '/software-para-opticas', label: 'Software para ópticas' },
     { to: '/login', label: 'Iniciar sesión' },
     { to: '/register', label: 'Crear cuenta' },
 ];

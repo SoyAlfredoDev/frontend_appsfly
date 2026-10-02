@@ -49,6 +49,12 @@ export default function NavbarHome() {
                             {label}
                         </a>
                     ))}
+                    <Link to="/precios" className={navLinkClass}>
+                        Precios
+                    </Link>
+                    <Link to="/software-para-opticas" className={navLinkClass}>
+                        Ópticas
+                    </Link>
                 </div>
 
                 {/* Desktop — acciones */}
@@ -99,6 +105,20 @@ export default function NavbarHome() {
                                     {label}
                                 </a>
                             ))}
+                            <Link
+                                to="/precios"
+                                onClick={() => setMenuOpen(false)}
+                                className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-surface hover:text-primary"
+                            >
+                                Precios
+                            </Link>
+                            <Link
+                                to="/software-para-opticas"
+                                onClick={() => setMenuOpen(false)}
+                                className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-surface hover:text-primary"
+                            >
+                                Software para ópticas
+                            </Link>
                             <div className="my-3 border-t border-slate-100" />
                             <Link
                                 to="/login"

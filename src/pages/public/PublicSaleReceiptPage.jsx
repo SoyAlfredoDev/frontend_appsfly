@@ -225,7 +225,7 @@ export default function PublicSaleReceiptPage() {
 
                 <p className="text-center text-xs text-slate-400">
                     Comprobante compartido de forma segura ·{" "}
-                    <a href="https://appsfly.app" className="text-emerald-700 hover:underline">
+                    <a href="https://appsfly.cl" className="text-emerald-700 hover:underline">
                         AppsFly
                     </a>
                 </p>

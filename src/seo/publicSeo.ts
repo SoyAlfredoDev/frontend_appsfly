@@ -1,0 +1,583 @@
+import { COMPANY } from '../constants/company'
+import { LANDING_SOCIAL_LINKS } from '../constants/landingNavigation.js'
+import { OPTICS_PROMO_SITE_URL } from '../utils/opticsPromoHost.js'
+
+const trimTrailingSlash = (url: string) => url.replace(/\/$/, '')
+
+const CANONICAL_SITE = 'https://appsfly.app'
+
+function resolveSiteUrl() {
+  const env = import.meta.env ?? {}
+  const configured = env.VITE_FRONTEND_URL?.trim()
+  if (env.DEV) {
+    return trimTrailingSlash(configured || 'http://127.0.0.1:5173')
+  }
+
+  if (!configured) return CANONICAL_SITE
+
+  try {
+    const url = new URL(configured)
+    if (url.protocol !== 'https:') return CANONICAL_SITE
+    return trimTrailingSlash(url.toString())
+  } catch {
+    return CANONICAL_SITE
+  }
+}
+
+/** Host canónico. En desarrollo sigue la URL de Vite; en el build solo acepta HTTPS. */
+export const SITE_URL = resolveSiteUrl()
+
+export const OG_IMAGE_PATH = '/assets/seo/og-conversion.jpg'
+export const OG_IMAGE_URL = `${SITE_URL}${OG_IMAGE_PATH}`
+
+export const BASIC_NET_MONTHLY_CLP = 9990
+export const PRO_NET_MONTHLY_CLP = 39990
+
+export function formatClp(amount: number) {
+  const body = String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `$${body}`
+}
+
+export const PRICE_SUMMARY = `Plan Básico a ${formatClp(BASIC_NET_MONTHLY_CLP)} neto/mes (+ IVA) con 2 meses gratis, o Plan Profesional a ${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes (+ IVA).`
+
+export const HOME_H1 = 'AppsFly: sistema para registrar ventas en Chile'
+export const HOME_LEAD =
+  'AppsFly es un sistema para registrar ventas en Chile. Cada venta queda guardada con el producto o servicio, el monto y el medio de pago. Sirve para ópticas, minimarkets, restaurantes y comercios, y se usa desde computador, tablet o teléfono.'
+export const HOME_SUPPORT =
+  'No necesitas ser experto en tecnología. Si vendes todos los días —en una óptica, un mini market, un restaurante o tu propio emprendimiento— AppsFly te ayuda a llevar el registro de tus ventas sin complicaciones.'
+
+export const OPTICS_H1 = 'El sistema pensado para tu óptica'
+export const OPTICS_LEAD =
+  'Recetas, ventas, órdenes de trabajo, laboratorios e inventario en un solo lugar. Prueba gratis o pide información sin compromiso.'
+
+export const OPTICS_ARTICLE_H1 = 'Software para ópticas en Chile'
+export const OPTICS_ARTICLE_LEAD =
+  'AppsFly es un software para ópticas en Chile: registra la receta OD/OI, la venta, la orden de trabajo y el envío al laboratorio en el mismo sistema, con inventario de armazones, lentes y accesorios.'
+
+export const PRICES_H1 = 'Precios de AppsFly'
+export const PRICES_LEAD = `AppsFly tiene dos planes publicados. El Plan Básico cuesta ${formatClp(BASIC_NET_MONTHLY_CLP)} neto al mes, más IVA, e incluye 2 meses gratis y sin tarjeta de crédito. El Plan Profesional cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} neto al mes, más IVA, y suma boleta electrónica, factura electrónica y el asistente con IA.`
+
+export const ABOUT_H1 = 'Sobre Nosotros'
+export const ABOUT_LEAD =
+  'Profesionales apasionados por la innovación y la creación de soluciones digitales que transforman negocios.'
+
+export const TERMS_H1 = 'Términos y Condiciones'
+export const TERMS_LEAD =
+  'Por favor, lee detenidamente estos términos antes de utilizar nuestros servicios. Tu confianza y seguridad son nuestra prioridad.'
+
+export const PRIVACY_H1 = 'Política de Privacidad'
+export const PRIVACY_LEAD =
+  'Transparencia total sobre cómo protegemos, aislamos y gestionamos tus datos.'
+
+export const REGISTER_H1 = 'Crear cuenta nueva'
+export const REGISTER_LEAD =
+  'Prueba AppsFly 2 meses gratis, sin tarjeta de crédito. El Plan Básico queda en $9.990 neto/mes más IVA cuando termina la prueba.'
+
+export type FaqEntry = {
+  question: string
+  answer: string
+}
+
+export type Highlight = {
+  title: string
+  text: string
+}
+
+export type PublicPage = {
+  path: string
+  title: string
+  description: string
+  h1: string
+  lead: string
+  paragraphs: string[]
+  highlights: Highlight[]
+  faqs: FaqEntry[]
+  /** Canonical absoluto. */
+  canonicalUrl: string
+  index: boolean
+}
+
+const HOME_FAQS: FaqEntry[] = [
+  {
+    question: '¿Qué es AppsFly?',
+    answer: HOME_LEAD,
+  },
+  {
+    question: '¿Cuánto cuesta AppsFly?',
+    answer: PRICE_SUMMARY,
+  },
+  {
+    question: '¿AppsFly sirve para una óptica?',
+    answer:
+      'Sí. Además del registro de ventas, una óptica puede llevar recetas OD/OI, órdenes de trabajo, laboratorios e inventario de lentes y armazones. El detalle está en la página de software para ópticas.',
+  },
+  {
+    question: '¿Hay prueba gratis?',
+    answer:
+      'Sí. El Plan Básico incluye 2 meses gratis y no pide tarjeta de crédito para crear la cuenta.',
+  },
+  {
+    question: '¿Quién opera AppsFly y desde dónde?',
+    answer: `${COMPANY.legalName}, RUT ${COMPANY.rut}, en ${COMPANY.address}. El contacto público es ${COMPANY.email} y ${COMPANY.phoneDisplay}.`,
+  },
+]
+
+const OPTICS_FAQS: FaqEntry[] = [
+  {
+    question: '¿Qué es un software para ópticas?',
+    answer: OPTICS_ARTICLE_LEAD,
+  },
+  {
+    question: '¿AppsFly reemplaza la planilla de la óptica?',
+    answer:
+      'Reemplaza el registro diario de recetas, ventas, órdenes de trabajo, despachos a laboratorio y stock. No es un ERP contable completo: está pensado para la operación de la óptica.',
+  },
+  {
+    question: '¿Puedo probar AppsFly en mi óptica antes de pagar?',
+    answer:
+      'Sí. La prueba del Plan Básico dura 2 meses y no pide tarjeta de crédito. También puedes pedir información por WhatsApp.',
+  },
+  {
+    question: '¿El precio incluye boleta electrónica?',
+    answer: `La boleta y la factura electrónica están en el Plan Profesional, a ${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes más IVA. El Plan Básico, a ${formatClp(BASIC_NET_MONTHLY_CLP)} neto/mes más IVA, cubre ventas, inventario y reportes.`,
+  },
+]
+
+const PRICE_FAQS: FaqEntry[] = [
+  {
+    question: '¿Cuál es el precio del Plan Básico?',
+    answer: `El Plan Básico cuesta ${formatClp(BASIC_NET_MONTHLY_CLP)} neto al mes, más IVA. Los primeros 2 meses son gratis y no se pide tarjeta de crédito.`,
+  },
+  {
+    question: '¿Qué incluye el Plan Profesional?',
+    answer: `El Plan Profesional cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} neto al mes, más IVA. Incluye lo del plan base y suma boleta electrónica, factura electrónica, asistente con IA y envío de correos a clientes.`,
+  },
+  {
+    question: '¿Los precios de AppsFly incluyen IVA?',
+    answer: 'No. Los precios publicados son netos. Hay que sumar el IVA de Chile.',
+  },
+  {
+    question: '¿Puedo cambiar de plan después de la prueba?',
+    answer:
+      'Sí. La prueba parte en el Plan Básico. Cuando termina, puedes seguir en ese plan o pasar al Plan Profesional.',
+  },
+]
+
+export const PUBLIC_PAGES: PublicPage[] = [
+  {
+    path: '/',
+    title: 'AppsFly | Sistema para registrar ventas en Chile',
+    description:
+      'Sistema para registrar ventas, inventario y clientes en Chile. Plan Básico a $9.990 neto/mes + IVA, con 2 meses gratis.',
+    h1: HOME_H1,
+    lead: HOME_LEAD,
+    paragraphs: [HOME_SUPPORT],
+    highlights: [],
+    faqs: HOME_FAQS,
+    canonicalUrl: `${SITE_URL}/`,
+    index: true,
+  },
+  {
+    path: '/software-para-opticas',
+    title: 'AppsFly | Software para ópticas en Chile',
+    description:
+      'Software para ópticas en Chile: recetas OD/OI, órdenes de trabajo, laboratorios, inventario y ventas. Prueba 2 meses gratis.',
+    h1: OPTICS_ARTICLE_H1,
+    lead: OPTICS_ARTICLE_LEAD,
+    paragraphs: [
+      'Está pensado para ópticas independientes que hoy juntan la receta, la venta y el laboratorio en planillas, papeles o chats. El recorrido queda en un solo lugar: cliente, receta, venta, orden de trabajo, laboratorio y entrega.',
+      `${PRICE_SUMMARY} La landing de la óptica sigue disponible si quieres ver el flujo en pantalla.`,
+    ],
+    highlights: [
+      {
+        title: 'Recetas OD/OI',
+        text: 'La graduación queda en la ficha del cliente y se puede consultar cuando vuelve.',
+      },
+      {
+        title: 'Ventas ligadas a la receta',
+        text: 'La venta guarda qué se cobró, cómo se pagó y a qué receta corresponde.',
+      },
+      {
+        title: 'Órdenes de trabajo',
+        text: 'La OT sale de la venta y se sigue hasta la entrega, sin un estado perdido en otra planilla.',
+      },
+      {
+        title: 'Laboratorios',
+        text: 'Despacho, recepción y lo que sigue en proceso quedan registrados con el trabajo.',
+      },
+      {
+        title: 'Inventario de óptica',
+        text: 'Armazones, lentes y accesorios con stock, precios y movimientos.',
+      },
+      {
+        title: 'Reportes del local',
+        text: 'Ventas, recaudación y movimiento del día para ver el negocio sin armar un Excel.',
+      },
+    ],
+    faqs: OPTICS_FAQS,
+    canonicalUrl: `${SITE_URL}/software-para-opticas`,
+    index: true,
+  },
+  {
+    path: '/precios',
+    title: 'AppsFly | Precios de los planes',
+    description: PRICE_SUMMARY,
+    h1: PRICES_H1,
+    lead: PRICES_LEAD,
+    paragraphs: [
+      'Los dos planes se contratan en línea. La prueba de 2 meses corresponde al Plan Básico y no pide tarjeta.',
+    ],
+    highlights: [
+      {
+        title: 'Plan Básico',
+        text: `${formatClp(BASIC_NET_MONTHLY_CLP)} neto/mes + IVA. Incluye 5 usuarios, compras, ventas, inventario, reportes y soporte. Los 2 primeros meses son gratis.`,
+      },
+      {
+        title: 'Plan Profesional',
+        text: `${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes + IVA. Suma boleta electrónica, factura electrónica, asistente con IA y correos a clientes.`,
+      },
+    ],
+    faqs: PRICE_FAQS,
+    canonicalUrl: `${SITE_URL}/precios`,
+    index: true,
+  },
+  {
+    path: '/optica',
+    title: 'AppsFly Óptica | Sistema de gestión para ópticas en Chile',
+    description: OPTICS_LEAD,
+    h1: OPTICS_H1,
+    lead: OPTICS_LEAD,
+    paragraphs: [
+      'De la receta a la entrega: cliente, venta, orden de trabajo y laboratorio en el mismo recorrido.',
+    ],
+    highlights: [],
+    faqs: OPTICS_FAQS,
+    canonicalUrl: `${OPTICS_PROMO_SITE_URL}/`,
+    index: true,
+  },
+  {
+    path: '/about-us',
+    title: 'AppsFly | Plataforma de gestión para negocios',
+    description: `Conoce ${COMPANY.tradeName}: ${COMPANY.legalName}, software chileno para registrar ventas y operar ópticas y comercios.`,
+    h1: ABOUT_H1,
+    lead: ABOUT_LEAD,
+    paragraphs: [`${COMPANY.legalName}, RUT ${COMPANY.rut}, con domicilio en ${COMPANY.address}.`],
+    highlights: [],
+    faqs: [],
+    canonicalUrl: `${SITE_URL}/about-us`,
+    index: true,
+  },
+  {
+    path: '/terminos',
+    title: 'AppsFly | Términos y Condiciones',
+    description: 'Términos y condiciones de uso del servicio AppsFly.',
+    h1: TERMS_H1,
+    lead: TERMS_LEAD,
+    paragraphs: [],
+    highlights: [],
+    faqs: [],
+    canonicalUrl: `${SITE_URL}/terminos`,
+    index: true,
+  },
+  {
+    path: '/politicas',
+    title: 'AppsFly | Política de Privacidad',
+    description: 'Política de privacidad y tratamiento de datos en AppsFly.',
+    h1: PRIVACY_H1,
+    lead: PRIVACY_LEAD,
+    paragraphs: [],
+    highlights: [],
+    faqs: [],
+    canonicalUrl: `${SITE_URL}/politicas`,
+    index: true,
+  },
+  {
+    path: '/register',
+    title: 'AppsFly | Regístrate — Prueba gratis 2 meses',
+    description: REGISTER_LEAD,
+    h1: REGISTER_H1,
+    lead: REGISTER_LEAD,
+    paragraphs: [],
+    highlights: [],
+    faqs: [],
+    canonicalUrl: `${SITE_URL}/register`,
+    index: true,
+  },
+]
+
+export const INDEXABLE_PATHS = new Set(PUBLIC_PAGES.map((page) => page.path))
+
+const AI_AGENTS = [
+  '*',
+  'GPTBot',
+  'OAI-SearchBot',
+  'ChatGPT-User',
+  'PerplexityBot',
+  'ClaudeBot',
+  'anthropic-ai',
+  'Google-Extended',
+  'Applebot-Extended',
+  'Bingbot',
+] as const
+
+const ROBOTS_DISALLOW = [
+  '/admin',
+  '/dashboard',
+  '/login',
+  '/logout',
+  '/forgot-password',
+  '/reset-password',
+  '/appointments',
+  '/customers',
+  '/campaigns-asmr',
+  '/products_services',
+  '/products',
+  '/inventory',
+  '/sales',
+  '/quotations',
+  '/purchase',
+  '/purchase-certificates',
+  '/providers',
+  '/laboratories',
+  '/work-orders',
+  '/lab-dispatches',
+  '/daily-sales',
+  '/users',
+  '/profile',
+  '/transactions',
+  '/expenses',
+  '/reports',
+  '/billing',
+  '/configuration',
+  '/finance',
+  '/support',
+  '/business',
+  '/subscription',
+  '/prospect-unsubscribe',
+  '/public',
+  '/registarcita',
+  '/app.html',
+]
+
+export function requirePublicPage(path: string) {
+  const page = PUBLIC_PAGES.find((item) => item.path === path)
+  if (!page) throw new Error(`Missing public page ${path}`)
+  return page
+}
+
+export function pageForPath(pathname: string, hostname = '') {
+  const host = hostname.toLowerCase().split(':')[0]
+  const opticsHost =
+    host === 'optica.appsfly.app' || host === 'optica.localhost' || host === 'optica.127.0.0.1'
+  if (opticsHost && (pathname === '/' || pathname === '/optica')) {
+    return PUBLIC_PAGES.find((page) => page.path === '/optica') ?? null
+  }
+  return PUBLIC_PAGES.find((page) => page.path === pathname) ?? null
+}
+
+export function isPublicIndexedRoute(pathname: string, hostname = '') {
+  return pageForPath(pathname, hostname)?.index === true
+}
+
+export function resolveSeoForPath(pathname: string, options: { hostname?: string } = {}) {
+  const hostname = options.hostname ?? ''
+  const page = pageForPath(pathname, hostname)
+  if (!page) {
+    return {
+      title: 'Página no encontrada | AppsFly',
+      description: 'Esta dirección no existe en AppsFly.',
+      keywords: 'appsfly',
+      robots: 'noindex, nofollow',
+      twitterCard: 'summary_large_image',
+      ogType: 'website',
+      ogUrl: `${SITE_URL}${pathname === '/' ? '/' : pathname}`,
+      ogImage: OG_IMAGE_URL,
+      siteName: 'AppsFly',
+      locale: 'es_CL',
+      canonicalUrl: `${SITE_URL}${pathname === '/' ? '/' : pathname}`,
+    }
+  }
+
+  return {
+    title: page.title,
+    description: page.description,
+    keywords: 'appsfly, sistema para registrar ventas, software para ópticas chile',
+    robots: 'index, follow',
+    twitterCard: 'summary_large_image',
+    ogType: 'website',
+    ogUrl: page.canonicalUrl,
+    ogImage: page.path === '/optica' ? `${OPTICS_PROMO_SITE_URL}${OG_IMAGE_PATH}` : OG_IMAGE_URL,
+    siteName: page.path === '/optica' ? 'AppsFly Óptica' : 'AppsFly',
+    locale: 'es_CL',
+    canonicalUrl: page.canonicalUrl,
+  }
+}
+
+export function sitemapLocs() {
+  const locs = new Set<string>()
+  for (const page of PUBLIC_PAGES) {
+    if (page.index) locs.add(page.canonicalUrl)
+  }
+  return [...locs]
+}
+
+export function buildRobotsTxt() {
+  const rules = ['Allow: /', ...ROBOTS_DISALLOW.map((path) => `Disallow: ${path}`)]
+  const groups = AI_AGENTS.map((agent) => [`User-agent: ${agent}`, ...rules].join('\n'))
+  return `${groups.join('\n\n')}\n\nSitemap: ${SITE_URL}/sitemap.xml\n`
+}
+
+export function buildSitemapXml() {
+  const urls = sitemapLocs()
+    .map((loc) => `  <url><loc>${escapeXml(loc)}</loc></url>`)
+    .join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
+}
+
+export function buildLlmsTxt() {
+  const lines = [
+    '# AppsFly',
+    '',
+    `> ${HOME_LEAD} Lo opera ${COMPANY.legalName} (RUT ${COMPANY.rut}), en ${COMPANY.address}.`,
+    '',
+    '## Páginas para citar',
+    ...PUBLIC_PAGES.filter((page) => page.path !== '/optica').map(
+      (page) => `- [${page.h1}](${page.canonicalUrl}): ${page.description}`,
+    ),
+    `- [Óptica](${OPTICS_PROMO_SITE_URL}/): ${OPTICS_LEAD}`,
+    '',
+    '## Precios',
+    `- Plan Básico: ${formatClp(BASIC_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Incluye 2 meses gratis, sin tarjeta.`,
+    `- Plan Profesional: ${formatClp(PRO_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Incluye boleta electrónica, factura electrónica y asistente con IA.`,
+    '',
+    '## Contacto',
+    `- Razón social: ${COMPANY.legalName}`,
+    `- RUT: ${COMPANY.rut}`,
+    `- Dirección: ${COMPANY.address}`,
+    `- Email: ${COMPANY.email}`,
+    `- Teléfono: ${COMPANY.phoneDisplay}`,
+    '',
+    '## Perfiles',
+    ...LANDING_SOCIAL_LINKS.map((social) => `- ${social.label}: ${social.href}`),
+    '',
+  ]
+  return lines.join('\n')
+}
+
+export function buildJsonLd(page: PublicPage) {
+  const organization = {
+    '@type': 'Organization',
+    '@id': `${SITE_URL}/#organization`,
+    name: COMPANY.tradeName,
+    legalName: COMPANY.legalName,
+    url: `${SITE_URL}/`,
+    logo: `${SITE_URL}/iconoAppsfly.png`,
+    email: COMPANY.email,
+    telephone: COMPANY.phoneE164,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: COMPANY.address,
+      addressCountry: 'CL',
+    },
+    sameAs: LANDING_SOCIAL_LINKS.map((social) => social.href),
+  }
+
+  const website = {
+    '@type': 'WebSite',
+    '@id': `${SITE_URL}/#website`,
+    name: 'AppsFly',
+    url: `${SITE_URL}/`,
+    inLanguage: 'es-CL',
+    publisher: { '@id': `${SITE_URL}/#organization` },
+  }
+
+  const breadcrumbs = {
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Inicio',
+        item: `${SITE_URL}/`,
+      },
+      ...(page.path === '/'
+        ? []
+        : [
+            {
+              '@type': 'ListItem',
+              position: 2,
+              name: page.h1,
+              item: page.canonicalUrl,
+            },
+          ]),
+    ],
+  }
+
+  const graph: Record<string, unknown>[] = [organization, website, breadcrumbs]
+
+  if (page.path === '/' || page.path === '/precios' || page.path === '/software-para-opticas') {
+    graph.push({
+      '@type': 'SoftwareApplication',
+      name: 'AppsFly',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      url: page.canonicalUrl,
+      inLanguage: 'es-CL',
+      offers: [
+        {
+          '@type': 'Offer',
+          name: 'Plan Básico',
+          price: String(BASIC_NET_MONTHLY_CLP),
+          priceCurrency: 'CLP',
+          description: 'Precio neto mensual, más IVA. Incluye 2 meses gratis.',
+          url: `${SITE_URL}/precios`,
+        },
+        {
+          '@type': 'Offer',
+          name: 'Plan Profesional',
+          price: String(PRO_NET_MONTHLY_CLP),
+          priceCurrency: 'CLP',
+          description:
+            'Precio neto mensual, más IVA. Incluye boleta electrónica, factura electrónica y asistente con IA.',
+          url: `${SITE_URL}/precios`,
+        },
+      ],
+      provider: { '@id': `${SITE_URL}/#organization` },
+    })
+  }
+
+  if (page.faqs.length > 0) {
+    graph.push({
+      '@type': 'FAQPage',
+      mainEntity: page.faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    })
+  }
+
+  return {
+    '@context': 'https://schema.org',
+    '@graph': graph,
+  }
+}
+
+export function serializeJsonLd(data: unknown) {
+  return JSON.stringify(data).replace(/</g, '\\u003c')
+}
+
+function escapeXml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
+export function escapeHtml(value: string) {
+  return escapeXml(value)
+}

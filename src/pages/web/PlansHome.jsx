@@ -6,7 +6,7 @@ import { getPlansRequest } from '../../api/plans.js';
 import { parsePlanFeatures } from '../../utils/planUtils.js';
 import { FREE_TRIAL_PLAN_ID } from '../../utils/subscriptionAccess.js';
 import { getPlanPricing } from '../../utils/planPricing.js';
-import GradientText from '../../components/web/GradientText.jsx';
+import { PRICE_SUMMARY } from '../../seo/publicSeo.ts';
 
 const BASIC_MONTHLY_PRICE = 9990;
 
@@ -118,8 +118,8 @@ function PlanCardSkeleton() {
 
 export default function PlansHome({
     registerTo = "/register",
-    heading = null,
-    subtitle = null,
+    heading,
+    subtitle,
 }) {
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -153,15 +153,10 @@ export default function PlansHome({
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="text-center mb-12 md:mb-16">
                     <h2 className="text-3xl md:text-4xl font-bold text-[#021f41] font-display mb-3">
-                        {heading ?? (
-                            <>
-                                💎 Planes <GradientText>Flexibles</GradientText>
-                            </>
-                        )}
+                        {heading ?? 'Planes flexibles'}
                     </h2>
                     <p className="text-gray-500 text-base max-w-2xl mx-auto">
-                        {subtitle ??
-                            `🎁 Plan Básico a ${formatPrice(BASIC_MONTHLY_PRICE)} neto/mes (+ IVA) con 2 meses gratis, o Plan Profesional a ${formatPrice(39990)} neto/mes (+ IVA).`}
+                        {subtitle ?? PRICE_SUMMARY}
                     </p>
                 </div>
 
