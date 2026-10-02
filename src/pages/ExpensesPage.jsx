@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { getExpensesByMonth, deleteExpense } from "../api/expense.js";
+import { getExpensesByMonth, getExpenseCategories, deleteExpense } from "../api/expense.js";
 import AddExpenseModal from "../components/modals/AddExpenseModal.jsx";
+import ExpenseCategoriesModal from "../components/modals/ExpenseCategoriesModal.jsx";
 import ViewExpenseReceiptModal from "../components/modals/ViewExpenseReceiptModal.jsx";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,11 +13,13 @@ import {
   FaSearch,
   FaCalendarAlt,
   FaListUl,
+  FaTags,
 } from "react-icons/fa";
 import formatCurrency from "../utils/formatCurrency.js";
 import formatDate from "../utils/formatDate.js";
 import PageContainer, { PageHeader } from "../components/layout/PageContainer.jsx";
 import DataErrorPanel from "../components/ui/DataErrorPanel.tsx";
+import { readExpenseCategories } from "../utils/expenseCategories.js";
 import { useToast } from "../context/ToastContext.jsx";
 import { useConfirm } from "../context/ConfirmationContext.jsx";
 import {
@@ -43,6 +46,8 @@ export default function ExpensesPage() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [receiptExpense, setReceiptExpense] = useState(null);
+  const [expenseCategories, setExpenseCategories] = useState([]);
+  const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
 
   const { month, year } = parseMonthYearKey(selectedPeriod);
   const periodLabel = formatMonthYearLabel(month, year);
@@ -67,6 +72,20 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await getExpenseCategories();
+      setExpenseCategories(readExpenseCategories(response.data));
+    } catch (err) {
+      console.error("Error fetching expense categories:", err);
+      toast.error("Error", "No se pudieron cargar las categorías de gastos.");
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleExpenseAdded = () => {
     fetchData();
@@ -180,6 +199,13 @@ export default function ExpensesPage() {
                     ))}
                   </select>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setCategoriesModalOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-white px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-50"
+                >
+                  <FaTags /> Categorías
+                </button>
                 <AddExpenseModal onExpenseAdded={handleExpenseAdded} />
               </>
             }
@@ -403,6 +429,12 @@ export default function ExpensesPage() {
         isOpen={Boolean(receiptExpense)}
         onClose={handleCloseReceipt}
         expense={receiptExpense}
+      />
+      <ExpenseCategoriesModal
+        isOpen={categoriesModalOpen}
+        onClose={() => setCategoriesModalOpen(false)}
+        categories={expenseCategories}
+        onCategoriesChanged={fetchCategories}
       />
     </PageContainer>
   );
