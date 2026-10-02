@@ -116,7 +116,7 @@ export default function HeroScreenshotGallery() {
                                     <span className="h-2.5 w-2.5 rounded-full bg-amber-400/90" />
                                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/90" />
                                     <span className="ml-2 flex-1 truncate text-[11px] font-medium text-slate-400">
-                                        appsfly.app — {current.label}
+                                        appsfly.cl — {current.label}
                                     </span>
                                     <span className="text-[10px] font-semibold tabular-nums text-slate-300">
                                         {active + 1}/{SCREENSHOTS.length}

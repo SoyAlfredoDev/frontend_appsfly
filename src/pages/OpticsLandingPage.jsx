@@ -17,7 +17,7 @@ const opticsFaqs = requirePublicPage("/optica").faqs;
 
 /**
  * Landing promocional para ópticas.
- * En optica.appsfly.app se sirve en `/`; en appsfly.app también en `/optica`.
+ * En optica.appsfly.app se sirve en `/`; en appsfly.cl también en `/optica`.
  */
 export default function OpticsLandingPage({ basePath = "/" }) {
     const sectionHref = (id) =>
