@@ -2,20 +2,20 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "www.appsfly.app" }],
-      "destination": "https://appsfly.app/$1",
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
-      "has": [{ "type": "host", "value": "appsfly.cl" }],
-      "destination": "https://appsfly.app/$1",
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
       "has": [{ "type": "host", "value": "www.appsfly.cl" }],
-      "destination": "https://appsfly.app/$1",
+      "destination": "https://appsfly.cl/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "appsfly.app" }],
+      "destination": "https://appsfly.cl/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.appsfly.app" }],
+      "destination": "https://appsfly.cl/$1",
       "permanent": true
     }
   ],

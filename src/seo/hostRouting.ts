@@ -39,8 +39,8 @@ export const APP_PATH_PREFIXES = [
   '/registarcita',
 ] as const
 
-export const CANONICAL_ORIGIN = 'https://appsfly.app'
-export const ALIAS_HOSTS = ['www.appsfly.app', 'appsfly.cl', 'www.appsfly.cl'] as const
+export const CANONICAL_ORIGIN = 'https://appsfly.cl'
+export const ALIAS_HOSTS = ['www.appsfly.cl', 'appsfly.app', 'www.appsfly.app'] as const
 export const OPTICS_HOST = 'optica.appsfly.app'
 
 export type RequestClass = 'static' | 'app' | 'unknown'
