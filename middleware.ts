@@ -4,7 +4,7 @@ import {
   classifyRequestPath,
   opticsHomeRewritePath,
   unknownPathHtml,
-} from './src/seo/hostRouting'
+} from './src/seo/hostRouting.js'
 
 export const config = {
   matcher: ['/((?!assets/|pwa/).*)'],
