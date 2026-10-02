@@ -7,6 +7,7 @@ import SubscriptionPlanPicker from "../../components/subscription/SubscriptionPl
 import RestrictedAccessShell from "../../components/layout/RestrictedAccessShell.jsx";
 import { usePromoFreeTrialSubscription } from "../../hooks/mercadopago/index.js";
 import { FREE_TRIAL_PLAN_ID } from "../../utils/subscriptionAccess.js";
+import { OPTICS_TRIAL_PLAN_ID } from "../../utils/planCatalog.js";
 import { getMercadoPagoStatusMessage } from "../../config/mercadopago/mpStatusMessages.js";
 import { isMercadoPagoTestMode } from "../../config/mercadopago/mpConfig.js";
 
@@ -18,6 +19,7 @@ export default function SubscriptionWelcomePage({ embedded = false, fullScreen =
     const {
         user,
         business,
+        businessSelected,
         hasBusiness,
         activeBusinessId,
         canClaimFreeTrial,
@@ -83,11 +85,15 @@ export default function SubscriptionWelcomePage({ embedded = false, fullScreen =
 
         activateFreeTrial({
             businessId: activeBusinessId,
-            planId: FREE_TRIAL_PLAN_ID,
+            planId: (business?.businessType ?? businessSelected?.Business?.businessType) === "optics"
+                ? OPTICS_TRIAL_PLAN_ID
+                : FREE_TRIAL_PLAN_ID,
         }).catch(() => {});
     }, [
         loading,
         activeBusinessId,
+        business?.businessType,
+        businessSelected?.Business?.businessType,
         canClaimFreeTrial,
         activateFreeTrial,
         toast,
@@ -111,8 +117,8 @@ export default function SubscriptionWelcomePage({ embedded = false, fullScreen =
                     <p className="text-[11px] sm:text-xs text-slate-700 leading-snug">
                         Hola <span className="font-semibold">{user?.userFirstName}</span>,{" "}
                         <span className="font-semibold">{business?.businessName ?? "tu negocio"}</span>{" "}
-                        puede activar la promoción de 2 meses gratis, contratar el plan comercial ($9.990 neto/mes)
-                        o el plan profesional ($39.990 neto/mes). Al pagar se suma IVA (19%). Mientras tanto, solo{" "}
+                        puede activar 2 meses gratis o contratar uno de los planes disponibles. El precio final en pesos,
+                        la UF utilizada y el IVA se muestran antes del pago. Mientras tanto, solo{" "}
                         <Link to="/profile" className="text-secondary font-semibold no-underline">
                             Mi perfil
                         </Link>{" "}

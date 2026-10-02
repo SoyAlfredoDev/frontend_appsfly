@@ -8,6 +8,7 @@ import { useAuth } from "../../context/authContext.jsx";
 import formatDate from "../../utils/formatDate.js";
 import { getLatestSubscription } from "../../utils/subscriptionAccess.js";
 import SubscriptionPlanPicker from "../../components/subscription/SubscriptionPlanPicker.jsx";
+import { isOpticsBusiness } from "../../utils/businessModality.js";
 import RestrictedAccessShell from "../../components/layout/RestrictedAccessShell.jsx";
 
 /**
@@ -22,7 +23,7 @@ export default function SubscriptionExpiredPage({ embedded = false, fullScreen =
         <RestrictedAccessShell
             icon={FaCalendarTimes}
             title="Suscripción vencida"
-            subtitle="Elige el plan comercial o profesional para recuperar ventas, inventario y reportes."
+            subtitle={isOpticsBusiness(business) ? "Contacta a soporte para revisar tu renovación mientras preparamos los cobros en UF." : "Elige el plan comercial o profesional para recuperar ventas, inventario y reportes."}
             headerClassName="bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700"
             embedded={embedded}
             fullScreen={fullScreen}

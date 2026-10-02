@@ -12,7 +12,7 @@ import { PageDataSkeleton } from "./ui/DataSkeleton.tsx";
  * Única exención con negocio: /profile
  */
 export default function TenantContentGate() {
-    const { loadingAuth, tenantAccessReady, blocked, subscriptionAccess } =
+    const { loadingAuth, tenantAccessReady, blocked, subscriptionAccess, refreshSubscriptions } =
         useTenantSubscriptionBlock();
 
     const isFirstTime = subscriptionAccess === "none";
@@ -38,6 +38,16 @@ export default function TenantContentGate() {
 
     if (loadingAuth || !tenantAccessReady) {
         return <PageDataSkeleton label="Verificando acceso" />;
+    }
+
+    if (subscriptionAccess === "error") {
+        return (
+            <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center" role="alert">
+                <h1 className="text-xl font-semibold text-slate-900">No se pudo verificar tu suscripción</h1>
+                <p className="max-w-md text-sm text-slate-600">Intenta nuevamente. Tus datos y tu beneficio de prueba no han cambiado.</p>
+                <button type="button" className="btn-primary" onClick={() => refreshSubscriptions()}>Reintentar</button>
+            </div>
+        );
     }
 
     if (blocked) {

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { createSubscriptionRequest } from "../../api/subscription.js";
 import { FREE_TRIAL_PLAN_ID } from "../../utils/subscriptionAccess.js";
+import { isTrialPlanId } from "../../utils/planCatalog.js";
 
 /**
  * Hook para plan promocional $0 — NO carga SDK ni scripts de Mercado Pago.
@@ -14,7 +15,7 @@ export default function usePromoFreeTrialSubscription({ refreshSubscriptions, on
 
     const activateFreeTrial = useCallback(
         async ({ businessId, planId = FREE_TRIAL_PLAN_ID }) => {
-            if (planId !== FREE_TRIAL_PLAN_ID) {
+            if (!isTrialPlanId(planId)) {
                 throw new Error("Este hook solo aplica al plan promocional gratuito.");
             }
             if (!businessId) {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     FaCreditCard,
     FaExclamationTriangle,
@@ -82,7 +83,8 @@ function parsePlanFeatures(plan) {
 
 export default function SubscriptionBillingCard({ businessId, isAdmin = false }) {
     const toast = useToast();
-    const { refreshSubscriptions } = useAuth();
+    const { refreshSubscriptions, business, businessSelected } = useAuth();
+    const isOptics = (business?.businessType ?? businessSelected?.Business?.businessType) === "optics";
     const [billing, setBilling] = useState(null);
     const [paidPlan, setPaidPlan] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -278,8 +280,9 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
                             <div>
                                 <p className={KPI_LABEL}>Monto mensual</p>
                                 <p className={KPI_VALUE}>
-                                    {formatCurrency(sub.subscriptionAmount, "es-CL", sub.plan?.planCurrency || "CLP")}
+                                    {formatCurrency(sub.subscriptionAmount, "es-CL", "CLP")}
                                 </p>
+                                {sub.subscriptionPriceUf && <p className="text-xs text-slate-500">Tarifa contratada: {Number(sub.subscriptionPriceUf).toLocaleString("es-CL")} UF + IVA</p>}
                             </div>
                         </div>
                         <div className={KPI_CARD}>
@@ -310,6 +313,7 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
                                 Mercado Pago cobrará automáticamente el monto del plan cada mes mientras la
                                 renovación esté activa. Puedes eliminar la suscripción en cualquier momento;
                                 conservarás acceso hasta el {formatDate(sub.subscriptionEndDate)} sin nuevos cobros.
+                                {sub.subscriptionPriceUf && " El monto en pesos se recalcula con la UF oficial de cada período."}
                             </p>
                         )}
 
@@ -423,7 +427,13 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
                 </>
             )}
 
-            {showPaySection && (
+            {showPaySection && isOptics && (
+                <div className="px-6 py-5 border-b border-gray-100 bg-slate-50/50">
+                    <p className="text-sm text-slate-700">Elige Start o Estándar para el próximo período. La oferta en UF se conserva mientras la suscripción siga activa.</p>
+                    <Link to="/dashboard" className="btn-primary inline-flex mt-3 no-underline">Ver planes disponibles</Link>
+                </div>
+            )}
+            {showPaySection && !isOptics && (
                 <div className="px-6 py-5 border-b border-gray-100 bg-slate-50/50">
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-start">
                         <div>

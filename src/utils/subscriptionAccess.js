@@ -8,8 +8,10 @@ export const FREE_TRIAL_PLAN_ID = "P001";
 
 export function isSubscriptionRecordActive(sub) {
     if (!sub || !["ACTIVE", "CANCELLED"].includes(sub.subscriptionStatus)) return false;
+    const start = new Date(sub.subscriptionStartDate);
     const end = new Date(sub.subscriptionEndDate);
-    return !isNaN(end) && end > new Date();
+    const now = new Date();
+    return !isNaN(start) && start <= now && !isNaN(end) && end > now;
 }
 
 /** @returns {'active' | 'expired' | 'none'} */

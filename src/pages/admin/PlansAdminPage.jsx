@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import {
     FaLayerGroup,
     FaCheck,
@@ -84,8 +83,9 @@ function PlanCard({ plan, onEdit, onPlanPatched, onPlanRemoved }) {
 
     const features = parsePlanFeatures(plan.planFeatures);
     const isActive = plan.planActive !== false;
-    const priceLabel =
-        plan.planCurrency && plan.planCurrency !== "CLP"
+    const priceLabel = plan.planCurrency === "UF"
+        ? `${Number(plan.planOfferPriceUf ?? plan.planListPriceUf).toLocaleString("es-CL")} UF/mes + IVA`
+        : plan.planCurrency && plan.planCurrency !== "CLP"
             ? `${plan.planCurrency} ${Number(plan.planPrice).toLocaleString("es-CL")}`
             : formatCurrency(plan.planPrice);
 
@@ -194,7 +194,8 @@ function PlanCard({ plan, onEdit, onPlanPatched, onPlanRemoved }) {
                 <button
                     type="button"
                     onClick={() => onEdit(plan)}
-                    disabled={busy}
+                    disabled={busy || plan.planCurrency === "UF"}
+                    title={plan.planCurrency === "UF" ? "El catálogo UF se administra desde su configuración versionada" : undefined}
                     className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-secondary/20 bg-white text-secondary hover:bg-secondary/5 transition-colors disabled:opacity-50"
                 >
                     <FaEdit />

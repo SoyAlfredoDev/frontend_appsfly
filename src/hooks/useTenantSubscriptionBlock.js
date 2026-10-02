@@ -16,6 +16,7 @@ export default function useTenantSubscriptionBlock() {
         hasActiveSubscription,
         isSuperAdmin,
         subscriptionAccess,
+        refreshSubscriptions,
     } = useAuth();
 
     const blocked = useMemo(
@@ -39,6 +40,7 @@ export default function useTenantSubscriptionBlock() {
         blocked,
         subscriptionLocked,
         subscriptionAccess,
+        refreshSubscriptions,
         isFirstTimeSubscriber: subscriptionAccess === "none",
         isExpiredSubscriber: subscriptionAccess === "expired",
         hasBusiness,

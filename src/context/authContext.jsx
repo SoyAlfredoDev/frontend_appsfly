@@ -30,7 +30,9 @@ export const AuthProvider = ({ children }) => {
   const [userGuestExists, setUserGuestExists] = useState(false)
   const [hasBusiness, setHasBusiness] = useState(false)
   const [subscriptions, setSubscriptions] = useState([])
+  const [subscriptionLoadError, setSubscriptionLoadError] = useState(false)
   const [businessSelected, setBusinessSelected] = useState(null)
+  const [businessMemberships, setBusinessMemberships] = useState([])
   const [loadingAuth, setLoadingAuth] = useState(true)
   const [tenantAccessReady, setTenantAccessReady] = useState(false)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
@@ -39,13 +41,14 @@ export const AuthProvider = ({ children }) => {
   const [loginSessionKey, setLoginSessionKey] = useState(0)
 
   useEffect(() => {
+    if (!tenantAccessReady) return
     const businessId = resolveTenantBusinessId({ businessSelected, business })
     if (businessId) {
       sessionStorage.setItem('appsfly_business_id', businessId)
     } else {
       sessionStorage.removeItem('appsfly_business_id')
     }
-  }, [businessSelected, business])
+  }, [businessSelected, business, tenantAccessReady])
 
   const activeBusinessId = useMemo(
     () => resolveTenantBusinessId({ businessSelected, business }),
@@ -53,8 +56,8 @@ export const AuthProvider = ({ children }) => {
   )
 
   const subscriptionAccess = useMemo(
-    () => getSubscriptionAccessState(subscriptions),
-    [subscriptions],
+    () => subscriptionLoadError ? 'error' : getSubscriptionAccessState(subscriptions),
+    [subscriptions, subscriptionLoadError],
   )
 
   const hasActiveSubscription = useMemo(
@@ -67,7 +70,7 @@ export const AuthProvider = ({ children }) => {
     [subscriptions],
   )
 
-  const canClaimFreeTrial = useMemo(() => checkCanClaimFreeTrial(subscriptions), [subscriptions])
+  const canClaimFreeTrial = useMemo(() => !subscriptionLoadError && checkCanClaimFreeTrial(subscriptions), [subscriptions, subscriptionLoadError])
 
   const isFirstTimeSubscriber = useMemo(
     () => checkFirstTimeSubscriber(subscriptions),
@@ -82,30 +85,46 @@ export const AuthProvider = ({ children }) => {
         overrideBusinessId ?? resolveTenantBusinessId({ businessSelected, business })
       if (!businessId) {
         setSubscriptions([])
+        setSubscriptionLoadError(false)
         return []
       }
       try {
         const res = await getSubscriptionsByBusinessIdRequest(businessId)
         const list = Array.isArray(res.data) ? res.data : []
         setSubscriptions(list)
+        setSubscriptionLoadError(false)
         return list
       } catch (error) {
         console.error('Error fetching subscriptions:', error)
         setSubscriptions([])
-        return []
+        setSubscriptionLoadError(true)
+        return null
       }
     },
     [businessSelected, business],
   )
 
   /** Recarga negocio, suscripciones y datos del tenant tras crear negocio o cambiar contexto. */
-  const reloadTenantContext = useCallback(async (userId) => {
+  const reloadTenantContext = useCallback(async (userId, preferredBusinessId) => {
     if (!userId) return null
     try {
       const userBusiness = await getUserBusinessById(userId)
       const list = userBusiness.data ?? []
       const exists = list.length > 0
-      const selected = list[0] ?? null
+      setBusinessMemberships(list)
+      const storedBusinessId = sessionStorage.getItem('appsfly_business_id')
+      const selected =
+        list.find((membership) =>
+          membership.userBusinessBusinessId === preferredBusinessId &&
+          membership.Business?.businessStatus === 'ACTIVE',
+        ) ??
+        list.find((membership) =>
+          membership.userBusinessBusinessId === storedBusinessId &&
+          membership.Business?.businessStatus === 'ACTIVE',
+        ) ??
+        list.find((membership) => membership.Business?.businessStatus === 'ACTIVE') ??
+        list[0] ??
+        null
 
       setHasBusiness(exists)
       setBusinessSelected(selected)
@@ -115,6 +134,7 @@ export const AuthProvider = ({ children }) => {
         await searchBusinessByBusinessId(selected.userBusinessBusinessId)
       } else {
         setSubscriptions([])
+        setSubscriptionLoadError(false)
         setBusiness(null)
       }
 
@@ -156,20 +176,50 @@ export const AuthProvider = ({ children }) => {
   const searchBusinessByUserId = async (userId) => {
     try {
       const userBusiness = await getUserBusinessById(userId)
-      const exists = userBusiness.data.length > 0
+      const list = Array.isArray(userBusiness.data) ? userBusiness.data : []
+      const exists = list.length > 0
+      setBusinessMemberships(list)
 
       setHasBusiness(exists)
 
       if (exists) {
-        setBusinessSelected(userBusiness.data[0])
+        const storedBusinessId = sessionStorage.getItem('appsfly_business_id')
+        const selected =
+          list.find((membership) =>
+            membership.userBusinessBusinessId === storedBusinessId &&
+            membership.Business?.businessStatus === 'ACTIVE',
+          ) ??
+          list.find((membership) => membership.Business?.businessStatus === 'ACTIVE') ??
+          list[0]
+        setBusinessSelected(selected)
+        return selected
       }
 
-      // Always return the actual response so we can use it immediately
-      return userBusiness.data[0] ?? null
+      setBusinessSelected(null)
+      setBusiness(null)
+      setSubscriptions([])
+      setSubscriptionLoadError(false)
+      return null
     } catch (error) {
       console.error('Error fetching user business:', error)
     }
   }
+
+  const switchBusiness = useCallback(async (businessId) => {
+    const selected = businessMemberships.find(
+      (membership) => membership.userBusinessBusinessId === businessId,
+    )
+    if (!selected || selected.Business?.businessStatus !== 'ACTIVE') return false
+
+    setBusinessSelected(selected)
+    setBusiness(null)
+    sessionStorage.setItem('appsfly_business_id', businessId)
+    await Promise.all([
+      getSubscriptionsByBusinessId(businessId),
+      searchBusinessByBusinessId(businessId),
+    ])
+    return true
+  }, [businessMemberships])
 
   const searchBusinessByBusinessId = async (businessId) => {
     try {
@@ -186,11 +236,13 @@ export const AuthProvider = ({ children }) => {
       const res = await getSubscriptionsByBusinessIdRequest(businessId)
       const list = Array.isArray(res.data) ? res.data : []
       setSubscriptions(list)
+      setSubscriptionLoadError(false)
       return list
     } catch (error) {
       console.error('Error fetching subscriptions:', error)
       setSubscriptions([])
-      return []
+      setSubscriptionLoadError(true)
+      return null
     }
   }
 
@@ -276,6 +328,7 @@ export const AuthProvider = ({ children }) => {
     setHasBusiness(false)
     setSubscriptions([])
     setBusinessSelected(null)
+    setBusinessMemberships([])
     setBusiness(null)
     setTenantAccessReady(false)
     setIsSuperAdmin(false)
@@ -352,6 +405,8 @@ export const AuthProvider = ({ children }) => {
         setHasBusiness,
         businessSelected,
         setBusinessSelected,
+        businessMemberships,
+        switchBusiness,
         subscriptions,
         setSubscriptions,
         subscriptionAccess,
