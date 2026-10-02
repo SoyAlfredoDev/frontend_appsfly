@@ -4,7 +4,7 @@ import { OPTICS_PROMO_SITE_URL } from '../utils/opticsPromoHost.js'
 
 const trimTrailingSlash = (url: string) => url.replace(/\/$/, '')
 
-const CANONICAL_SITE = 'https://appsfly.app'
+const CANONICAL_SITE = 'https://appsfly.cl'
 
 function resolveSiteUrl() {
   const env = import.meta.env ?? {}
@@ -13,15 +13,9 @@ function resolveSiteUrl() {
     return trimTrailingSlash(configured || 'http://127.0.0.1:5173')
   }
 
-  if (!configured) return CANONICAL_SITE
-
-  try {
-    const url = new URL(configured)
-    if (url.protocol !== 'https:') return CANONICAL_SITE
-    return trimTrailingSlash(url.toString())
-  } catch {
-    return CANONICAL_SITE
-  }
+  // El dominio canónico de producción es fijo, incluso si una variable de
+  // despliegue antigua todavía apunta a un alias.
+  return CANONICAL_SITE
 }
 
 /** Host canónico. En desarrollo sigue la URL de Vite; en el build solo acepta HTTPS. */
