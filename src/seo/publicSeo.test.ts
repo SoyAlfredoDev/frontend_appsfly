@@ -30,10 +30,10 @@ const template = `<!doctype html>
   <title>Old</title>
   <meta name="description" content="old" />
   <meta name="robots" content="index, follow" />
-  <link rel="canonical" href="https://appsfly.app/" />
+  <link rel="canonical" href="https://appsfly.cl/" />
   <meta property="og:title" content="old" />
   <meta property="og:description" content="old" />
-  <meta property="og:url" content="https://appsfly.app/" />
+  <meta property="og:url" content="https://appsfly.cl/" />
   <meta name="twitter:title" content="old" />
   <meta name="twitter:description" content="old" />
 </head>
@@ -125,11 +125,11 @@ describe('discovery files', () => {
 
 describe('host routing', () => {
   it('redirects alias hosts and rewrites the optics home', () => {
-    expect(aliasRedirectTarget('appsfly.cl', '/precios', '?plan=basico')).toBe(
-      'https://appsfly.app/precios?plan=basico',
+    expect(aliasRedirectTarget('appsfly.app', '/precios', '?plan=basico')).toBe(
+      'https://appsfly.cl/precios?plan=basico',
     )
-    expect(aliasRedirectTarget('www.appsfly.cl', '/', '')).toBe('https://appsfly.app/')
-    expect(aliasRedirectTarget('appsfly.app', '/', '')).toBeNull()
+    expect(aliasRedirectTarget('www.appsfly.cl', '/', '')).toBe('https://appsfly.cl/')
+    expect(aliasRedirectTarget('appsfly.cl', '/', '')).toBeNull()
     expect(opticsHomeRewritePath('optica.appsfly.app', '/')).toBe('/optica/index.html')
     expect(opticsHomeRewritePath('appsfly.app', '/')).toBeNull()
   })

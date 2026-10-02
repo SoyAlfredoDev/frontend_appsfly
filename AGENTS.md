@@ -2,6 +2,8 @@
 
 These rules apply to every future change in `frontend`, `backend`, and any Expo application added to this repository.
 
+The production website is `https://appsfly.cl` and the production API is `https://api.appsfly.cl`. Do not configure deployments or new operational links to `appsfly.app`; it redirects to `.cl`. Keep the specialized `optica.appsfly.app` landing and `@appsfly.app` email senders distinct from the main website.
+
 ## Mandatory toolchain
 
 - ESLint is required for static analysis. New warnings must not be introduced.
