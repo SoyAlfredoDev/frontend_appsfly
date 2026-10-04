@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { FaArrowLeft, FaSpinner } from 'react-icons/fa'
 import InputFloatingComponent from '../components/inputs/InputFloatingComponent'
 import SelectFloatingComponent from '../components/inputs/SelectFloatingComponent'
