@@ -63,7 +63,7 @@ export default function SeoArticlePage({ page, showPlans = false }: SeoArticlePa
           <div className="rounded-3xl bg-dark px-6 py-10 text-white sm:px-10">
             <h2 className="font-display text-3xl font-bold">Empieza con 2 meses gratis</h2>
             <p className="mt-3 max-w-2xl text-slate-300">
-              Crea la cuenta del Plan Básico sin tarjeta. Si tienes una óptica, también puedes ver
+              Crea la cuenta de la prueba Pro sin tarjeta. Si tienes una óptica, también puedes ver
               el recorrido de receta, venta y laboratorio.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">

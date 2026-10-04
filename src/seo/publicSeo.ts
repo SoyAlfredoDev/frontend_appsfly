@@ -110,7 +110,7 @@ const HOME_FAQS: FaqEntry[] = [
   {
     question: '¿Hay prueba gratis?',
     answer:
-      'Sí. El Plan Básico incluye 2 meses gratis y no pide tarjeta de crédito para crear la cuenta.',
+      'Sí. La prueba Pro dura 2 meses, incluye las funciones de Pro y no pide tarjeta de crédito para crear la cuenta.',
   },
   {
     question: '¿Quién opera AppsFly y desde dónde?',
@@ -131,7 +131,7 @@ const OPTICS_FAQS: FaqEntry[] = [
   {
     question: '¿Puedo probar AppsFly en mi óptica antes de pagar?',
     answer:
-      'Sí. La prueba del Plan Básico dura 2 meses y no pide tarjeta de crédito. También puedes pedir información por WhatsApp.',
+      'Sí. La prueba Pro dura 2 meses, incluye las funciones de Pro y no pide tarjeta de crédito. También puedes pedir información por WhatsApp.',
   },
   {
     question: '¿El precio incluye boleta electrónica?',

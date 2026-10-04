@@ -48,7 +48,7 @@ export default function OpticsLandingPage({ basePath = "/" }) {
                     <PlansHome
                         registerTo={OPTICS_PROMO_REGISTER_TO}
                         heading="Planes para tu óptica"
-                        subtitle="Empieza con 2 meses gratis en el Plan Básico, o elige Profesional si necesitas facturación electrónica e IA."
+                        subtitle="Empieza con 2 meses gratis y las funciones de Pro. Start, Pro y Élite se contratan después, más IVA."
                     />
                 </div>
 
