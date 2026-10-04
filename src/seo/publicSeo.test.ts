@@ -51,8 +51,9 @@ describe('public SEO copy', () => {
     expect(home.faqs.find((faq) => faq.question === '¿Cuánto cuesta AppsFly?')?.answer).toBe(
       PRICE_SUMMARY,
     )
-    expect(PRICE_SUMMARY).toContain('$9.990')
+    expect(PRICE_SUMMARY).toContain('$24.990')
     expect(PRICE_SUMMARY).toContain('$39.990')
+    expect(PRICE_SUMMARY).toContain('$49.990')
   })
 
   it('keeps the optics promo and the optics article on different canonical URLs', () => {
@@ -70,6 +71,12 @@ describe('public SEO copy', () => {
   it('marks unknown routes as noindex', () => {
     expect(resolveSeoForPath('/no-existe').robots).toBe('noindex, nofollow')
     expect(resolveSeoForPath('/dashboard').robots).toBe('noindex, nofollow')
+  })
+
+  it('names the public booking link without indexing each business', () => {
+    const seo = resolveSeoForPath('/registarcita/biz-1')
+    expect(seo.title).toBe('Agendar cita | AppsFly')
+    expect(seo.robots).toBe('noindex, nofollow')
   })
 })
 
@@ -93,7 +100,7 @@ describe('discovery files', () => {
     const llms = buildLlmsTxt()
     expect(llms).toContain('# AppsFly')
     expect(llms).toContain('77.719.288-4')
-    expect(llms).toContain('$9.990')
+    expect(llms).toContain('$24.990')
     expect(llms).toContain(`${SITE_URL}/precios`)
   })
 
@@ -111,7 +118,7 @@ describe('discovery files', () => {
       expect(json).toContain(faq.question)
       expect(json).toContain(faq.answer)
     }
-    expect(json).toContain('"price":"9990"')
+    expect(json).toContain('"price":"24990"')
     expect(json).toContain('TECNOLOGÍA Y SERVICIOS APPSFLY SPA')
   })
 

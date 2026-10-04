@@ -8,55 +8,88 @@ import { FREE_TRIAL_PLAN_ID } from '../../utils/subscriptionAccess.js';
 import { getPlanPricing } from '../../utils/planPricing.js';
 import { PRICE_SUMMARY } from '../../seo/publicSeo.ts';
 
-const BASIC_MONTHLY_PRICE = 9990;
+const START_FEATURES = [
+    '1 usuario',
+    'Clientes',
+    'Recetas OD/OI',
+    'Ventas',
+    'Cotizaciones',
+    'Órdenes de trabajo',
+    'Laboratorios y despachos',
+    'Inventario',
+    'Certificados de compra',
+    'Cierres diarios y gastos',
+    'Reportes',
+];
 
 const PRO_FEATURES = [
-    '5 usuarios',
-    'Compras y Ventas',
-    'Inventario',
-    'Reportes',
-    'Boletas electrónicas',
-    'Facturas electrónicas',
+    'Hasta 5 usuarios',
+    ...START_FEATURES.slice(1),
+    'Citas',
+    'Boleta y factura electrónica',
     'Asistente con IA',
-    'Envío de correos a clientes',
-    'Soporte 24/7',
 ];
 
 const FALLBACK_PLANS = [
     {
         planId: 'P001',
-        planName: 'Plan Básico',
+        planName: 'Prueba Pro',
         planPrice: 0,
         planDuration: 2,
-        planFeatures: ['5 usuarios', 'Compras y Ventas', 'Inventario', 'Reportes', 'Soporte 24/7'],
+        planFeatures: PRO_FEATURES,
         planActive: true,
     },
     {
-        planId: 'P003',
-        planName: 'Plan Profesional',
+        planId: 'P005',
+        planName: 'Start',
+        planPrice: 24990,
+        planDuration: 1,
+        planFeatures: START_FEATURES,
+        planActive: true,
+    },
+    {
+        planId: 'P006',
+        planName: 'Pro',
         planPrice: 39990,
         planDuration: 1,
         planFeatures: PRO_FEATURES,
         planActive: true,
     },
+    {
+        planId: 'P007',
+        planName: 'Élite',
+        planPrice: 49990,
+        planDuration: 1,
+        planFeatures: ['Hasta 10 usuarios', ...PRO_FEATURES.slice(1)],
+        planActive: true,
+    },
 ];
 
-/** Solo estos planes se muestran en la landing */
-const LANDING_PLAN_IDS = ['P001', 'P003'];
+/** Catálogo vigente de ópticas */
+const LANDING_PLAN_IDS = ['P001', 'P005', 'P006', 'P007'];
 const PLAN_ORDER = LANDING_PLAN_IDS;
 
 const PLAN_META = {
     P001: {
-        subtitle: 'Promoción de lanzamiento',
-        badge: '🎁 2 meses gratis',
+        subtitle: 'Funciones de Pro',
+        badge: '2 meses',
         recommended: true,
-        monthlyPrice: BASIC_MONTHLY_PRICE,
     },
-    P003: {
-        subtitle: 'Facturación y automatización',
-        badge: '🔥 Más completo',
+    P005: {
+        subtitle: 'Una óptica pequeña',
+        badge: null,
+        recommended: false,
+    },
+    P006: {
+        subtitle: 'Óptica en crecimiento',
+        badge: 'Pro',
         recommended: false,
         highlight: true,
+    },
+    P007: {
+        subtitle: 'Hasta 10 usuarios',
+        badge: 'Élite',
+        recommended: false,
     },
 };
 
@@ -78,9 +111,7 @@ function buildDisplayPlans(rawPlans) {
         };
         const features = parsePlanFeatures(plan.planFeatures);
         const isTrial = plan.planId === FREE_TRIAL_PLAN_ID;
-        const monthlyPrice = isTrial
-            ? meta.monthlyPrice ?? BASIC_MONTHLY_PRICE
-            : Number(plan.planPrice);
+        const monthlyPrice = isTrial ? 0 : Number(plan.planPrice);
 
         return {
             planId: plan.planId,
@@ -95,7 +126,7 @@ function buildDisplayPlans(rawPlans) {
             promoLabel: isTrial ? `🎁 ${plan.planDuration} meses gratis` : null,
             promoNote: isTrial ? 'Sin costo los primeros 2 meses al registrarte' : null,
             monthlyNote: isTrial
-                ? `Luego ${formatPrice(monthlyPrice)} neto + IVA mensual`
+                ? "Al terminar no se inicia un cobro. Hay que elegir un plan de pago."
                 : `Total aprox. ${formatPrice(getPlanPricing(monthlyPrice).total)}/mes (IVA incl.)`,
         };
     });
@@ -160,7 +191,7 @@ export default function PlansHome({
                     </p>
                 </div>
 
-                <div className="flex flex-wrap justify-center gap-6 lg:gap-10 max-w-4xl mx-auto">
+                <div className="flex flex-wrap justify-center gap-6 lg:gap-8 max-w-6xl mx-auto">
                     {loading
                         ? PLAN_ORDER.map((id) => <PlanCardSkeleton key={id} />)
                         : displayPlans.map((plan, index) => (

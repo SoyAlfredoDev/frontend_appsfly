@@ -24,15 +24,17 @@ export const SITE_URL = resolveSiteUrl()
 export const OG_IMAGE_PATH = '/assets/seo/og-conversion.jpg'
 export const OG_IMAGE_URL = `${SITE_URL}${OG_IMAGE_PATH}`
 
-export const BASIC_NET_MONTHLY_CLP = 9990
+export const START_NET_MONTHLY_CLP = 24990
 export const PRO_NET_MONTHLY_CLP = 39990
+export const ELITE_NET_MONTHLY_CLP = 49990
+export const BASIC_NET_MONTHLY_CLP = START_NET_MONTHLY_CLP
 
 export function formatClp(amount: number) {
   const body = String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   return `$${body}`
 }
 
-export const PRICE_SUMMARY = `Plan Básico a ${formatClp(BASIC_NET_MONTHLY_CLP)} neto/mes (+ IVA) con 2 meses gratis, o Plan Profesional a ${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes (+ IVA).`
+export const PRICE_SUMMARY = `La prueba de 2 meses incluye Pro y no inicia un cobro. Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto/mes, Pro ${formatClp(PRO_NET_MONTHLY_CLP)} y Élite ${formatClp(ELITE_NET_MONTHLY_CLP)}, más IVA.`
 
 export const HOME_H1 = 'AppsFly: sistema para registrar ventas en Chile'
 export const HOME_LEAD =
@@ -49,7 +51,7 @@ export const OPTICS_ARTICLE_LEAD =
   'AppsFly es un software para ópticas en Chile: registra la receta OD/OI, la venta, la orden de trabajo y el envío al laboratorio en el mismo sistema, con inventario de armazones, lentes y accesorios.'
 
 export const PRICES_H1 = 'Precios de AppsFly'
-export const PRICES_LEAD = `AppsFly tiene dos planes publicados. El Plan Básico cuesta ${formatClp(BASIC_NET_MONTHLY_CLP)} neto al mes, más IVA, e incluye 2 meses gratis y sin tarjeta de crédito. El Plan Profesional cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} neto al mes, más IVA, y suma boleta electrónica, factura electrónica y el asistente con IA.`
+export const PRICES_LEAD = `La prueba dura 2 meses, incluye las funciones de Pro y no inicia un cobro. Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto al mes, Pro ${formatClp(PRO_NET_MONTHLY_CLP)} y Élite ${formatClp(ELITE_NET_MONTHLY_CLP)}, más IVA.`
 
 export const ABOUT_H1 = 'Sobre Nosotros'
 export const ABOUT_LEAD =
@@ -65,7 +67,7 @@ export const PRIVACY_LEAD =
 
 export const REGISTER_H1 = 'Crear cuenta nueva'
 export const REGISTER_LEAD =
-  'Prueba AppsFly 2 meses gratis, sin tarjeta de crédito. El Plan Básico queda en $9.990 neto/mes más IVA cuando termina la prueba.'
+  'Prueba AppsFly 2 meses gratis, sin tarjeta de crédito. Al terminar no se inicia un cobro: hay que elegir un plan de pago.'
 
 export type FaqEntry = {
   question: string
@@ -133,18 +135,18 @@ const OPTICS_FAQS: FaqEntry[] = [
   },
   {
     question: '¿El precio incluye boleta electrónica?',
-    answer: `La boleta y la factura electrónica están en el Plan Profesional, a ${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes más IVA. El Plan Básico, a ${formatClp(BASIC_NET_MONTHLY_CLP)} neto/mes más IVA, cubre ventas, inventario y reportes.`,
+    answer: `La boleta y la factura electrónica están en la prueba, Pro y Élite. Start, a ${formatClp(START_NET_MONTHLY_CLP)} neto/mes más IVA, cubre la operación de la óptica sin esas funciones.`,
   },
 ]
 
 const PRICE_FAQS: FaqEntry[] = [
   {
-    question: '¿Cuál es el precio del Plan Básico?',
-    answer: `El Plan Básico cuesta ${formatClp(BASIC_NET_MONTHLY_CLP)} neto al mes, más IVA. Los primeros 2 meses son gratis y no se pide tarjeta de crédito.`,
+    question: '¿Cuál es el precio de Start?',
+    answer: `Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto al mes, más IVA, e incluye 1 usuario. La prueba de 2 meses cuesta $0, trae las funciones de Pro y no inicia un cobro al terminar.`,
   },
   {
-    question: '¿Qué incluye el Plan Profesional?',
-    answer: `El Plan Profesional cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} neto al mes, más IVA. Incluye lo del plan base y suma boleta electrónica, factura electrónica, asistente con IA y envío de correos a clientes.`,
+    question: '¿Qué incluye Pro?',
+    answer: `Pro cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} neto al mes, más IVA, hasta 5 usuarios. Suma citas, boleta, factura electrónica y el asistente. Élite cuesta ${formatClp(ELITE_NET_MONTHLY_CLP)} neto y permite hasta 10 usuarios.`,
   },
   {
     question: '¿Los precios de AppsFly incluyen IVA?',
@@ -153,7 +155,7 @@ const PRICE_FAQS: FaqEntry[] = [
   {
     question: '¿Puedo cambiar de plan después de la prueba?',
     answer:
-      'Sí. La prueba parte en el Plan Básico. Cuando termina, puedes seguir en ese plan o pasar al Plan Profesional.',
+      'Sí. La prueba no se convierte sola en un cobro. Cuando termina, hay que contratar un plan de pago.',
   },
 ]
 
@@ -162,7 +164,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
     path: '/',
     title: 'AppsFly | Sistema para registrar ventas en Chile',
     description:
-      'Sistema para registrar ventas, inventario y clientes en Chile. Plan Básico a $9.990 neto/mes + IVA, con 2 meses gratis.',
+      'Sistema para registrar ventas, inventario y clientes en Chile. Prueba 2 meses sin cobro. Start desde $24.990 neto/mes + IVA.',
     h1: HOME_H1,
     lead: HOME_LEAD,
     paragraphs: [HOME_SUPPORT],
@@ -219,16 +221,20 @@ export const PUBLIC_PAGES: PublicPage[] = [
     h1: PRICES_H1,
     lead: PRICES_LEAD,
     paragraphs: [
-      'Los dos planes se contratan en línea. La prueba de 2 meses corresponde al Plan Básico y no pide tarjeta.',
+      'Start, Pro y Élite se contratan en línea. La prueba de 2 meses trae las funciones de Pro y no pide tarjeta.',
     ],
     highlights: [
       {
-        title: 'Plan Básico',
-        text: `${formatClp(BASIC_NET_MONTHLY_CLP)} neto/mes + IVA. Incluye 5 usuarios, compras, ventas, inventario, reportes y soporte. Los 2 primeros meses son gratis.`,
+        title: 'Start',
+        text: `${formatClp(START_NET_MONTHLY_CLP)} neto/mes + IVA. Un usuario y la operación diaria de la óptica.`,
       },
       {
-        title: 'Plan Profesional',
-        text: `${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes + IVA. Suma boleta electrónica, factura electrónica, asistente con IA y correos a clientes.`,
+        title: 'Pro',
+        text: `${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes + IVA. Hasta 5 usuarios, citas, boleta, factura y asistente.`,
+      },
+      {
+        title: 'Élite',
+        text: `${formatClp(ELITE_NET_MONTHLY_CLP)} neto/mes + IVA. Las funciones de Pro, hasta 10 usuarios.`,
       },
     ],
     faqs: PRICE_FAQS,
@@ -375,6 +381,21 @@ export function isPublicIndexedRoute(pathname: string, hostname = '') {
 
 export function resolveSeoForPath(pathname: string, options: { hostname?: string } = {}) {
   const hostname = options.hostname ?? ''
+  if (pathname === '/registarcita' || pathname.startsWith('/registarcita/')) {
+    return {
+      title: 'Agendar cita | AppsFly',
+      description: 'Elige un día y una hora para solicitar una cita.',
+      keywords: 'appsfly, agendar cita',
+      robots: 'noindex, nofollow',
+      twitterCard: 'summary_large_image',
+      ogType: 'website',
+      ogUrl: `${SITE_URL}${pathname}`,
+      ogImage: OG_IMAGE_URL,
+      siteName: 'AppsFly',
+      locale: 'es_CL',
+      canonicalUrl: `${SITE_URL}${pathname}`,
+    }
+  }
   const page = pageForPath(pathname, hostname)
   if (!page) {
     return {
@@ -441,8 +462,10 @@ export function buildLlmsTxt() {
     `- [Óptica](${OPTICS_PROMO_SITE_URL}/): ${OPTICS_LEAD}`,
     '',
     '## Precios',
-    `- Plan Básico: ${formatClp(BASIC_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Incluye 2 meses gratis, sin tarjeta.`,
-    `- Plan Profesional: ${formatClp(PRO_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Incluye boleta electrónica, factura electrónica y asistente con IA.`,
+    `- Prueba: 2 meses a $0 con las funciones de Pro, sin tarjeta y sin cobro automático.`,
+    `- Start: ${formatClp(START_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. 1 usuario.`,
+    `- Pro: ${formatClp(PRO_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Hasta 5 usuarios, citas, boleta, factura y asistente.`,
+    `- Élite: ${formatClp(ELITE_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Hasta 10 usuarios.`,
     '',
     '## Contacto',
     `- Razón social: ${COMPANY.legalName}`,
@@ -520,19 +543,34 @@ export function buildJsonLd(page: PublicPage) {
       offers: [
         {
           '@type': 'Offer',
-          name: 'Plan Básico',
-          price: String(BASIC_NET_MONTHLY_CLP),
+          name: 'Prueba',
+          price: '0',
           priceCurrency: 'CLP',
-          description: 'Precio neto mensual, más IVA. Incluye 2 meses gratis.',
+          description: '2 meses sin tarjeta y sin cobro automático.',
           url: `${SITE_URL}/precios`,
         },
         {
           '@type': 'Offer',
-          name: 'Plan Profesional',
+          name: 'Start',
+          price: String(START_NET_MONTHLY_CLP),
+          priceCurrency: 'CLP',
+          description: 'Precio neto mensual, más IVA. 1 usuario.',
+          url: `${SITE_URL}/precios`,
+        },
+        {
+          '@type': 'Offer',
+          name: 'Pro',
           price: String(PRO_NET_MONTHLY_CLP),
           priceCurrency: 'CLP',
-          description:
-            'Precio neto mensual, más IVA. Incluye boleta electrónica, factura electrónica y asistente con IA.',
+          description: 'Precio neto mensual, más IVA. Hasta 5 usuarios.',
+          url: `${SITE_URL}/precios`,
+        },
+        {
+          '@type': 'Offer',
+          name: 'Élite',
+          price: String(ELITE_NET_MONTHLY_CLP),
+          priceCurrency: 'CLP',
+          description: 'Precio neto mensual, más IVA. Hasta 10 usuarios.',
           url: `${SITE_URL}/precios`,
         },
       ],

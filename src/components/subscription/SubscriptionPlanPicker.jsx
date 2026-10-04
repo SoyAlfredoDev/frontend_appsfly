@@ -14,65 +14,86 @@ import {
     PromoFreeTrialButton,
 } from "../mercadopago/index.js";
 
+const START_FEATURES = [
+    "1 usuario",
+    "Clientes",
+    "Recetas OD/OI",
+    "Ventas",
+    "Cotizaciones",
+    "Órdenes de trabajo",
+    "Laboratorios y despachos",
+    "Inventario",
+    "Certificados de compra",
+    "Cierres diarios y gastos",
+    "Reportes",
+];
+
+const PRO_FEATURES = [
+    "Hasta 5 usuarios",
+    ...START_FEATURES.slice(1),
+    "Citas",
+    "Boleta y factura electrónica",
+    "Asistente con IA",
+];
+
 const FALLBACK_PLANS = [
     {
         planId: "P001",
-        planName: "Plan Básico",
+        planName: "Prueba Pro",
         planPrice: 0,
         planDuration: 2,
-        planFeatures: ["5 usuarios", "Compras y Ventas", "Inventario", "Reportes", "Soporte 24/7"],
+        planFeatures: PRO_FEATURES,
         planActive: true,
     },
     {
-        planId: "P002",
-        planName: "Plan Comercial",
-        planPrice: 9990,
+        planId: "P005",
+        planName: "Start",
+        planPrice: 24990,
         planDuration: 1,
-        planFeatures: ["5 usuarios", "Compras y Ventas", "Inventario", "Reportes", "Soporte 24/7"],
+        planFeatures: START_FEATURES,
         planActive: true,
     },
     {
-        planId: "P003",
-        planName: "Plan Profesional",
+        planId: "P006",
+        planName: "Pro",
         planPrice: 39990,
         planDuration: 1,
-        planFeatures: [
-            "5 usuarios",
-            "Compras y Ventas",
-            "Inventario",
-            "Reportes",
-            "Boletas electrónicas",
-            "Facturas electrónicas",
-            "Asistente con IA",
-            "Envío de correos a clientes",
-            "Soporte 24/7",
-        ],
+        planFeatures: PRO_FEATURES,
+        planActive: true,
+    },
+    {
+        planId: "P007",
+        planName: "Élite",
+        planPrice: 49990,
+        planDuration: 1,
+        planFeatures: ["Hasta 10 usuarios", ...PRO_FEATURES.slice(1)],
         planActive: true,
     },
 ];
 
 const PLAN_BADGES = {
-    P001: { label: "Oferta lanzamiento", className: "bg-[#094fd1]" },
-    P002: { label: "Comercial", className: "bg-slate-600" },
-    P003: { label: "Más completo", className: "bg-[#01c676]" },
+    P001: { label: "2 meses", className: "bg-[#094fd1]" },
+    P005: { label: "Entrada", className: "bg-slate-600" },
+    P006: { label: "Pro", className: "bg-[#01c676]" },
+    P007: { label: "Élite", className: "bg-[#021f41]" },
 };
 
 const VARIANTS = {
     welcome: {
-        planIds: ["P001", "P002", "P003"],
+        planIds: ["P001", "P005", "P006", "P007"],
         title: "Elige tu plan",
         titleAccent: "para comenzar",
         description:
-            "Puedes activar la promoción de 2 meses gratis o contratar el plan comercial o profesional con Mercado Pago. Los precios de pago son netos + IVA (19%).",
-        gridCols: "md:grid-cols-3",
+            "Puedes activar 2 meses con las funciones de Pro, o contratar Start, Pro o Élite. Los precios de pago son netos + IVA (19%).",
+        gridCols: "md:grid-cols-4",
     },
     expired: {
-        planIds: ["P002", "P003"],
+        planIds: ["P005", "P006", "P007"],
         title: "Renueva tu acceso",
         titleAccent: "con un plan de pago",
         description:
-            "Contrata el plan comercial o profesional con Mercado Pago. Los precios mostrados son netos; al pagar se suma IVA (19%).",
-        gridCols: "md:grid-cols-2",
+            "Contrata Start, Pro o Élite con Mercado Pago. Los precios mostrados son netos; al pagar se suma IVA (19%).",
+        gridCols: "md:grid-cols-3",
         showMercadoPagoHint: true,
     },
 };
@@ -91,7 +112,7 @@ function PlanPrice({ plan }) {
                     <span className="text-3xl font-extrabold text-[#01c676] tracking-tight">$0</span>
                     <div className="flex flex-col mb-0.5">
                         <span className="text-[9px] text-gray-400 font-bold uppercase">Por 2 meses</span>
-                        <span className="text-gray-500 text-[10px] font-medium">luego $9.990</span>
+                        <span className="text-gray-500 text-[10px] font-medium">sin cobro automático</span>
                     </div>
                 </div>
             </div>
@@ -127,8 +148,8 @@ function PlanPrice({ plan }) {
 
 /**
  * @param {'welcome' | 'expired'} variant
- * - welcome: P001 trial + P002 + P003
- * - expired: solo P002 y P003 (renovación)
+ * - welcome: prueba Pro + Start + Pro + Élite
+ * - expired: Start, Pro y Élite
  */
 export default function SubscriptionPlanPicker({
     variant = "welcome",
