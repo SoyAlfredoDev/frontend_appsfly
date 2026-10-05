@@ -12,7 +12,7 @@ import RestrictedAccessShell from "../../components/layout/RestrictedAccessShell
 
 /**
  * Escenario B: negocio con historial de suscripción vencida/suspendida.
- * Planes P002 comercial y P003 profesional — sin promoción P001.
+ * Start y Pro, con el link de Mercado Pago de cada uno. Sin la prueba P001.
  */
 export default function SubscriptionExpiredPage({ embedded = false, fullScreen = false }) {
     const { user, business, subscriptions } = useAuth();
@@ -22,7 +22,7 @@ export default function SubscriptionExpiredPage({ embedded = false, fullScreen =
         <RestrictedAccessShell
             icon={FaCalendarTimes}
             title="Suscripción vencida"
-            subtitle="Elige el plan comercial o profesional para recuperar ventas, inventario y reportes."
+            subtitle="Elige Start o Pro para recuperar ventas, inventario y reportes."
             headerClassName="bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700"
             embedded={embedded}
             fullScreen={fullScreen}

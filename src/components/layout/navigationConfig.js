@@ -22,6 +22,7 @@ import {
   FaFileMedical,
   FaCashRegister,
   FaUserInjured,
+  FaCreditCard,
 } from "react-icons/fa";
 import { isOpticsBusiness } from "../../utils/businessModality.js";
 
@@ -47,6 +48,7 @@ export const NAV_ITEMS = [
   { name: "Productos", path: "/products_services", icon: FaBoxOpen, permission: "products:read" },
   { name: "Inventario", path: "/inventory", icon: FaBoxes, permission: "inventory:read" },
   { name: "Ventas", path: "/sales", icon: FaShoppingCart, permission: "sales:read" },
+  { name: "Caja rápida", path: "/sales/quick", icon: FaCashRegister, permission: "sales:create" },
   { name: "Cotizaciones", path: "/quotations", icon: FaFileAlt, permission: "quotations:read" },
   { name: "Laboratorios", path: "/laboratories", icon: FaFlask, permission: "optics:manage", opticsOnly: true },
   { name: "Órdenes de Trabajo", path: "/work-orders", icon: FaClipboardList, permission: "optics:read", opticsOnly: true },
@@ -61,6 +63,7 @@ export const NAV_ITEMS = [
   { name: "Transacciones", path: "/transactions", icon: FaExchangeAlt, permission: "transactions:read", hideForOptics: true },
   { name: "Usuarios", path: "/users", icon: FaUserFriends, permission: "users:manage" },
   { name: "Configuración", path: "/configuration", icon: FaCog, permission: "settings:manage" },
+  { name: "Suscripción", path: "/configuration/subscription", icon: FaCreditCard, permission: "settings:manage" },
   { name: "Perfil", path: "/profile", icon: FaUserCircle, permission: "profile:view" },
 ];
 
@@ -92,6 +95,7 @@ export const OPTICS_NAV_TREE = [
     icon: FaShoppingCart,
     children: [
       { name: "Ventas", path: "/sales", icon: FaShoppingCart, permission: "sales:read" },
+      { name: "Caja rápida", path: "/sales/quick", icon: FaCashRegister, permission: "sales:create" },
       { name: "Cotizaciones", path: "/quotations", icon: FaFileAlt, permission: "quotations:read" },
       { name: "Facturación", path: "/billing", icon: FaFileInvoice, permission: "billing:manage" },
     ],
@@ -140,6 +144,7 @@ export const OPTICS_NAV_TREE = [
     children: [
       { name: "Usuarios", path: "/users", icon: FaUserFriends, permission: "users:manage" },
       { name: "Configuración", path: "/configuration", icon: FaCog, permission: "settings:manage" },
+      { name: "Suscripción", path: "/configuration/subscription", icon: FaCreditCard, permission: "settings:manage" },
       { name: "Perfil", path: "/profile", icon: FaUserCircle, permission: "profile:view" },
     ],
   },
@@ -160,10 +165,15 @@ export function isNavPathActive(pathname, itemPath) {
   if (!pathname || !itemPath) return false;
   if (pathname === itemPath) return true;
 
+  if (itemPath === "/configuration") {
+    return pathname === "/configuration";
+  }
+
   if (itemPath === "/sales") {
     return (
       pathname.startsWith("/sales/") &&
-      !pathname.startsWith("/sales/dailySales")
+      !pathname.startsWith("/sales/dailySales") &&
+      !pathname.startsWith("/sales/quick")
     );
   }
 

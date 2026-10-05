@@ -55,18 +55,10 @@ const FALLBACK_PLANS = [
     planFeatures: PRO_FEATURES,
     planActive: true,
   },
-  {
-    planId: 'P007',
-    planName: 'Élite',
-    planPrice: 49990,
-    planDuration: 1,
-    planFeatures: ['Hasta 10 usuarios', ...PRO_FEATURES.slice(1)],
-    planActive: true,
-  },
 ]
 
 /** Catálogo vigente de ópticas */
-const LANDING_PLAN_IDS = ['P001', 'P005', 'P006', 'P007']
+const LANDING_PLAN_IDS = ['P001', 'P005', 'P006']
 const PLAN_ORDER = LANDING_PLAN_IDS
 
 const PLAN_META = {
@@ -85,11 +77,6 @@ const PLAN_META = {
     badge: 'Pro',
     recommended: false,
     highlight: true,
-  },
-  P007: {
-    subtitle: 'Hasta 10 usuarios',
-    badge: 'Élite',
-    recommended: false,
   },
 }
 

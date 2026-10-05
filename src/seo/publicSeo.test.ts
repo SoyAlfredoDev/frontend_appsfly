@@ -53,7 +53,7 @@ describe('public SEO copy', () => {
     )
     expect(PRICE_SUMMARY).toContain('$24.990')
     expect(PRICE_SUMMARY).toContain('$39.990')
-    expect(PRICE_SUMMARY).toContain('$49.990')
+    expect(PRICE_SUMMARY).not.toContain('Élite')
   })
 
   it('keeps the optics promo and the optics article on different canonical URLs', () => {

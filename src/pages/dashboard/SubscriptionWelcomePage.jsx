@@ -103,8 +103,8 @@ export default function SubscriptionWelcomePage({ embedded = false, fullScreen =
           <p className="text-[11px] sm:text-xs text-slate-700 leading-snug">
             Hola <span className="font-semibold">{user?.userFirstName}</span>,{' '}
             <span className="font-semibold">{business?.businessName ?? 'tu negocio'}</span> puede
-            activar 2 meses con las funciones de Pro, o contratar Start ($24.990 neto/mes), Pro
-            ($39.990) o Élite ($49.990). Al pagar se suma IVA (19%). Mientras tanto, solo{' '}
+            activar 2 meses con las funciones de Pro, o contratar Start ($24.990 neto/mes) o Pro
+            ($39.990). El pago abre el link de Mercado Pago y suma IVA (19%). Mientras tanto, solo{' '}
             <Link to="/profile" className="text-secondary font-semibold no-underline">
               Mi perfil
             </Link>{' '}

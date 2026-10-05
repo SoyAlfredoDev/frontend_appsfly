@@ -41,6 +41,7 @@ import InventoryPage from "./pages/InventoryPage.jsx";
 /* Sales */
 import SalesPage from "./pages/Sales/SalesPage.jsx";
 import NewSalePage from "./pages/Sales/NewSalePage.jsx";
+import QuickSalePage from "./pages/Sales/QuickSalePage.tsx";
 import ViewSalePage from "./pages/Sales/ViewSalePage.jsx";
 
 /* Quotations */
@@ -84,6 +85,7 @@ import FinancePage from "./pages/FinancePage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import TaxBillingPage from "./pages/billing/TaxBillingPage.jsx";
 import ConfigurationPage from "./pages/settings/ConfigurationPage.jsx";
+import SubscriptionSettingsPage from "./pages/settings/SubscriptionSettingsPage.jsx";
 
 /* Campaigns */
 import CampaignsAsmrPage from "./pages/campaigns/CampaignsAsmrPage.jsx";
@@ -176,6 +178,7 @@ function App() {
                   <Route path="/products/:id" element={<ProductsServicesViewPage />} />
                   <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/sales/register" element={<NewSalePage />} />
+                  <Route path="/sales/quick" element={<QuickSalePage />} />
                   <Route path="/sales/dailySales/view/:id" element={<ViewDailySalePage />} />
                   <Route path="/sales/dailySales" element={<PageDailySales />} />
                   <Route path="/sales/view/:id" element={<ViewSalePage />} />
@@ -203,6 +206,7 @@ function App() {
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/billing" element={<TaxBillingPage />} />
                   <Route path="/configuration" element={<ConfigurationPage />} />
+                  <Route path="/configuration/subscription" element={<SubscriptionSettingsPage />} />
                   <Route path="/finance" element={<FinancePage />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/business/register" element={<RegisterBusinessPage />} />

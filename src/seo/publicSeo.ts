@@ -26,7 +26,6 @@ export const OG_IMAGE_URL = `${SITE_URL}${OG_IMAGE_PATH}`
 
 export const START_NET_MONTHLY_CLP = 24990
 export const PRO_NET_MONTHLY_CLP = 39990
-export const ELITE_NET_MONTHLY_CLP = 49990
 export const BASIC_NET_MONTHLY_CLP = START_NET_MONTHLY_CLP
 
 export function formatClp(amount: number) {
@@ -34,7 +33,7 @@ export function formatClp(amount: number) {
   return `$${body}`
 }
 
-export const PRICE_SUMMARY = `La prueba de 2 meses incluye Pro y no inicia un cobro. Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto/mes, Pro ${formatClp(PRO_NET_MONTHLY_CLP)} y Élite ${formatClp(ELITE_NET_MONTHLY_CLP)}, más IVA.`
+export const PRICE_SUMMARY = `La prueba de 2 meses incluye Pro y no inicia un cobro. Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto/mes y Pro ${formatClp(PRO_NET_MONTHLY_CLP)}, más IVA.`
 
 export const HOME_H1 = 'AppsFly: sistema para registrar ventas en Chile'
 export const HOME_LEAD =
@@ -51,7 +50,7 @@ export const OPTICS_ARTICLE_LEAD =
   'AppsFly es un software para ópticas en Chile: registra la receta OD/OI, la venta, la orden de trabajo y el envío al laboratorio en el mismo sistema, con inventario de armazones, lentes y accesorios.'
 
 export const PRICES_H1 = 'Precios de AppsFly'
-export const PRICES_LEAD = `La prueba dura 2 meses, incluye las funciones de Pro y no inicia un cobro. Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto al mes, Pro ${formatClp(PRO_NET_MONTHLY_CLP)} y Élite ${formatClp(ELITE_NET_MONTHLY_CLP)}, más IVA.`
+export const PRICES_LEAD = `La prueba dura 2 meses, incluye las funciones de Pro y no inicia un cobro. Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto al mes y Pro ${formatClp(PRO_NET_MONTHLY_CLP)}, más IVA.`
 
 export const ABOUT_H1 = 'Sobre Nosotros'
 export const ABOUT_LEAD =
@@ -135,7 +134,7 @@ const OPTICS_FAQS: FaqEntry[] = [
   },
   {
     question: '¿El precio incluye boleta electrónica?',
-    answer: `La boleta y la factura electrónica están en la prueba, Pro y Élite. Start, a ${formatClp(START_NET_MONTHLY_CLP)} neto/mes más IVA, cubre la operación de la óptica sin esas funciones.`,
+    answer: `La boleta y la factura electrónica están en la prueba y en Pro. Start, a ${formatClp(START_NET_MONTHLY_CLP)} neto/mes más IVA, cubre la operación de la óptica sin esas funciones.`,
   },
 ]
 
@@ -146,7 +145,7 @@ const PRICE_FAQS: FaqEntry[] = [
   },
   {
     question: '¿Qué incluye Pro?',
-    answer: `Pro cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} neto al mes, más IVA, hasta 5 usuarios. Suma citas, boleta, factura electrónica y el asistente. Élite cuesta ${formatClp(ELITE_NET_MONTHLY_CLP)} neto y permite hasta 10 usuarios.`,
+    answer: `Pro cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} neto al mes, más IVA, hasta 5 usuarios. Suma citas, boleta, factura electrónica y el asistente.`,
   },
   {
     question: '¿Los precios de AppsFly incluyen IVA?',
@@ -221,7 +220,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
     h1: PRICES_H1,
     lead: PRICES_LEAD,
     paragraphs: [
-      'Start, Pro y Élite se contratan en línea. La prueba de 2 meses trae las funciones de Pro y no pide tarjeta.',
+      'Start y Pro se contratan con el link de Mercado Pago. La prueba de 2 meses trae las funciones de Pro y no pide tarjeta.',
     ],
     highlights: [
       {
@@ -231,10 +230,6 @@ export const PUBLIC_PAGES: PublicPage[] = [
       {
         title: 'Pro',
         text: `${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes + IVA. Hasta 5 usuarios, citas, boleta, factura y asistente.`,
-      },
-      {
-        title: 'Élite',
-        text: `${formatClp(ELITE_NET_MONTHLY_CLP)} neto/mes + IVA. Las funciones de Pro, hasta 10 usuarios.`,
       },
     ],
     faqs: PRICE_FAQS,
@@ -465,7 +460,6 @@ export function buildLlmsTxt() {
     `- Prueba: 2 meses a $0 con las funciones de Pro, sin tarjeta y sin cobro automático.`,
     `- Start: ${formatClp(START_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. 1 usuario.`,
     `- Pro: ${formatClp(PRO_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Hasta 5 usuarios, citas, boleta, factura y asistente.`,
-    `- Élite: ${formatClp(ELITE_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Hasta 10 usuarios.`,
     '',
     '## Contacto',
     `- Razón social: ${COMPANY.legalName}`,
@@ -563,14 +557,6 @@ export function buildJsonLd(page: PublicPage) {
           price: String(PRO_NET_MONTHLY_CLP),
           priceCurrency: 'CLP',
           description: 'Precio neto mensual, más IVA. Hasta 5 usuarios.',
-          url: `${SITE_URL}/precios`,
-        },
-        {
-          '@type': 'Offer',
-          name: 'Élite',
-          price: String(ELITE_NET_MONTHLY_CLP),
-          priceCurrency: 'CLP',
-          description: 'Precio neto mensual, más IVA. Hasta 10 usuarios.',
           url: `${SITE_URL}/precios`,
         },
       ],

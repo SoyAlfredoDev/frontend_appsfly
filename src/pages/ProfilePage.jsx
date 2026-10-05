@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/authContext.jsx";
 import { sendConfirmEmailRequest } from "../api/user.js";
 import { FcOk } from "react-icons/fc";
@@ -12,11 +13,11 @@ import {
     FaBriefcase,
     FaUserCircle,
     FaShieldAlt,
+    FaCreditCard,
 } from "react-icons/fa";
 import { useState } from "react";
 import ExpensePageLayout, { ExpenseAnimatedSection } from "../components/ui/ExpensePageLayout.jsx";
 import ProfileSectionCard, { ProfileFieldRow } from "../components/profile/ProfileSectionCard.jsx";
-import SubscriptionBillingCard from "../components/profile/SubscriptionBillingCard.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { getTenantRoleLabel } from "../utils/tenantRoleLabels.js";
 
@@ -58,7 +59,6 @@ export default function ProfilePage() {
     const [btnConfirmEmail, setBtnConfirmEmail] = useState(false);
 
     const isAdmin = businessSelected?.userBusinessRole === "ADMIN";
-    const businessId = businessSelected?.userBusinessBusinessId ?? business?.businessId;
 
     const handleConfirmEmail = async () => {
         try {
@@ -77,7 +77,7 @@ export default function ProfilePage() {
     return (
         <ExpensePageLayout
             title="Mi perfil"
-            subtitle="Datos personales, negocio y suscripción AppsFly"
+            subtitle="Datos personales y del negocio"
         >
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <ExpenseAnimatedSection>
@@ -180,9 +180,24 @@ export default function ProfilePage() {
                 </ExpenseAnimatedSection>
             </div>
 
-            <ExpenseAnimatedSection>
-                <SubscriptionBillingCard businessId={businessId} isAdmin={isAdmin} />
-            </ExpenseAnimatedSection>
+            {isAdmin && (
+                <ExpenseAnimatedSection>
+                    <ProfileSectionCard
+                        title="Suscripción"
+                        subtitle="El plan, el cobro y la mejora del plan están en Configuración"
+                        icon={FaCreditCard}
+                    >
+                        <div className="px-6 py-5">
+                            <Link
+                                to="/configuration/subscription"
+                                className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white no-underline hover:opacity-90"
+                            >
+                                Ver suscripción
+                            </Link>
+                        </div>
+                    </ProfileSectionCard>
+                </ExpenseAnimatedSection>
+            )}
         </ExpensePageLayout>
     );
 }

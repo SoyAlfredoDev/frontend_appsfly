@@ -58,39 +58,30 @@ const FALLBACK_PLANS = [
     planFeatures: PRO_FEATURES,
     planActive: true,
   },
-  {
-    planId: 'P007',
-    planName: 'Élite',
-    planPrice: 49990,
-    planDuration: 1,
-    planFeatures: ['Hasta 10 usuarios', ...PRO_FEATURES.slice(1)],
-    planActive: true,
-  },
 ]
 
 const PLAN_BADGES = {
   P001: { label: '2 meses', className: 'bg-[#094fd1]' },
   P005: { label: 'Entrada', className: 'bg-slate-600' },
   P006: { label: 'Pro', className: 'bg-[#01c676]' },
-  P007: { label: 'Élite', className: 'bg-[#021f41]' },
 }
 
 const VARIANTS = {
   welcome: {
-    planIds: ['P001', 'P005', 'P006', 'P007'],
+    planIds: ['P001', 'P005', 'P006'],
     title: 'Elige tu plan',
     titleAccent: 'para comenzar',
     description:
-      'Puedes activar 2 meses con las funciones de Pro, o contratar Start, Pro o Élite. Los precios de pago son netos + IVA (19%).',
-    gridCols: 'md:grid-cols-4',
+      'Puedes activar 2 meses con las funciones de Pro, o contratar Start o Pro. El pago abre el link de Mercado Pago. Los precios son netos + IVA (19%).',
+    gridCols: 'md:grid-cols-3',
   },
   expired: {
-    planIds: ['P005', 'P006', 'P007'],
+    planIds: ['P005', 'P006'],
     title: 'Renueva tu acceso',
     titleAccent: 'con un plan de pago',
     description:
-      'Contrata Start, Pro o Élite con Mercado Pago. Los precios mostrados son netos; al pagar se suma IVA (19%).',
-    gridCols: 'md:grid-cols-3',
+      'Contrata Start o Pro. El botón abre el link de Mercado Pago de ese plan. Los precios mostrados son netos; al pagar se suma IVA (19%).',
+    gridCols: 'md:grid-cols-2',
     showMercadoPagoHint: true,
   },
 }
@@ -145,8 +136,8 @@ function PlanPrice({ plan }) {
 
 /**
  * @param {'welcome' | 'expired'} variant
- * - welcome: prueba Pro + Start + Pro + Élite
- * - expired: Start, Pro y Élite
+ * - welcome: prueba Pro + Start + Pro
+ * - expired: Start y Pro
  */
 export default function SubscriptionPlanPicker({
   variant = 'welcome',
@@ -247,7 +238,7 @@ export default function SubscriptionPlanPicker({
           <div className="mt-2 max-w-lg rounded-lg border border-blue-100 bg-blue-50/80 px-3 py-2 flex items-center gap-2">
             <FaCreditCard className="text-secondary shrink-0 text-sm" />
             <p className="text-[11px] text-slate-700 leading-snug">
-              Pago seguro con Checkout Bricks de <strong>Mercado Pago Chile</strong>.
+              El cobro se completa en el link de <strong>Mercado Pago</strong> del plan.
             </p>
           </div>
         )}

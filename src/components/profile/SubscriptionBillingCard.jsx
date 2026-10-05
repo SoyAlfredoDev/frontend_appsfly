@@ -12,7 +12,6 @@ import {
     cancelBusinessSubscriptionRequest,
     getBusinessBillingRequest,
 } from "../../api/subscriptionBilling.js";
-import { getPlansRequest } from "../../api/plans.js";
 import formatCurrency from "../../utils/formatCurrency.js";
 import { getPlanPricing } from "../../utils/planPricing.js";
 import {
@@ -23,9 +22,6 @@ import {
     canAdminPayNextSubscription,
     getSubscriptionPayActionLabel,
 } from "../../utils/subscriptionBillingUi.js";
-import { FREE_TRIAL_PLAN_ID } from "../../utils/subscriptionAccess.js";
-import { getMercadoPagoStatusMessage } from "../../config/mercadopago/mpStatusMessages.js";
-import { isMercadoPagoTestMode } from "../../config/mercadopago/mpConfig.js";
 import { MercadoPagoCheckoutButton } from "../mercadopago/index.js";
 import ProfileSectionCard from "./ProfileSectionCard.jsx";
 import {
@@ -39,13 +35,20 @@ import {
     PRIMARY_BTN,
 } from "../../utils/expenseUiPatterns.js";
 
-const FALLBACK_PAID_PLAN = {
-    planId: "P002",
-    planName: "Plan Comercial",
-    planPrice: 9990,
-    planDuration: 1,
-    planFeatures: ["5 usuarios", "Compras y Ventas", "Inventario", "Reportes", "Soporte 24/7"],
-};
+const PAID_PLAN_OFFERS = [
+    {
+        planId: "P005",
+        planName: "Start",
+        planPrice: 24990,
+        planFeatures: ["1 usuario", "Operación diaria de la óptica"],
+    },
+    {
+        planId: "P006",
+        planName: "Pro",
+        planPrice: 39990,
+        planFeatures: ["Hasta 5 usuarios", "Citas, boleta, factura y asistente"],
+    },
+];
 
 function formatDate(date) {
     if (!date) return "—";
@@ -66,25 +69,10 @@ function getRenewalLabel(sub) {
     return { text: "Periodo pagado", className: "text-slate-600" };
 }
 
-function parsePlanFeatures(plan) {
-    const raw = plan?.planFeatures ?? FALLBACK_PAID_PLAN.planFeatures;
-    if (Array.isArray(raw)) return raw;
-    if (typeof raw === "string") {
-        try {
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : FALLBACK_PAID_PLAN.planFeatures;
-        } catch {
-            return FALLBACK_PAID_PLAN.planFeatures;
-        }
-    }
-    return FALLBACK_PAID_PLAN.planFeatures;
-}
-
 export default function SubscriptionBillingCard({ businessId, isAdmin = false }) {
     const toast = useToast();
     const { refreshSubscriptions } = useAuth();
     const [billing, setBilling] = useState(null);
-    const [paidPlan, setPaidPlan] = useState(null);
     const [loading, setLoading] = useState(true);
     const [cancelling, setCancelling] = useState(false);
     const [showCancelForm, setShowCancelForm] = useState(false);
@@ -121,26 +109,6 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
     useEffect(() => {
         loadBilling();
     }, [loadBilling]);
-
-    useEffect(() => {
-        if (!isAdmin || !businessId) return;
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await getPlansRequest();
-                const plans = Array.isArray(res.data) ? res.data : [];
-                const commercial = plans.find(
-                    (p) => p.planId !== FREE_TRIAL_PLAN_ID && p.planActive !== false,
-                );
-                if (!cancelled) setPaidPlan(commercial ?? FALLBACK_PAID_PLAN);
-            } catch {
-                if (!cancelled) setPaidPlan(FALLBACK_PAID_PLAN);
-            }
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [isAdmin, businessId]);
 
     const resetCancelForm = () => {
         setShowCancelForm(false);
@@ -185,32 +153,10 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
         }
     };
 
-    const handlePaymentError = useCallback((error) => {
-        const statusDetail = error.statusDetail || error.message;
-        const fromApi = error.response?.data?.message;
-        const message = fromApi && !String(fromApi).startsWith("cc_")
-            ? fromApi
-            : getMercadoPagoStatusMessage(statusDetail, {
-                testMode: isMercadoPagoTestMode(),
-            });
-        toast.error("Error al procesar la suscripción", message);
-    }, [toast]);
-
-    const handlePaymentSuccess = useCallback(async () => {
-        toast.success(
-            "Suscripción activada",
-            "Tu plan comercial fue procesado correctamente.",
-        );
-        await refreshSubscriptions();
-        await loadBilling();
-    }, [toast, refreshSubscriptions, loadBilling]);
-
     const sub = billing?.subscription;
     const renewalLabel = sub ? getRenewalLabel(sub) : null;
     const showPaySection = isAdmin && canAdminPayNextSubscription(billing);
     const payActionLabel = getSubscriptionPayActionLabel(billing);
-    const plan = paidPlan ?? FALLBACK_PAID_PLAN;
-    const planFeatures = parsePlanFeatures(plan);
 
     if (loading) {
         return (
@@ -425,60 +371,42 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
 
             {showPaySection && (
                 <div className="px-6 py-5 border-b border-gray-100 bg-slate-50/50">
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-5 items-start">
-                        <div>
-                            <h3 className="text-sm font-semibold text-gray-800">{payActionLabel}</h3>
-                            <p className="text-xs text-gray-500 mt-1 max-w-xl">
-                                {sub?.isPromoFreeTrial
-                                    ? "Contrata el plan comercial para continuar usando AppsFly cuando termine tu prueba gratuita."
-                                    : sub && !sub.accessStillValid
-                                      ? "Tu suscripción venció. Reactiva el plan comercial para recuperar ventas, inventario y reportes."
-                                      : sub && !sub.autoRenewEnabled
-                                        ? "La renovación automática está desactivada. Paga el siguiente periodo para mantener el acceso sin interrupciones."
-                                        : "Contrata el plan comercial con facturación mensual recurrente vía Mercado Pago."}
-                            </p>
-                            <ul className="mt-3 space-y-1.5">
-                                {planFeatures.slice(0, 5).map((feature) => (
-                                    <li key={feature} className="flex items-center gap-2 text-xs text-gray-600">
-                                        <FaCheck className="text-primary shrink-0" />
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div className="w-full lg:w-72 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                                {plan.planName}
-                            </p>
-                            <p className="text-2xl font-bold text-primary mt-1">
-                                {formatCurrency(plan.planPrice ?? 0, "es-CL", plan.planCurrency || "CLP")}
-                                <span className="text-xs font-medium text-gray-400 ml-1">neto / mes</span>
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Total con IVA:{" "}
-                                {formatCurrency(
-                                    getPlanPricing(plan.planPrice ?? 0).total,
-                                    "es-CL",
-                                    plan.planCurrency || "CLP",
-                                )}
-                                / mes
-                            </p>
-                            <div className="mt-4">
-                                <MercadoPagoCheckoutButton
-                                    plan={plan}
-                                    businessId={businessId}
-                                    buttonId="profile-subscription-checkout"
-                                    buttonLabel={payActionLabel}
-                                    refreshSubscriptions={refreshSubscriptions}
-                                    onSuccess={handlePaymentSuccess}
-                                    onError={handlePaymentError}
-                                />
+                    <h3 className="text-sm font-semibold text-gray-800">{payActionLabel}</h3>
+                    <p className="text-xs text-gray-500 mt-1 max-w-xl">
+                        El cobro de Start y Pro se hace en el link de Mercado Pago de cada plan. Los precios son netos; al pagar se suma IVA (19%).
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {PAID_PLAN_OFFERS.map((plan) => (
+                            <div key={plan.planId} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                    {plan.planName}
+                                </p>
+                                <p className="text-2xl font-bold text-primary mt-1">
+                                    {formatCurrency(plan.planPrice, "es-CL", "CLP")}
+                                    <span className="text-xs font-medium text-gray-400 ml-1">neto / mes</span>
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Total con IVA: {formatCurrency(getPlanPricing(plan.planPrice).total, "es-CL", "CLP")} / mes
+                                </p>
+                                <ul className="mt-3 space-y-1.5">
+                                    {plan.planFeatures.map((feature) => (
+                                        <li key={feature} className="flex items-center gap-2 text-xs text-gray-600">
+                                            <FaCheck className="text-primary shrink-0" />
+                                            {feature}
+                                        </li>
+                                    ))}
+                                </ul>
+                                <div className="mt-4">
+                                    <MercadoPagoCheckoutButton
+                                        plan={plan}
+                                        businessId={businessId}
+                                        buttonId={`profile-subscription-${plan.planId}`}
+                                        buttonLabel={`Pagar ${plan.planName}`}
+                                        refreshSubscriptions={refreshSubscriptions}
+                                    />
+                                </div>
                             </div>
-                            <p className="text-[10px] text-gray-400 mt-2 text-center">
-                                Pago seguro con Mercado Pago Chile
-                            </p>
-                        </div>
+                        ))}
                     </div>
                 </div>
             )}

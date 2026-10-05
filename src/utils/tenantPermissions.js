@@ -68,6 +68,7 @@ export const NAV_PERMISSION_BY_PATH = {
     "/products_services": "products:read",
     "/inventory": "inventory:read",
     "/sales": "sales:read",
+    "/sales/quick": "sales:create",
     "/quotations": "quotations:read",
     "/sales/dailySales": "daily-closures:read",
     "/purchase": "purchases:manage",
@@ -82,6 +83,7 @@ export const NAV_PERMISSION_BY_PATH = {
     "/transactions": "transactions:read",
     "/users": "users:manage",
     "/configuration": "settings:manage",
+    "/configuration/subscription": "settings:manage",
     "/profile": "profile:view",
 };
 
@@ -137,6 +139,9 @@ export function canAccessRoute(role, pathname) {
     }
     if (pathname === "/appointments" || pathname.startsWith("/appointments/")) {
         return hasTenantPermission(role, "appointments:manage");
+    }
+    if (pathname.startsWith("/sales/quick")) {
+        return hasTenantPermission(role, "sales:create");
     }
     if (pathname.startsWith("/sales/register") || pathname.startsWith("/sales/view")) {
         return hasTenantPermission(role, "sales:read");
