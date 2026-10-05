@@ -1,12 +1,30 @@
-# React + Vite
+# AppsFly frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web de AppsFly (Vite + React). El entorno de producción es **Vercel**. No se despliega en otro host.
 
-Currently, two official plugins are available:
+| | |
+| --- | --- |
+| Proyecto de Vercel | `frontend-appsfly` |
+| Equipo | `appsflycl-7241` |
+| Repositorio | [SoyAlfredoDev/frontend_appsfly](https://github.com/SoyAlfredoDev/frontend_appsfly) |
+| URL del proyecto | https://frontend-appsfly-eta.vercel.app |
+| Dominio público | https://appsfly.cl |
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Un push a `main` despliega este proyecto en Vercel. El build es `npm run build`. `vercel.json` reescribe las rutas de la aplicación hacia `app.html` y redirige `www.appsfly.app`, `appsfly.cl` y `www.appsfly.cl` hacia `https://appsfly.app`.
 
-## Expanding the ESLint configuration
+## Desarrollo local
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+npm run dev
+```
+
+La app queda en http://localhost:5173 y el proxy de Vite envía `/api` a `http://127.0.0.1:3000`.
+
+Copia `.env.example` a `.env` solo en esta máquina. En Vercel las mismas variables se configuran en el proyecto `frontend-appsfly`. `VITE_API_URL` de producción apunta a la API, que también corre en Vercel.
+
+## Comprobación
+
+```bash
+npm run validate
+```

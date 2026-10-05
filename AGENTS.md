@@ -2,7 +2,14 @@
 
 These rules apply to every future change in `frontend`, `backend`, and any Expo application added to this repository.
 
+## Deployment
+
+Production runs on Vercel. Do not add another hosting target.
+
 The production website is `https://appsfly.cl` and the production API is `https://api.appsfly.cl`. Do not configure deployments or new operational links to `appsfly.app`; it redirects to `.cl`. Keep the specialized `optica.appsfly.app` landing and `@appsfly.app` email senders distinct from the main website.
+
+- Frontend project: `frontend-appsfly` on team `appsflycl-7241`. A push to `main` in `SoyAlfredoDev/frontend_appsfly` deploys it. Public site: `https://appsfly.cl`. Project URL: `https://frontend-appsfly-eta.vercel.app`.
+- Keep production environment variables in that Vercel project. Local-only values stay in `.env`.
 
 ## Mandatory toolchain
 

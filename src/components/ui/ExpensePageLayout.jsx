@@ -7,11 +7,18 @@ import {
 
 /**
  * Shell de página alineado a /expenses — PageContainer + animación + PageHeader.
+ * @param {{
+ *   title: string,
+ *   subtitle?: string,
+ *   actions?: import("react").ReactNode,
+ *   children?: import("react").ReactNode,
+ *   className?: string,
+ * }} props
  */
 export default function ExpensePageLayout({
   title,
   subtitle,
-  actions,
+  actions = null,
   children,
   className = "",
 }) {

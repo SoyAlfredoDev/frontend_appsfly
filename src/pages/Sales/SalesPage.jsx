@@ -75,9 +75,18 @@ export default function SalesPage() {
       title="Ventas"
       subtitle="Historial y gestión de ventas realizadas"
       actions={
-        <button type="button" onClick={() => navigate("/sales/register")} className={PRIMARY_BTN}>
-          <FaPlus /> Nueva Venta
-        </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => navigate("/sales/quick")} className={PRIMARY_BTN}>
+            <FaPlus /> Caja rápida
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/sales/register")}
+            className={`${PRIMARY_BTN} bg-white !text-primary border border-primary`}
+          >
+            Nueva Venta
+          </button>
+        </div>
       }
     >
       <SalesTable

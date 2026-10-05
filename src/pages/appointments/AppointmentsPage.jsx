@@ -13,6 +13,9 @@ import ExpensePageLayout, {
 } from "../../components/ui/ExpensePageLayout.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
+import { useAuth } from "../../context/authContext.jsx";
+import { hasAppointmentsPlan } from "../../utils/appointmentPlanAccess.ts";
+import AppointmentsPlanNotice from "./AppointmentsPlanNotice.tsx";
 import {
     getAppointmentSettings,
     getAppointments,
@@ -52,22 +55,18 @@ const STATUS_STYLES = {
 const DEFAULT_SETTINGS = {
     appointmentsEnabled: false,
     slotDurationMinutes: 30,
+    maxConcurrentPerSlot: 1,
     maxDaysAhead: 30,
+    customerNotificationsEnabled: false,
     visitorMessage: "",
-    weeklyAvailability: [
-        { dayOfWeek: 1, startTime: "09:00", endTime: "13:00" },
-        { dayOfWeek: 1, startTime: "15:00", endTime: "18:00" },
-        { dayOfWeek: 2, startTime: "09:00", endTime: "13:00" },
-        { dayOfWeek: 2, startTime: "15:00", endTime: "18:00" },
-        { dayOfWeek: 3, startTime: "09:00", endTime: "13:00" },
-        { dayOfWeek: 3, startTime: "15:00", endTime: "18:00" },
-        { dayOfWeek: 4, startTime: "09:00", endTime: "13:00" },
-        { dayOfWeek: 4, startTime: "15:00", endTime: "18:00" },
-        { dayOfWeek: 5, startTime: "09:00", endTime: "13:00" },
-        { dayOfWeek: 5, startTime: "15:00", endTime: "18:00" },
-    ],
+    weeklyAvailability: [],
     publicLink: "",
 };
+
+const WEEKDAY_TEMPLATE = [1, 2, 3, 4, 5].flatMap((dayOfWeek) => [
+    { dayOfWeek, startTime: "09:00", endTime: "13:00" },
+    { dayOfWeek, startTime: "15:00", endTime: "18:00" },
+]);
 
 function formatWhen(iso) {
     if (!iso) return "—";
@@ -83,6 +82,9 @@ function formatWhen(iso) {
 export default function AppointmentsPage() {
     const toast = useToast();
     const confirm = useConfirm();
+    const { subscriptions, loadingAuth } = useAuth();
+    const appointmentsAllowed = hasAppointmentsPlan(subscriptions);
+    const [planBlocked, setPlanBlocked] = useState(false);
     const [tab, setTab] = useState("inbox");
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
     const [appointments, setAppointments] = useState([]);
@@ -103,12 +105,17 @@ export default function AppointmentsPage() {
                 ...DEFAULT_SETTINGS,
                 ...data,
                 visitorMessage: data.visitorMessage || "",
-                weeklyAvailability:
-                    data.weeklyAvailability?.length
-                        ? data.weeklyAvailability
-                        : DEFAULT_SETTINGS.weeklyAvailability,
+                maxConcurrentPerSlot: data.maxConcurrentPerSlot || 1,
+                customerNotificationsEnabled: Boolean(data.customerNotificationsEnabled),
+                weeklyAvailability: Array.isArray(data.weeklyAvailability)
+                    ? data.weeklyAvailability
+                    : [],
             });
-        } catch {
+        } catch (error) {
+            if (error.response?.data?.code === "APPOINTMENTS_PLAN_REQUIRED") {
+                setPlanBlocked(true);
+                return;
+            }
             toast.error("Error", "No se pudo cargar la configuración de citas.");
         } finally {
             setLoadingSettings(false);
@@ -128,12 +135,14 @@ export default function AppointmentsPage() {
     }, [statusFilter, toast]);
 
     useEffect(() => {
+        if (loadingAuth || !appointmentsAllowed) return;
         loadSettings();
-    }, [loadSettings]);
+    }, [loadSettings, loadingAuth, appointmentsAllowed]);
 
     useEffect(() => {
+        if (loadingAuth || !appointmentsAllowed) return;
         loadAppointments();
-    }, [loadAppointments]);
+    }, [loadAppointments, loadingAuth, appointmentsAllowed]);
 
     const copyLink = async () => {
         if (!settings.publicLink) return;
@@ -155,7 +164,9 @@ export default function AppointmentsPage() {
             const res = await updateAppointmentSettings({
                 appointmentsEnabled: settings.appointmentsEnabled,
                 slotDurationMinutes: Number(settings.slotDurationMinutes),
+                maxConcurrentPerSlot: Number(settings.maxConcurrentPerSlot),
                 maxDaysAhead: Number(settings.maxDaysAhead),
+                customerNotificationsEnabled: Boolean(settings.customerNotificationsEnabled),
                 visitorMessage: settings.visitorMessage || null,
                 weeklyAvailability: settings.weeklyAvailability.map((row) => ({
                     dayOfWeek: Number(row.dayOfWeek),
@@ -261,6 +272,13 @@ export default function AppointmentsPage() {
         }));
     };
 
+    const applyWeekdayTemplate = () => {
+        setSettings((prev) => ({
+            ...prev,
+            weeklyAvailability: WEEKDAY_TEMPLATE.map((row) => ({ ...row })),
+        }));
+    };
+
     const tabs = useMemo(
         () => [
             { id: "inbox", label: "Citas" },
@@ -268,6 +286,21 @@ export default function AppointmentsPage() {
         ],
         [],
     );
+
+    if (loadingAuth) {
+        return (
+            <ExpensePageLayout
+                title="Citas"
+                subtitle="Habilita el link público, define horarios y gestiona solicitudes."
+            >
+                <p className="text-sm text-slate-500">Cargando…</p>
+            </ExpensePageLayout>
+        );
+    }
+
+    if (!appointmentsAllowed || planBlocked) {
+        return <AppointmentsPlanNotice />;
+    }
 
     return (
         <ExpensePageLayout
@@ -314,7 +347,7 @@ export default function AppointmentsPage() {
                                             Habilitar citas
                                         </h2>
                                         <p className="text-sm text-slate-500 mt-1">
-                                            Solo funciona si tu plan (gratuito o pago) está activo.
+                                            Al activarlo, tus clientes pueden pedir hora desde el link público.
                                         </p>
                                     </div>
                                     <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -343,7 +376,7 @@ export default function AppointmentsPage() {
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <label className="text-sm block">
                                         <span className="font-medium text-slate-700">
                                             Duración del slot (min)
@@ -380,7 +413,48 @@ export default function AppointmentsPage() {
                                             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
                                         />
                                     </label>
+                                    <label className="text-sm block">
+                                        <span className="font-medium text-slate-700">
+                                            Citas en el mismo horario
+                                        </span>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            max={20}
+                                            value={settings.maxConcurrentPerSlot}
+                                            onChange={(e) =>
+                                                setSettings((prev) => ({
+                                                    ...prev,
+                                                    maxConcurrentPerSlot: e.target.value,
+                                                }))
+                                            }
+                                            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                                        />
+                                        <span className="mt-1 block text-xs text-slate-500">
+                                            1 deja una sola reserva por hora. Un número mayor permite varias a la misma hora.
+                                        </span>
+                                    </label>
                                 </div>
+
+                                <label className="flex items-start gap-3 text-sm text-slate-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(settings.customerNotificationsEnabled)}
+                                        onChange={(e) =>
+                                            setSettings((prev) => ({
+                                                ...prev,
+                                                customerNotificationsEnabled: e.target.checked,
+                                            }))
+                                        }
+                                        className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600"
+                                    />
+                                    <span>
+                                        <span className="font-medium text-slate-800">Avisar al cliente por correo</span>
+                                        <span className="block text-slate-500 mt-1">
+                                            El formulario público pide un correo. El cliente recibe aviso al solicitar, confirmar, cambiar o cancelar la hora. Tú también recibes un correo cuando entra una solicitud nueva.
+                                        </span>
+                                    </span>
+                                </label>
 
                                 <label className="text-sm block">
                                     <span className="font-medium text-slate-700">
@@ -406,16 +480,25 @@ export default function AppointmentsPage() {
                                     <h2 className="text-base font-semibold text-slate-900">
                                         Horarios semanales
                                     </h2>
-                                    <button
-                                        type="button"
-                                        onClick={addAvailabilityRow}
-                                        className="text-sm font-medium text-emerald-700 hover:underline"
-                                    >
-                                        + Agregar franja
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={applyWeekdayTemplate}
+                                            className="text-sm font-medium text-slate-600 hover:underline"
+                                        >
+                                            Lunes a viernes
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={addAvailabilityRow}
+                                            className="text-sm font-medium text-emerald-700 hover:underline"
+                                        >
+                                            + Agregar franja
+                                        </button>
+                                    </div>
                                 </div>
                                 <p className="text-xs text-slate-500">
-                                    Día: 0 = domingo … 6 = sábado. Horas en formato 24h (HH:mm).
+                                    Las horas usan la zona horaria del negocio.
                                 </p>
                                 <div className="space-y-3">
                                     {settings.weeklyAvailability.map((row, index) => (
@@ -512,7 +595,7 @@ export default function AppointmentsPage() {
                                 onChange={(e) => setStatusFilter(e.target.value)}
                                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                             >
-                                <option value="ACTIVE">Pendientes y confirmadas</option>
+                                <option value="ACTIVE">Pendientes, confirmadas y reagendadas</option>
                                 <option value="PENDING">Pendientes</option>
                                 <option value="CONFIRMED">Confirmadas</option>
                                 <option value="COMPLETED">Atendidas</option>
@@ -643,7 +726,7 @@ export default function AppointmentsPage() {
                                                     </p>
                                                 ) : (
                                                     <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
-                                                        {rescheduleSlots.slice(0, 40).map((slot) => (
+                                                        {rescheduleSlots.map((slot) => (
                                                             <button
                                                                 key={slot.startsAt}
                                                                 type="button"

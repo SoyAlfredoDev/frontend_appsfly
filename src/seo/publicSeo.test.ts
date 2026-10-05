@@ -70,7 +70,10 @@ describe('public SEO copy', () => {
 
   it('marks unknown routes as noindex', () => {
     expect(resolveSeoForPath('/no-existe').robots).toBe('noindex, nofollow')
+    expect(resolveSeoForPath('/no-existe').title).toBe('Página no encontrada | AppsFly')
     expect(resolveSeoForPath('/dashboard').robots).toBe('noindex, nofollow')
+    expect(resolveSeoForPath('/dashboard').title).toBe('Dashboard | AppsFly')
+    expect(resolveSeoForPath('/profile').title).toBe('Mi perfil | AppsFly')
   })
 
   it('names the public booking link without indexing each business', () => {

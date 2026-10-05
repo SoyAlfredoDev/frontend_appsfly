@@ -14,7 +14,7 @@ import {
   isExpiredSubscriber as checkExpiredSubscriber,
 } from '../utils/subscriptionAccess.js'
 import { resolveTenantBusinessId } from '../utils/resolveTenantBusinessId.js'
-import { markLoginAnnouncementsPending } from '../announcements/announcementTriggers.js'
+import { markLoginAnnouncementsPending } from '../announcements/announcementTriggers.ts'
 
 export const AuthContext = createContext()
 

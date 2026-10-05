@@ -4,21 +4,21 @@ const isProduction = import.meta.env.PROD
 
 const PRODUCTION_API_DEFAULT = 'https://api.appsfly.cl/api'
 const PRODUCTION_FRONTEND_DEFAULT = 'https://appsfly.cl'
+const STALE_API_HOSTS = new Set(['backend-appsfly.vercel.app'])
 
-function resolveProductionApiUrl() {
-  const configured = import.meta.env.VITE_API_URL?.trim()
-  if (!configured) return PRODUCTION_API_DEFAULT
+export function resolveProductionApiUrl(configured) {
+  const value = configured?.trim()
+  if (!value) return PRODUCTION_API_DEFAULT
 
   try {
-    const url = new URL(configured)
-    if (url.protocol !== 'https:') {
-      throw new Error('VITE_API_URL debe usar HTTPS en producción.')
+    const url = new URL(value)
+    if (url.protocol !== 'https:' || STALE_API_HOSTS.has(url.hostname)) {
+      return PRODUCTION_API_DEFAULT
     }
 
     url.pathname = url.pathname.replace(/\/$/, '')
     return url.toString().replace(/\/$/, '')
   } catch {
-    console.error('[AppsFly] VITE_API_URL inválida para producción; usando la API canónica.')
     return PRODUCTION_API_DEFAULT
   }
 }
@@ -49,7 +49,7 @@ const config = {
   isDevelopment,
   isProduction,
   // En desarrollo, Vite enruta /api al backend IPv4 configurado.
-  apiUrl: isDevelopment ? '/api' : resolveProductionApiUrl(),
+  apiUrl: isDevelopment ? '/api' : resolveProductionApiUrl(import.meta.env.VITE_API_URL),
   frontendUrl: resolveFrontendUrl(),
 }
 

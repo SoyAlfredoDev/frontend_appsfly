@@ -67,6 +67,13 @@ export default defineConfig(({ mode }) => {
               icons: [{ src: 'pwa/icon-192.png', sizes: '192x192', type: 'image/png' }],
             },
             {
+              name: 'Caja rápida',
+              short_name: 'Caja',
+              description: 'Cobrar escaneando productos',
+              url: '/sales/quick',
+              icons: [{ src: 'pwa/icon-192.png', sizes: '192x192', type: 'image/png' }],
+            },
+            {
               name: 'Nueva venta',
               short_name: 'Venta',
               description: 'Registrar una venta',

@@ -10,6 +10,7 @@ export default function RouteSeo() {
     const { pathname } = useLocation();
 
     useEffect(() => {
+        if (pathname === "/registarcita" || pathname.startsWith("/registarcita/")) return;
         const seo = resolveSeoForPath(pathname, {
             hostname: typeof window !== "undefined" ? window.location.hostname : "",
         });

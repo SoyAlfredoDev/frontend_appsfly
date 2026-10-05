@@ -1,6 +1,7 @@
 import { COMPANY } from '../constants/company'
 import { LANDING_SOCIAL_LINKS } from '../constants/landingNavigation.js'
 import { OPTICS_PROMO_SITE_URL } from '../utils/opticsPromoHost.js'
+import { classifyRequestPath, normalizePath } from './hostRouting'
 
 const trimTrailingSlash = (url: string) => url.replace(/\/$/, '')
 
@@ -374,6 +375,114 @@ export function isPublicIndexedRoute(pathname: string, hostname = '') {
   return pageForPath(pathname, hostname)?.index === true
 }
 
+type SeoMeta = {
+  title: string
+  description: string
+  keywords: string
+  robots: string
+  twitterCard: string
+  ogType: string
+  ogUrl: string
+  ogImage: string
+  siteName: string
+  locale: string
+  canonicalUrl: string
+}
+
+/** Rutas más específicas primero para que el prefijo coincida correctamente. */
+const APP_ROUTE_TITLES: ReadonlyArray<{ prefix: string; title: string }> = [
+  { prefix: '/configuration/subscription', title: 'Suscripción' },
+  { prefix: '/subscription/payment/return', title: 'Pago de suscripción' },
+  { prefix: '/sales/dailySales', title: 'Cierres diarios' },
+  { prefix: '/sales/quick', title: 'Caja rápida' },
+  { prefix: '/sales/register', title: 'Registrar venta' },
+  { prefix: '/sales/view', title: 'Ver venta' },
+  { prefix: '/quotations/register', title: 'Nueva cotización' },
+  { prefix: '/quotations/view', title: 'Ver cotización' },
+  { prefix: '/purchase/register', title: 'Registrar compra' },
+  { prefix: '/purchase/view', title: 'Ver compra' },
+  { prefix: '/purchase-certificates', title: 'Certificados de compra' },
+  { prefix: '/lab-dispatches', title: 'Despachos lab' },
+  { prefix: '/work-orders', title: 'Órdenes de trabajo' },
+  { prefix: '/daily-sales/view', title: 'Ver cierre diario' },
+  { prefix: '/products_services', title: 'Productos' },
+  { prefix: '/campaigns-asmr', title: 'Campaña ASMR' },
+  { prefix: '/forgot-password', title: 'Recuperar contraseña' },
+  { prefix: '/reset-password', title: 'Restablecer contraseña' },
+  { prefix: '/prospect-unsubscribe', title: 'Cancelar suscripción' },
+  { prefix: '/public/receipt', title: 'Comprobante' },
+  { prefix: '/business/register', title: 'Registrar negocio' },
+  { prefix: '/users/userGuest', title: 'Invitar usuario' },
+  { prefix: '/admin/dashboard', title: 'Admin — Dashboard' },
+  { prefix: '/admin/users', title: 'Admin — Usuarios' },
+  { prefix: '/admin/subscriptions', title: 'Admin — Suscripciones' },
+  { prefix: '/admin/payments', title: 'Admin — Pagos' },
+  { prefix: '/admin/businesses', title: 'Admin — Empresas' },
+  { prefix: '/admin/plans', title: 'Admin — Planes' },
+  { prefix: '/admin/tickets', title: 'Admin — Tickets' },
+  { prefix: '/admin/email-campaigns', title: 'Admin — Campañas' },
+  { prefix: '/admin/email-prospects', title: 'Admin — Prospectos' },
+  { prefix: '/admin/notifications', title: 'Admin — Notificaciones' },
+  { prefix: '/admin/agent-tasks', title: 'Admin — Tareas' },
+  { prefix: '/profile', title: 'Mi perfil' },
+  { prefix: '/dashboard', title: 'Dashboard' },
+  { prefix: '/appointments', title: 'Citas' },
+  { prefix: '/customers', title: 'Clientes' },
+  { prefix: '/inventory', title: 'Inventario' },
+  { prefix: '/sales', title: 'Ventas' },
+  { prefix: '/quotations', title: 'Cotizaciones' },
+  { prefix: '/purchase', title: 'Compras' },
+  { prefix: '/providers', title: 'Proveedores' },
+  { prefix: '/laboratories', title: 'Laboratorios' },
+  { prefix: '/daily-sales', title: 'Cierres diarios' },
+  { prefix: '/users', title: 'Usuarios' },
+  { prefix: '/transactions', title: 'Transacciones' },
+  { prefix: '/expenses', title: 'Gastos' },
+  { prefix: '/reports', title: 'Reportes' },
+  { prefix: '/billing', title: 'Facturación' },
+  { prefix: '/configuration', title: 'Configuración' },
+  { prefix: '/finance', title: 'Finanzas' },
+  { prefix: '/support', title: 'Soporte' },
+  { prefix: '/login', title: 'Iniciar sesión' },
+  { prefix: '/logout', title: 'Cerrar sesión' },
+  { prefix: '/subscription', title: 'Suscripción' },
+  { prefix: '/products', title: 'Productos' },
+  { prefix: '/admin', title: 'Administración' },
+  { prefix: '/public', title: 'AppsFly' },
+]
+
+function matchesAppRoutePrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
+
+export function resolveAppRouteTitle(pathname: string) {
+  const path = normalizePath(pathname)
+  for (const route of APP_ROUTE_TITLES) {
+    if (matchesAppRoutePrefix(path, route.prefix)) {
+      return `${route.title} | AppsFly`
+    }
+  }
+  return 'AppsFly'
+}
+
+function buildNoindexSeo(pathname: string, title: string, description: string): SeoMeta {
+  const path = normalizePath(pathname)
+  const canonicalUrl = `${SITE_URL}${path === '/' ? '/' : path}`
+  return {
+    title,
+    description,
+    keywords: 'appsfly',
+    robots: 'noindex, nofollow',
+    twitterCard: 'summary_large_image',
+    ogType: 'website',
+    ogUrl: canonicalUrl,
+    ogImage: OG_IMAGE_URL,
+    siteName: 'AppsFly',
+    locale: 'es_CL',
+    canonicalUrl,
+  }
+}
+
 export function resolveSeoForPath(pathname: string, options: { hostname?: string } = {}) {
   const hostname = options.hostname ?? ''
   if (pathname === '/registarcita' || pathname.startsWith('/registarcita/')) {
@@ -393,19 +502,15 @@ export function resolveSeoForPath(pathname: string, options: { hostname?: string
   }
   const page = pageForPath(pathname, hostname)
   if (!page) {
-    return {
-      title: 'Página no encontrada | AppsFly',
-      description: 'Esta dirección no existe en AppsFly.',
-      keywords: 'appsfly',
-      robots: 'noindex, nofollow',
-      twitterCard: 'summary_large_image',
-      ogType: 'website',
-      ogUrl: `${SITE_URL}${pathname === '/' ? '/' : pathname}`,
-      ogImage: OG_IMAGE_URL,
-      siteName: 'AppsFly',
-      locale: 'es_CL',
-      canonicalUrl: `${SITE_URL}${pathname === '/' ? '/' : pathname}`,
+    if (classifyRequestPath(pathname) === 'app') {
+      return buildNoindexSeo(pathname, resolveAppRouteTitle(pathname), 'Panel privado de AppsFly.')
     }
+
+    return buildNoindexSeo(
+      pathname,
+      'Página no encontrada | AppsFly',
+      'Esta dirección no existe en AppsFly.',
+    )
   }
 
   return {

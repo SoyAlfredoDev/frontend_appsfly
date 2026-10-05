@@ -34,6 +34,7 @@ function buildSalesColumns(navigate, showDeliveryColumn) {
       cell: (info) => (
         <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
           {info.getValue()}
+          {info.row.original.saleChannel === "QUICK" ? " · caja" : ""}
         </span>
       ),
     },
@@ -41,9 +42,13 @@ function buildSalesColumns(navigate, showDeliveryColumn) {
       header: "Cliente",
       accessorFn: (row) =>
         `${row.customer?.customerFirstName ?? ""} ${row.customer?.customerLastName ?? ""}`,
-      cell: (info) => (
-        <span className="text-gray-800 font-medium">{info.getValue()}</span>
-      ),
+      cell: (info) => {
+        const customer = info.row.original.customer;
+        const label = customer?.isWalkIn
+          ? "Consumidor final"
+          : info.getValue();
+        return <span className="text-gray-800 font-medium">{label}</span>;
+      },
     },
     {
       header: "Total",

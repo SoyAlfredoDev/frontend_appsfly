@@ -10,16 +10,18 @@ import {
 import { useLocation } from "react-router-dom";
 import { useAuth } from "./authContext.jsx";
 import usePwaInstall, { isStandaloneMode } from "../hooks/usePwaInstall.js";
-import { resolveLoginAnnouncement } from "../announcements/loginAnnouncements.js";
+import { resolveLoginAnnouncement } from "../announcements/loginAnnouncements.ts";
 import {
     dismissAnnouncementForever,
     markAnnouncementSeenVersion,
-} from "../announcements/announcementStorage.js";
+} from "../announcements/announcementStorage.ts";
 import {
     consumeLoginAnnouncementsPending,
+    getLoginAnnouncementKey,
+    getPendingLoginStamp,
     hasLoginAnnouncementsPending,
-} from "../announcements/announcementTriggers.js";
-import AnnouncementOverlay from "../components/announcements/AnnouncementOverlay.jsx";
+} from "../announcements/announcementTriggers.ts";
+import AnnouncementOverlay from "../components/announcements/AnnouncementOverlay.tsx";
 
 const AnnouncementContext = createContext(null);
 
@@ -38,13 +40,23 @@ function getAnnouncementDelayMs() {
     return isMobile ? 700 : 400;
 }
 
+function readLoginKey(loginSessionKey) {
+    return getLoginAnnouncementKey(
+        loginSessionKey,
+        hasLoginAnnouncementsPending() ? getPendingLoginStamp() : null,
+    );
+}
+
 export function AnnouncementProvider({ children }) {
     const { isAuthenticated, loadingAuth, loginSessionKey } = useAuth();
     const location = useLocation();
     const pwa = usePwaInstall();
     const [activeAnnouncement, setActiveAnnouncement] = useState(null);
-    const shownForLoginKeyRef = useRef(0);
+    const activeAnnouncementRef = useRef(null);
+    const shownForLoginKeyRef = useRef(null);
     const timerRef = useRef(null);
+
+    activeAnnouncementRef.current = activeAnnouncement;
 
     const tryShowLoginAnnouncement = useCallback(() => {
         const next = resolveLoginAnnouncement({
@@ -58,7 +70,7 @@ export function AnnouncementProvider({ children }) {
     }, []);
 
     const scheduleLoginAnnouncement = useCallback((loginKey) => {
-        if (shownForLoginKeyRef.current >= loginKey) {
+        if (shownForLoginKeyRef.current === loginKey) {
             return;
         }
 
@@ -69,14 +81,12 @@ export function AnnouncementProvider({ children }) {
         const delay = getAnnouncementDelayMs();
         timerRef.current = window.setTimeout(() => {
             timerRef.current = null;
-            if (shownForLoginKeyRef.current >= loginKey) {
+            if (shownForLoginKeyRef.current === loginKey) {
                 return;
             }
-            const shown = tryShowLoginAnnouncement();
-            if (shown) {
-                shownForLoginKeyRef.current = loginKey;
-                consumeLoginAnnouncementsPending();
-            }
+            shownForLoginKeyRef.current = loginKey;
+            consumeLoginAnnouncementsPending();
+            tryShowLoginAnnouncement();
         }, delay);
     }, [tryShowLoginAnnouncement]);
 
@@ -85,14 +95,11 @@ export function AnnouncementProvider({ children }) {
             return undefined;
         }
 
-        const pendingFromSignin = hasLoginAnnouncementsPending();
-        const shouldEvaluate = loginSessionKey > 0 || pendingFromSignin;
-
-        if (!shouldEvaluate) {
+        const loginKey = readLoginKey(loginSessionKey);
+        if (loginKey == null) {
             return undefined;
         }
 
-        const loginKey = loginSessionKey > 0 ? loginSessionKey : Date.now();
         scheduleLoginAnnouncement(loginKey);
 
         return () => {
@@ -114,15 +121,11 @@ export function AnnouncementProvider({ children }) {
             return;
         }
 
-        if (activeAnnouncement || shownForLoginKeyRef.current >= loginSessionKey) {
+        const loginKey = readLoginKey(loginSessionKey);
+        if (loginKey == null || activeAnnouncement || shownForLoginKeyRef.current === loginKey) {
             return;
         }
 
-        if (!hasLoginAnnouncementsPending() && loginSessionKey === 0) {
-            return;
-        }
-
-        const loginKey = loginSessionKey > 0 ? loginSessionKey : Date.now();
         scheduleLoginAnnouncement(loginKey);
     }, [
         pwa.isReady,
@@ -134,19 +137,39 @@ export function AnnouncementProvider({ children }) {
     ]);
 
     const closeAnnouncement = useCallback(() => {
-        setActiveAnnouncement(null);
-        consumeLoginAnnouncementsPending();
-    }, []);
-
-    const dismissForever = useCallback(() => {
-        if (!activeAnnouncement) return;
-        dismissAnnouncementForever(activeAnnouncement.id);
-        if (activeAnnouncement.version) {
-            markAnnouncementSeenVersion(activeAnnouncement.id, activeAnnouncement.version);
+        const loginKey = readLoginKey(loginSessionKey);
+        if (loginKey != null) {
+            shownForLoginKeyRef.current = loginKey;
+        }
+        if (timerRef.current) {
+            window.clearTimeout(timerRef.current);
+            timerRef.current = null;
         }
         setActiveAnnouncement(null);
         consumeLoginAnnouncementsPending();
-    }, [activeAnnouncement]);
+    }, [loginSessionKey]);
+
+    const dismissForever = useCallback(() => {
+        const current = activeAnnouncementRef.current;
+        if (!current) return;
+        const keys = current.dismissalKeys?.length ? current.dismissalKeys : [current.id];
+        keys.forEach((key) => {
+            dismissAnnouncementForever(key);
+        });
+        if (current.version) {
+            markAnnouncementSeenVersion(current.id, current.version);
+        }
+        const loginKey = readLoginKey(loginSessionKey);
+        if (loginKey != null) {
+            shownForLoginKeyRef.current = loginKey;
+        }
+        if (timerRef.current) {
+            window.clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+        setActiveAnnouncement(null);
+        consumeLoginAnnouncementsPending();
+    }, [loginSessionKey]);
 
     const handleInstall = useCallback(async () => {
         if (pwa.canNativeInstall) {
@@ -173,6 +196,8 @@ export function AnnouncementProvider({ children }) {
                 open={Boolean(activeAnnouncement && Content)}
                 onClose={closeAnnouncement}
                 onDismissForever={dismissForever}
+                imageSrc={activeAnnouncement?.imageSrc}
+                imageAlt={activeAnnouncement?.imageAlt}
             >
                 {Content ? (
                     <Content

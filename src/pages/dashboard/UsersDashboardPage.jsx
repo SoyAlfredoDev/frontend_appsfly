@@ -21,6 +21,7 @@ import {
   FaMoneyBillWave,
   FaStar,
   FaPlus,
+  FaCashRegister,
   FaCalendarAlt,
   FaExchangeAlt,
   FaReceipt,
@@ -196,6 +197,12 @@ export default function UsersDashboardPage() {
       <motion.div variants={itemVariants}>
         <h2 className="text-lg font-semibold text-dark mb-4">Accesos rápidos</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <QuickAccessLink
+            to="/sales/quick"
+            label="Caja rápida"
+            icon={<FaCashRegister />}
+            tone="primary"
+          />
           <QuickAccessLink
             to="/sales/register"
             label="Nueva Venta"

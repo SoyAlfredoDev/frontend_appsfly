@@ -29,6 +29,10 @@ import {
     CLOUDINARY_FOLDERS,
 } from "../../utils/cloudinaryUpload.js";
 import { motion as Motion } from "framer-motion";
+import {
+    QUICK_SALE_DOCUMENT_TYPES,
+    QUICK_SALE_PAYMENT_METHODS,
+} from "../../utils/quickSale";
 
 const EMPTY_FORM = {
     businessName: "",
@@ -41,6 +45,8 @@ const EMPTY_FORM = {
     receiptEmail: "",
     receiptSocial: "",
     receiptFooterNote: "",
+    quickSalePaymentMethod: "0",
+    quickSaleDocumentType: "RECEIPT",
 };
 
 export default function ConfigurationPage() {
@@ -77,6 +83,8 @@ export default function ConfigurationPage() {
                 receiptEmail: data.receiptEmail ?? "",
                 receiptSocial: data.receiptSocial ?? "",
                 receiptFooterNote: data.receiptFooterNote ?? "",
+                quickSalePaymentMethod: data.quickSalePaymentMethod ?? "0",
+                quickSaleDocumentType: data.quickSaleDocumentType ?? "RECEIPT",
             });
             setLogoPreview(data.receiptLogoUrl ?? "");
             setLogoFile(null);
@@ -145,6 +153,8 @@ export default function ConfigurationPage() {
                 receiptEmail: form.receiptEmail.trim(),
                 receiptSocial: form.receiptSocial.trim(),
                 receiptFooterNote: form.receiptFooterNote.trim(),
+                quickSalePaymentMethod: form.quickSalePaymentMethod,
+                quickSaleDocumentType: form.quickSaleDocumentType,
             });
 
             if (user?.userId) {
@@ -238,6 +248,41 @@ export default function ConfigurationPage() {
                                             {deliveryHint}
                                         </span>
                                     </span>
+                                </label>
+
+                                <label className="block text-sm text-gray-700">
+                                    <span className="font-semibold">Medio de pago de la caja rápida</span>
+                                    <select
+                                        name="quickSalePaymentMethod"
+                                        value={form.quickSalePaymentMethod}
+                                        onChange={handleChange}
+                                        className={`${TABLE_INPUT} mt-1 w-full`}
+                                    >
+                                        {QUICK_SALE_PAYMENT_METHODS.map((method) => (
+                                            <option key={method.id} value={method.id}>
+                                                {method.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <span className="block text-xs text-gray-500 mt-1">
+                                        Queda preseleccionado al abrir la caja. Se puede cambiar en el cobro.
+                                    </span>
+                                </label>
+
+                                <label className="block text-sm text-gray-700">
+                                    <span className="font-semibold">Comprobante de la caja rápida</span>
+                                    <select
+                                        name="quickSaleDocumentType"
+                                        value={form.quickSaleDocumentType}
+                                        onChange={handleChange}
+                                        className={`${TABLE_INPUT} mt-1 w-full`}
+                                    >
+                                        {QUICK_SALE_DOCUMENT_TYPES.map((documentType) => (
+                                            <option key={documentType.id} value={documentType.id}>
+                                                {documentType.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </label>
                             </div>
                         </ProfileSectionCard>
