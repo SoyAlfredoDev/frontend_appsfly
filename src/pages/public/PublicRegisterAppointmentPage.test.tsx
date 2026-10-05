@@ -40,6 +40,11 @@ const page = {
   customerNotificationsEnabled: true,
   slotDurationMinutes: 30,
   maxDaysAhead: 30,
+  galleryImageUrls: ['https://cdn.example.com/local.jpg'],
+  location: {
+    address: 'Av. Providencia 1234, Santiago',
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Av.%20Providencia%201234',
+  },
 }
 
 function renderPage() {
@@ -121,6 +126,20 @@ describe('PublicRegisterAppointmentPage', () => {
 
     expect(await screen.findByText('No hay horarios disponibles por ahora. Intenta más tarde.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled()
+  })
+
+  it('shows the business gallery and location on the booking page', async () => {
+    vi.mocked(fetchPublicAppointmentPage).mockResolvedValue({ data: page } as never)
+    vi.mocked(fetchPublicAppointmentSlots).mockResolvedValue(openSlots as never)
+
+    renderPage()
+
+    expect(await screen.findByRole('img', { name: 'Local de Óptica Norte' })).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/local.jpg',
+    )
+    expect(screen.getByText('Av. Providencia 1234, Santiago')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver en Google Maps' })).toBeInTheDocument()
   })
 
   it('walks from the schedule to the confirmation', async () => {

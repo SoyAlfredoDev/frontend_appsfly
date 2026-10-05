@@ -39,6 +39,7 @@ export const CLOUDINARY_FOLDERS = {
     EXPENSE_RECEIPT: "ticket_receipts",
     SUPPORT: "tickets_support",
     BUSINESS_LOGO: "business_logos",
+    APPOINTMENT_GALLERY: "appointment_gallery",
     PRESCRIPTION_IMAGES: "prescription_images",
 };
 

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Local comercial">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c7a4e"/>
+      <stop offset="100%" stop-color="#064d32"/>
+    </linearGradient>
+    <linearGradient id="window" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d7f0e4"/>
+      <stop offset="100%" stop-color="#a8dcc4"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <rect x="220" y="180" width="760" height="440" rx="24" fill="#f8fafc" opacity="0.95"/>
+  <rect x="300" y="260" width="220" height="180" rx="12" fill="url(#window)"/>
+  <rect x="560" y="260" width="220" height="180" rx="12" fill="url(#window)"/>
+  <rect x="420" y="500" width="360" height="80" rx="12" fill="#0c7a4e" opacity="0.85"/>
+  <circle cx="600" cy="120" r="56" fill="#ffffff" opacity="0.18"/>
+  <text x="600" y="720" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-size="42" font-weight="600">Tu local</text>
+</svg>

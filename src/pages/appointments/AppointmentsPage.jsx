@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import AppointmentBrandingSettings, {
+    parseOptionalCoordinate,
+    uploadAppointmentGalleryImages,
+} from "./AppointmentBrandingSettings.tsx";
 import {
     FaCheck,
     FaCopy,
@@ -59,6 +63,10 @@ const DEFAULT_SETTINGS = {
     maxDaysAhead: 30,
     customerNotificationsEnabled: false,
     visitorMessage: "",
+    galleryImageUrls: [],
+    locationAddress: "",
+    locationLatitude: "",
+    locationLongitude: "",
     weeklyAvailability: [],
     publicLink: "",
 };
@@ -82,7 +90,7 @@ function formatWhen(iso) {
 export default function AppointmentsPage() {
     const toast = useToast();
     const confirm = useConfirm();
-    const { subscriptions, loadingAuth } = useAuth();
+    const { subscriptions, loadingAuth, activeBusinessId } = useAuth();
     const appointmentsAllowed = hasAppointmentsPlan(subscriptions);
     const [planBlocked, setPlanBlocked] = useState(false);
     const [tab, setTab] = useState("inbox");
@@ -95,6 +103,7 @@ export default function AppointmentsPage() {
     const [rescheduleId, setRescheduleId] = useState(null);
     const [rescheduleSlots, setRescheduleSlots] = useState([]);
     const [rescheduleLoading, setRescheduleLoading] = useState(false);
+    const [pendingGalleryUploads, setPendingGalleryUploads] = useState([]);
 
     const loadSettings = useCallback(async () => {
         setLoadingSettings(true);
@@ -107,10 +116,19 @@ export default function AppointmentsPage() {
                 visitorMessage: data.visitorMessage || "",
                 maxConcurrentPerSlot: data.maxConcurrentPerSlot || 1,
                 customerNotificationsEnabled: Boolean(data.customerNotificationsEnabled),
+                galleryImageUrls: Array.isArray(data.galleryImageUrls)
+                    ? data.galleryImageUrls
+                    : [],
+                locationAddress: data.locationAddress || "",
+                locationLatitude:
+                    data.locationLatitude == null ? "" : String(data.locationLatitude),
+                locationLongitude:
+                    data.locationLongitude == null ? "" : String(data.locationLongitude),
                 weeklyAvailability: Array.isArray(data.weeklyAvailability)
                     ? data.weeklyAvailability
                     : [],
             });
+            setPendingGalleryUploads([]);
         } catch (error) {
             if (error.response?.data?.code === "APPOINTMENTS_PLAN_REQUIRED") {
                 setPlanBlocked(true);
@@ -161,6 +179,19 @@ export default function AppointmentsPage() {
         }
         setSaving(true);
         try {
+            let galleryImageUrls = settings.galleryImageUrls || [];
+            if (pendingGalleryUploads.length) {
+                if (!activeBusinessId) {
+                    toast.error("Error", "No se pudo identificar el negocio para subir fotos.");
+                    return;
+                }
+                galleryImageUrls = await uploadAppointmentGalleryImages(
+                    activeBusinessId,
+                    galleryImageUrls,
+                    pendingGalleryUploads,
+                );
+            }
+
             const res = await updateAppointmentSettings({
                 appointmentsEnabled: settings.appointmentsEnabled,
                 slotDurationMinutes: Number(settings.slotDurationMinutes),
@@ -168,6 +199,10 @@ export default function AppointmentsPage() {
                 maxDaysAhead: Number(settings.maxDaysAhead),
                 customerNotificationsEnabled: Boolean(settings.customerNotificationsEnabled),
                 visitorMessage: settings.visitorMessage || null,
+                galleryImageUrls,
+                locationAddress: settings.locationAddress.trim() || null,
+                locationLatitude: parseOptionalCoordinate(settings.locationLatitude),
+                locationLongitude: parseOptionalCoordinate(settings.locationLongitude),
                 weeklyAvailability: settings.weeklyAvailability.map((row) => ({
                     dayOfWeek: Number(row.dayOfWeek),
                     startTime: row.startTime,
@@ -178,7 +213,18 @@ export default function AppointmentsPage() {
                 ...prev,
                 ...res.data.settings,
                 visitorMessage: res.data.settings.visitorMessage || "",
+                galleryImageUrls: res.data.settings.galleryImageUrls || [],
+                locationAddress: res.data.settings.locationAddress || "",
+                locationLatitude:
+                    res.data.settings.locationLatitude == null
+                        ? ""
+                        : String(res.data.settings.locationLatitude),
+                locationLongitude:
+                    res.data.settings.locationLongitude == null
+                        ? ""
+                        : String(res.data.settings.locationLongitude),
             }));
+            setPendingGalleryUploads([]);
             toast.success("Guardado", "Configuración de citas actualizada.");
         } catch (error) {
             toast.error(
@@ -474,6 +520,24 @@ export default function AppointmentsPage() {
                                     />
                                 </label>
                             </div>
+
+                            <AppointmentBrandingSettings
+                                businessId={activeBusinessId}
+                                value={{
+                                    galleryImageUrls: settings.galleryImageUrls,
+                                    locationAddress: settings.locationAddress,
+                                    locationLatitude: settings.locationLatitude,
+                                    locationLongitude: settings.locationLongitude,
+                                }}
+                                pendingUploads={pendingGalleryUploads}
+                                onPendingUploadsChange={setPendingGalleryUploads}
+                                onChange={(branding) =>
+                                    setSettings((prev) => ({
+                                        ...prev,
+                                        ...branding,
+                                    }))
+                                }
+                            />
 
                             <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
                                 <div className="flex items-center justify-between gap-3">

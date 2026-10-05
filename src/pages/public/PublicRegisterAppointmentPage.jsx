@@ -25,6 +25,8 @@ import {
     formatDayNumber,
     formatMonthTitle,
 } from "./appointmentBookingCalendar.ts";
+import AppointmentGalleryCarousel from "./AppointmentGalleryCarousel.tsx";
+import AppointmentLocationSection from "./AppointmentLocationSection.tsx";
 
 function groupSlotsByDate(slots) {
     const map = new Map();
@@ -360,10 +362,10 @@ export default function PublicRegisterAppointmentPage() {
         });
         return (
             <div className="min-h-[100dvh] bg-surface font-sans">
-                <img
-                    src="/booking-reception.jpg"
-                    alt=""
-                    className="h-48 w-full object-cover sm:h-64"
+                <AppointmentGalleryCarousel
+                    imageUrls={page?.galleryImageUrls}
+                    alt={`Local de ${business?.name || "negocio"}`}
+                    className="h-48 w-full sm:h-64"
                 />
                 <div className="mx-auto w-full max-w-md px-4 py-8 text-center">
                     <FaCheckCircle className="mx-auto mb-4 text-4xl text-[#0c7a4e]" aria-hidden="true" />
@@ -379,6 +381,11 @@ export default function PublicRegisterAppointmentPage() {
                             ? `Te escribiremos a ${success.customerEmail} cuando confirmen la hora.`
                             : `Te contactarán al +56 ${success.phoneNumber} para confirmar.`}
                     </p>
+                    {page?.location ? (
+                        <div className="mt-6 text-left">
+                            <AppointmentLocationSection location={page.location} compact />
+                        </div>
+                    ) : null}
                 </div>
             </div>
         );
@@ -388,10 +395,10 @@ export default function PublicRegisterAppointmentPage() {
         <div className="min-h-[100dvh] bg-surface font-sans text-slate-900">
             <div className="mx-auto grid min-h-[100dvh] max-w-6xl lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)]">
                 <aside className="bg-white lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:flex-col lg:overflow-y-auto">
-                    <img
-                        src="/booking-reception.jpg"
-                        alt=""
-                        className={`h-32 w-full object-cover sm:h-40 lg:h-72 ${step === 1 ? "" : "hidden lg:block"}`}
+                    <AppointmentGalleryCarousel
+                        imageUrls={page.galleryImageUrls}
+                        alt={`Local de ${business?.name || "negocio"}`}
+                        className={`h-40 w-full sm:h-48 lg:h-64 ${step === 1 ? "" : "hidden lg:block"}`}
                     />
                     <div className="px-4 py-4 lg:px-8 lg:py-8">
                         <BookingIdentity business={business} />
@@ -403,6 +410,11 @@ export default function PublicRegisterAppointmentPage() {
                             <p className={`mt-3 text-sm font-medium text-dark ${step === 1 ? "" : "hidden lg:block"}`}>
                                 Cada cita dura {page.slotDurationMinutes} minutos.
                             </p>
+                        ) : null}
+                        {page.location ? (
+                            <div className={`mt-5 ${step === 1 ? "" : "hidden lg:block"}`}>
+                                <AppointmentLocationSection location={page.location} />
+                            </div>
                         ) : null}
                     </div>
                 </aside>
