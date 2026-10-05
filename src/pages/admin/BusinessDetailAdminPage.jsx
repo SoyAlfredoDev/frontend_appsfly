@@ -15,7 +15,12 @@ import {
     FaReceipt,
     FaShoppingCart,
 } from "react-icons/fa";
-import { getAdminBusinessById } from "../../api/admin.js";
+import {
+    assignAdminBusinessPlan,
+    getAdminBusinessById,
+    recordAdminBusinessLinkPayment,
+} from "../../api/admin.js";
+import { useToast } from "../../context/ToastContext.jsx";
 import formatDate from "../../utils/formatDate.js";
 import formatCurrency from "../../utils/formatCurrency.js";
 import formatName from "../../utils/formatName.js";
@@ -175,10 +180,14 @@ function ContactAction({ href, icon: Icon, label, variant = "secondary" }) {
 
 export default function BusinessDetailAdminPage() {
     const { id } = useParams();
+    const toast = useToast();
     const [detail, setDetail] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activePanel, setActivePanel] = useState("users");
+    const [selectedPlanId, setSelectedPlanId] = useState("");
+    const [savingPlan, setSavingPlan] = useState(false);
+    const [recordingLink, setRecordingLink] = useState(false);
 
     const loadDetail = useCallback(async () => {
         setLoading(true);
@@ -205,6 +214,80 @@ export default function BusinessDetailAdminPage() {
         () => getPrimarySubscription(subscriptions),
         [subscriptions],
     );
+    const subscriptionAdmin = detail?.subscriptionAdmin;
+    const billing = subscriptionAdmin?.billing;
+    const planOptions = useMemo(() => {
+        const options = [...(subscriptionAdmin?.assignablePlans ?? [])];
+        if (
+            primarySubscription
+            && !options.some((plan) => plan.planId === primarySubscription.subscriptionPlanId)
+        ) {
+            options.unshift({
+                planId: primarySubscription.subscriptionPlanId,
+                planName: primarySubscription.plan?.planName ?? primarySubscription.subscriptionPlanId,
+            });
+        }
+        return options;
+    }, [subscriptionAdmin, primarySubscription]);
+
+    useEffect(() => {
+        if (primarySubscription?.subscriptionPlanId) {
+            setSelectedPlanId(primarySubscription.subscriptionPlanId);
+        }
+    }, [primarySubscription?.subscriptionPlanId]);
+
+    const copyPaymentLink = async (url) => {
+        try {
+            await navigator.clipboard.writeText(url);
+            toast.success("Link copiado", "Puedes enviarlo al cliente.");
+        } catch {
+            toast.error("No se pudo copiar", url);
+        }
+    };
+
+    const sendPaymentLink = (url) => {
+        if (mailtoHref) {
+            const subject = encodeURIComponent("Link de pago AppsFly");
+            const body = encodeURIComponent(`Puedes pagar tu plan en este link de Mercado Pago:\n${url}`);
+            window.location.href = `${mailtoHref}?subject=${subject}&body=${body}`;
+            return;
+        }
+        copyPaymentLink(url);
+    };
+
+    const handleAssignPlan = async () => {
+        if (!selectedPlanId || savingPlan) return;
+        setSavingPlan(true);
+        try {
+            await assignAdminBusinessPlan(id, selectedPlanId);
+            await loadDetail();
+            toast.success("Plan actualizado", "La ficha ya muestra el plan nuevo.");
+        } catch (err) {
+            toast.error(
+                "No se pudo cambiar el plan",
+                err.response?.data?.message ?? "Intenta nuevamente.",
+            );
+        } finally {
+            setSavingPlan(false);
+        }
+    };
+
+    const handleRecordLinkPayment = async () => {
+        if (recordingLink) return;
+        setRecordingLink(true);
+        try {
+            await recordAdminBusinessLinkPayment(id);
+            await loadDetail();
+            toast.success("Pago del link registrado", "El negocio queda suscrito con el link de Mercado Pago.");
+        } catch (err) {
+            toast.error(
+                "No se pudo registrar el pago",
+                err.response?.data?.message ?? "Intenta nuevamente.",
+            );
+        } finally {
+            setRecordingLink(false);
+        }
+    };
 
     const whatsappUrl = useMemo(() => {
         const code = business?.businessCodeWhatsappNumber || business?.businessCodePhoneNumber;
@@ -630,11 +713,81 @@ export default function BusinessDetailAdminPage() {
                                     Este negocio no tiene una membresía activa registrada.
                                 </p>
                             )}
+
+                            {billing && (
+                                <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-3">
+                                    <p className="text-xs uppercase tracking-wide text-white/40">Cobro</p>
+                                    <p className="text-sm font-semibold text-white mt-1">{billing.label}</p>
+                                    <p className="text-xs text-white/70 mt-1 leading-relaxed">{billing.detail}</p>
+                                    {billing.checkoutUrl && (
+                                        <div className="mt-3 space-y-2">
+                                            <p className="break-all font-mono text-[11px] text-primary">
+                                                {billing.checkoutUrl}
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => copyPaymentLink(billing.checkoutUrl)}
+                                                className="btn-ghost w-full text-center"
+                                            >
+                                                Copiar link
+                                            </button>
+                                            {billing.needsLink && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => sendPaymentLink(billing.checkoutUrl)}
+                                                    className="btn-primary w-full text-center"
+                                                >
+                                                    Enviar link al cliente
+                                                </button>
+                                            )}
+                                            {billing.needsLink && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleRecordLinkPayment}
+                                                    disabled={recordingLink}
+                                                    className="w-full rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10 disabled:opacity-50"
+                                                >
+                                                    {recordingLink ? "Registrando…" : "Registrar que pagó el link"}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="mt-4 space-y-2">
+                                <label className="block text-xs uppercase tracking-wide text-white/40" htmlFor="admin-plan">
+                                    Cambiar plan
+                                </label>
+                                <select
+                                    id="admin-plan"
+                                    value={selectedPlanId}
+                                    onChange={(event) => setSelectedPlanId(event.target.value)}
+                                    className="w-full rounded-lg border border-white/15 bg-white px-3 py-2 text-sm text-dark"
+                                >
+                                    <option value="" disabled>
+                                        Elige un plan
+                                    </option>
+                                    {planOptions.map((plan) => (
+                                        <option key={plan.planId} value={plan.planId}>
+                                            {plan.planName}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={handleAssignPlan}
+                                    disabled={savingPlan || !selectedPlanId || selectedPlanId === primarySubscription?.subscriptionPlanId}
+                                    className="btn-primary w-full text-center disabled:opacity-50"
+                                >
+                                    {savingPlan ? "Guardando…" : "Guardar plan"}
+                                </button>
+                            </div>
                             <Link
                                 to="/admin/subscriptions"
-                                className="btn-primary w-full mt-4 text-center no-underline"
+                                className="mt-3 block text-center text-xs font-semibold text-white/70 no-underline hover:text-white"
                             >
-                                Gestionar suscripciones
+                                Ver todas las suscripciones
                             </Link>
                         </motion.div>
                     </aside>
