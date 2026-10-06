@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   dismissAnnouncementForever,
+  hydrateServerDismissals,
   isAnnouncementDismissedForever,
   resetAnnouncementStorageForTests,
 } from './announcementStorage'
@@ -32,10 +33,26 @@ describe('announcementStorage', () => {
     expect(localStorage.getItem('appsfly_announcement_pwa-install-v2_forever')).toBe('1')
   })
 
+  it('stores dismissals per user account', () => {
+    dismissAnnouncementForever('pwa-install-v2', { userId: 'user-a' })
+
+    resetAnnouncementStorageForTests()
+    expect(isAnnouncementDismissedForever('pwa-install-v2', { userId: 'user-a' })).toBe(true)
+    expect(isAnnouncementDismissedForever('pwa-install-v2', { userId: 'user-b' })).toBe(false)
+    expect(
+      localStorage.getItem('appsfly_announcement_user_user-a_pwa-install-v2_forever'),
+    ).toBe('1')
+  })
+
   it('keeps a dismissal that was saved before this version', () => {
     localStorage.setItem('appsfly_announcement_pwa-install-v2_forever', '1')
 
     expect(isAnnouncementDismissedForever('pwa-install-v2')).toBe(true)
+  })
+
+  it('honors dismissals synced from the server', () => {
+    hydrateServerDismissals('user-a', ['pwa-install-v2'])
+    expect(isAnnouncementDismissedForever('pwa-install-v2', { userId: 'user-a' })).toBe(true)
   })
 
   it('keeps the dismissal when localStorage rejects the write', () => {

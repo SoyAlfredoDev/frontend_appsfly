@@ -1,6 +1,9 @@
 import type { ComponentType } from 'react'
 import PwaInstallAnnouncementContent from '../components/announcements/content/PwaInstallAnnouncementContent'
-import { isAnnouncementDismissedForever } from './announcementStorage'
+import {
+  type AnnouncementStorageScope,
+  isAnnouncementDismissedForever,
+} from './announcementStorage'
 
 export type AnnouncementContentProps = {
   canNativeInstall: boolean
@@ -43,17 +46,18 @@ export const LOGIN_ANNOUNCEMENTS: LoginAnnouncement[] = [
   },
 ]
 
-function isDismissed(announcement: LoginAnnouncement) {
+function isDismissed(announcement: LoginAnnouncement, scope?: AnnouncementStorageScope) {
   const keys =
     announcement.dismissalKeys.length > 0 ? announcement.dismissalKeys : [announcement.id]
-  return keys.some((key) => isAnnouncementDismissedForever(key))
+  return keys.some((key) => isAnnouncementDismissedForever(key, scope))
 }
 
 export function resolveLoginAnnouncement(
   context: LoginAnnouncementContext = { isPwaInstalled: false },
+  scope?: AnnouncementStorageScope,
 ) {
   const eligible = LOGIN_ANNOUNCEMENTS.filter((item) => item.trigger === 'login')
-    .filter((item) => !isDismissed(item))
+    .filter((item) => !isDismissed(item, scope))
     .filter((item) => {
       try {
         return item.shouldShow(context) !== false

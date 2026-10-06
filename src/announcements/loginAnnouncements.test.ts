@@ -27,9 +27,9 @@ describe('resolveLoginAnnouncement', () => {
   })
 
   it('does not show the publication again after the client dismisses it', () => {
-    dismissAnnouncementForever('pwa-install-v2')
+    dismissAnnouncementForever('pwa-install-v2', { userId: 'user-a' })
 
-    expect(resolveLoginAnnouncement({ isPwaInstalled: false })).toBeNull()
+    expect(resolveLoginAnnouncement({ isPwaInstalled: false }, { userId: 'user-a' })).toBeNull()
   })
 
   it('honors a dismissal saved under an older id of the same publication', () => {

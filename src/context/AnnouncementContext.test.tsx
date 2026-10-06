@@ -11,10 +11,19 @@ const auth = vi.hoisted(() => ({
   isAuthenticated: true,
   loadingAuth: false,
   loginSessionKey: 1,
+  user: { userId: 'user-a' },
 }))
+
+const fetchDismissedAnnouncementsRequest = vi.hoisted(() => vi.fn())
+const dismissAnnouncementOnServerRequest = vi.hoisted(() => vi.fn())
 
 vi.mock('./authContext.jsx', () => ({
   useAuth: () => auth,
+}))
+
+vi.mock('../api/announcementDismissals.ts', () => ({
+  fetchDismissedAnnouncementsRequest,
+  dismissAnnouncementOnServerRequest,
 }))
 
 function installMatchMedia() {
@@ -67,12 +76,22 @@ async function flushAnnouncementDelay() {
   })
 }
 
+async function flushDismissalSync() {
+  await act(async () => {
+    await Promise.resolve()
+    await Promise.resolve()
+  })
+}
+
 describe('AnnouncementProvider', () => {
   beforeEach(() => {
     installMatchMedia()
     auth.isAuthenticated = true
     auth.loadingAuth = false
     auth.loginSessionKey = 1
+    auth.user = { userId: 'user-a' }
+    fetchDismissedAnnouncementsRequest.mockResolvedValue([])
+    dismissAnnouncementOnServerRequest.mockResolvedValue(['pwa-install-v2'])
     localStorage.clear()
     sessionStorage.clear()
     resetAnnouncementStorageForTests()
@@ -87,6 +106,7 @@ describe('AnnouncementProvider', () => {
 
   it('does not open the publication again after the client hides it, even on the next login', async () => {
     const firstVisit = renderProvider()
+    await flushDismissalSync()
     await flushAnnouncementDelay()
 
     expect(
@@ -96,7 +116,12 @@ describe('AnnouncementProvider', () => {
     fireEvent.click(screen.getByRole('button', { name: 'No volver a mostrar este mensaje' }))
     await flushAnnouncementDelay()
 
-    expect(isAnnouncementDismissedForever('pwa-install-v2')).toBe(true)
+    expect(dismissAnnouncementOnServerRequest).toHaveBeenCalledWith([
+      'pwa-install',
+      'pwa-install-v1',
+      'pwa-install-v2',
+    ])
+    expect(isAnnouncementDismissedForever('pwa-install-v2', { userId: 'user-a' })).toBe(true)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Ir a ventas' }))
@@ -104,8 +129,10 @@ describe('AnnouncementProvider', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
     firstVisit.unmount()
+    fetchDismissedAnnouncementsRequest.mockResolvedValue(['pwa-install-v2'])
     auth.loginSessionKey = 2
     renderProvider()
+    await flushDismissalSync()
     await flushAnnouncementDelay()
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -113,15 +140,17 @@ describe('AnnouncementProvider', () => {
 
   it('shows the publication on the next login when the client only chooses Ahora no', async () => {
     const firstVisit = renderProvider()
+    await flushDismissalSync()
     await flushAnnouncementDelay()
 
     fireEvent.click(screen.getByRole('button', { name: 'Ahora no' }))
     await flushAnnouncementDelay()
-    expect(isAnnouncementDismissedForever('pwa-install-v2')).toBe(false)
+    expect(isAnnouncementDismissedForever('pwa-install-v2', { userId: 'user-a' })).toBe(false)
 
     firstVisit.unmount()
     auth.loginSessionKey = 2
     renderProvider()
+    await flushDismissalSync()
     await flushAnnouncementDelay()
 
     expect(
