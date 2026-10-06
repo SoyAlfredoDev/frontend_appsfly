@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "vercel": {
+      "url": "https://mcp.vercel.com"
+    },
+    "mercadopago-mcp-server": {
+      "url": "https://mcp.mercadopago.com/mcp"
+    }
+  }
+}
