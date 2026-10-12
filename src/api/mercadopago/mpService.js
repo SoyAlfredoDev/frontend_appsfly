@@ -17,6 +17,10 @@ export const processSubscriptionPayment = ({ subscriptionPaymentId, formData, se
         selectedPaymentMethod,
     });
 
+/** Consulta la suscripción pendiente y la activa si Mercado Pago ya la autorizó */
+export const syncSubscriptionPreapproval = (paymentId) =>
+    axios.post(`/subscriptions/payments/${paymentId}/sync`);
+
 /** Confirma pago tras retorno redirect MP (status === approved) */
 export const confirmSubscriptionPayment = (paymentId, mpPaymentId) =>
     axios.post(`/subscriptions/payments/${paymentId}/confirm`, null, {

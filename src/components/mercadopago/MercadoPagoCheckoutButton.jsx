@@ -1,85 +1,61 @@
-import { useCallback } from "react";
-import { FaArrowRight, FaCreditCard } from "react-icons/fa";
-import { usePaymentModal } from "../../context/paymentModalContext.jsx";
-import { isMercadoPagoConfigured } from "../../config/mercadopago/mpConfig.js";
-import { checkoutUrlForPlan } from "../../utils/subscriptionCheckoutLinks.ts";
+import { useCallback, useState } from "react";
+import { FaArrowRight, FaCreditCard, FaSpinner } from "react-icons/fa";
+import { v4 as uuidv4 } from "uuid";
+import { createSubscriptionCheckout } from "../../api/mercadopago/mpService.js";
 
 /**
- * Start y Pro abren su link de Mercado Pago. Los demás planes siguen al checkout interno.
+ * Start y Pro crean una suscripción propia en Mercado Pago y abren su init_point.
  */
 export default function MercadoPagoCheckoutButton({
     plan,
     businessId,
-    compact = false,
     disabled = false,
     onError,
-    onSuccess,
-    refreshSubscriptions,
     buttonLabel = "Pagar con Mercado Pago",
     buttonId,
 }) {
-    const { openCheckoutModal, isPaymentModalOpen } = usePaymentModal();
-    const checkoutUrl = checkoutUrlForPlan(plan?.planId, plan?.checkoutUrl);
-    const isConfigured = Boolean(checkoutUrl) || isMercadoPagoConfigured();
+    const [redirecting, setRedirecting] = useState(false);
+    const unavailable = disabled || !businessId || redirecting;
 
-    const handleOpenPaymentModal = useCallback(() => {
-        if (disabled || !isConfigured || isPaymentModalOpen) return;
+    const handleSubscribe = useCallback(async () => {
+        if (unavailable) return;
+        setRedirecting(true);
 
-        openCheckoutModal({
-            plan,
-            businessId,
-            onSuccess,
-            onError,
-            refreshSubscriptions,
-        }).catch(() => {});
-    }, [
-        disabled,
-        isConfigured,
-        isPaymentModalOpen,
-        openCheckoutModal,
-        plan,
-        businessId,
-        onSuccess,
-        onError,
-        refreshSubscriptions,
-    ]);
-
-    if (checkoutUrl) {
-        return (
-            <a
-                id={buttonId}
-                href={disabled ? undefined : checkoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-disabled={disabled}
-                className={`group w-full py-2 px-3 rounded-lg font-bold text-xs text-white shadow-md shadow-green-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    disabled
-                        ? "bg-gray-100 cursor-not-allowed text-gray-400 shadow-none pointer-events-none"
-                        : "bg-[#01c676] hover:bg-[#00b067] hover:-translate-y-0.5"
-                }`}
-            >
-                <FaCreditCard />
-                {buttonLabel}
-                <FaArrowRight className="text-[10px] transition-transform group-hover:translate-x-1" />
-            </a>
-        );
-    }
+        try {
+            const res = await createSubscriptionCheckout({
+                subscriptionId: uuidv4(),
+                subscriptionBusinessId: businessId,
+                subscriptionPlanId: plan.planId,
+            });
+            const checkoutUrl = res.data?.checkoutUrl;
+            if (!checkoutUrl) {
+                throw new Error("Mercado Pago no devolvió el link de suscripción.");
+            }
+            window.location.assign(checkoutUrl);
+        } catch (error) {
+            setRedirecting(false);
+            onError?.(error);
+        }
+    }, [unavailable, businessId, plan?.planId, onError]);
 
     return (
         <>
             <button
                 id={buttonId}
                 type="button"
-                onClick={handleOpenPaymentModal}
-                disabled={disabled || !isConfigured || isPaymentModalOpen}
+                onClick={handleSubscribe}
+                disabled={unavailable}
                 className={`group w-full py-2 px-3 rounded-lg font-bold text-xs text-white shadow-md shadow-green-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 ${
-                    disabled || !isConfigured || isPaymentModalOpen
+                    unavailable
                         ? "bg-gray-100 cursor-not-allowed text-gray-400 shadow-none"
                         : "bg-[#01c676] hover:bg-[#00b067] hover:-translate-y-0.5"
                 }`}
             >
-                {isPaymentModalOpen ? (
-                    "Preparando pago seguro…"
+                {redirecting ? (
+                    <>
+                        <FaSpinner className="animate-spin" />
+                        Abriendo Mercado Pago…
+                    </>
                 ) : (
                     <>
                         <FaCreditCard />
@@ -88,12 +64,6 @@ export default function MercadoPagoCheckoutButton({
                     </>
                 )}
             </button>
-
-            {!isConfigured && !compact && (
-                <p className="mt-2 text-[10px] text-amber-600 text-center">
-                    Mercado Pago no configurado. Revisa VITE_MERCADO_PAGO_PUBLIC_KEY.
-                </p>
-            )}
         </>
     );
 }

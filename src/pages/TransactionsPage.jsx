@@ -17,6 +17,8 @@ import ExpenseTableCard, {
   ExpenseTableLoading,
 } from "../components/ui/ExpenseTableCard.jsx";
 import { getTransactions, getTransactionsSummary } from "../api/transaction.js";
+import { transactionSourcePath } from "../utils/cashBook.ts";
+import { Link } from "react-router-dom";
 import { unwrapListPayload } from "../utils/listPayload.js";
 import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import formatDate from "../utils/formatDate.js";
@@ -25,6 +27,8 @@ import {
   formatPaymentMethod,
   formatTransactionType,
   formatSignedAmount,
+  PAYMENT_METHODS,
+  TRANSACTION_TYPE_LABELS,
 } from "../utils/transactionUtils.js";
 import {
   THEAD,
@@ -40,16 +44,31 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [methodFilter, setMethodFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewTransaction, setViewTransaction] = useState(null);
   const [kpiDetailView, setKpiDetailView] = useState(null);
   const [loading, setLoading] = useState(true);
+  const debouncedQuery = useDebouncedValue(globalFilter, 300);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
     try {
       const [txRes, summaryRes] = await Promise.all([
-        getTransactions({ page: 1, limit: 50, q: undefined }),
+        getTransactions({
+          page: 1,
+          limit: 100,
+          q: debouncedQuery.trim() || undefined,
+          method: methodFilter || undefined,
+          type: typeFilter || undefined,
+          from: fromDate || undefined,
+          to: toDate || undefined,
+        }),
         getTransactionsSummary(),
       ]);
       const { rows } = unwrapListPayload(txRes.data);
@@ -59,39 +78,29 @@ export default function TransactionsPage() {
       console.error("Error loading transactions:", error);
       setTransactions([]);
       setSummary(null);
+      setLoadError("No se pudieron cargar los movimientos.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedQuery, methodFilter, typeFilter, fromDate, toDate]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const filtered = transactions.filter((t) => {
-    if (!globalFilter.trim()) return true;
-    const q = globalFilter.toLowerCase();
-    const { direction } = parseTransactionAmount(t);
-    return (
-      t.transactionDescription?.toLowerCase().includes(q) ||
-      t.transactionType?.toLowerCase().includes(q) ||
-      formatTransactionType(t.transactionType).toLowerCase().includes(q) ||
-      formatPaymentMethod(t.transactionMethod).toLowerCase().includes(q) ||
-      direction.toLowerCase().includes(q)
-    );
-  });
+  const filtered = transactions;
 
   const formatMoney = (n) =>
     Number(n ?? 0).toLocaleString("es-CL", { style: "currency", currency: "CLP" });
 
   return (
     <ExpensePageLayout
-      title="Transacciones"
-      subtitle="Registro de entradas y salidas de dinero del negocio"
+      title="Movimientos"
+      subtitle="Libro de caja: cobros, gastos, compras y retiros"
       actions={
         <>
           <button type="button" onClick={() => setIsModalOpen(true)} className={PRIMARY_BTN}>
-            <FaPlus /> Agregar transacción
+            <FaPlus /> Registrar movimiento
           </button>
           <AddTransactionModal
             isOpen={isModalOpen}
@@ -112,7 +121,7 @@ export default function TransactionsPage() {
           <div className="flex-1 min-w-0">
             <p className={KPI_LABEL}>Efectivo disponible</p>
             <p className={KPI_VALUE}>{formatMoney(summary?.cashAvailable)}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">Ver detalle · Pagos − gastos en efectivo</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Ver detalle · Saldo del libro en efectivo</p>
           </div>
         </ClickableKpiCard>
         <ClickableKpiCard onClick={() => setKpiDetailView("inMonth")}>
@@ -136,6 +145,66 @@ export default function TransactionsPage() {
           </div>
         </ClickableKpiCard>
       </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <label className="text-xs text-gray-500">
+          Desde
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(event) => setFromDate(event.target.value)}
+            className="mt-1 w-full h-10 px-3 border border-gray-200 rounded-lg text-sm"
+          />
+        </label>
+        <label className="text-xs text-gray-500">
+          Hasta
+          <input
+            type="date"
+            value={toDate}
+            onChange={(event) => setToDate(event.target.value)}
+            className="mt-1 w-full h-10 px-3 border border-gray-200 rounded-lg text-sm"
+          />
+        </label>
+        <label className="text-xs text-gray-500">
+          Medio
+          <select
+            value={methodFilter}
+            onChange={(event) => setMethodFilter(event.target.value)}
+            className="mt-1 w-full h-10 px-3 border border-gray-200 rounded-lg text-sm bg-white"
+          >
+            <option value="">Todos</option>
+            {PAYMENT_METHODS.map((method) => (
+              <option key={method.id} value={method.id}>
+                {method.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs text-gray-500">
+          Tipo
+          <select
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+            className="mt-1 w-full h-10 px-3 border border-gray-200 rounded-lg text-sm bg-white"
+          >
+            <option value="">Todos</option>
+            {Object.entries(TRANSACTION_TYPE_LABELS).map(([id, label]) => (
+              <option key={id} value={id}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {loadError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between gap-3">
+          <span>{loadError}</span>
+          <button type="button" onClick={fetchData} className="font-semibold underline">
+            Reintentar
+          </button>
+        </div>
+      )}
 
       <ExpenseTableCard
         sectionTitle="Movimientos registrados"
@@ -161,12 +230,19 @@ export default function TransactionsPage() {
             <tbody className={TBODY}>
               {loading ? (
                 <ExpenseTableLoading colSpan={7} message="Cargando transacciones..." />
+              ) : loadError ? (
+                <ExpenseTableEmpty
+                  colSpan={7}
+                  icon={<FaExchangeAlt className="text-4xl text-gray-300" />}
+                  title="No se pudo cargar el libro."
+                  hint="Reintenta la carga. Los movimientos ya registrados siguen en el servidor."
+                />
               ) : filtered.length === 0 ? (
                 <ExpenseTableEmpty
                   colSpan={7}
                   icon={<FaExchangeAlt className="text-4xl text-gray-300" />}
-                  title="No se encontraron transacciones."
-                  hint="Los pagos, gastos y compras se registran automáticamente."
+                  title="No hay movimientos en este filtro."
+                  hint="Los cobros, gastos y compras de contado se anotan solos. El fondo, el retiro y otros ingresos se cargan a mano."
                 />
               ) : (
                 filtered.map((transaction) => {
@@ -195,7 +271,15 @@ export default function TransactionsPage() {
                         {formatPaymentMethod(transaction.transactionMethod)}
                       </td>
                       <td className={TD_MUTED}>
-                        {transaction.transactionDescription || "—"}
+                        <div>{transaction.transactionDescription || "—"}</div>
+                        {transactionSourcePath(transaction) && (
+                          <Link
+                            to={transactionSourcePath(transaction)}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            Ver origen
+                          </Link>
+                        )}
                       </td>
                       <td
                         className={`px-6 py-4 font-semibold text-sm whitespace-nowrap ${

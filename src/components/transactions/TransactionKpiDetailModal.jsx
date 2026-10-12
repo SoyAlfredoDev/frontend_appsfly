@@ -318,7 +318,7 @@ export default function TransactionKpiDetailModal({
                                         </div>
 
                                         <CashOriginTable
-                                            title="Pagos en efectivo (ventas)"
+                                            title="Entradas en efectivo"
                                             rows={cashDetail?.payments ?? []}
                                             amountClass="text-emerald-600"
                                             linkBuilder={(row) =>
@@ -335,7 +335,7 @@ export default function TransactionKpiDetailModal({
                                         />
 
                                         <CashOriginTable
-                                            title="Gastos en efectivo"
+                                            title="Salidas en efectivo"
                                             rows={cashDetail?.expenses ?? []}
                                             amountClass="text-red-600"
                                         />

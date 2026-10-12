@@ -436,7 +436,7 @@ const APP_ROUTE_TITLES: ReadonlyArray<{ prefix: string; title: string }> = [
   { prefix: '/laboratories', title: 'Laboratorios' },
   { prefix: '/daily-sales', title: 'Cierres diarios' },
   { prefix: '/users', title: 'Usuarios' },
-  { prefix: '/transactions', title: 'Transacciones' },
+  { prefix: '/transactions', title: 'Movimientos' },
   { prefix: '/expenses', title: 'Gastos' },
   { prefix: '/reports', title: 'Reportes' },
   { prefix: '/billing', title: 'Facturación' },

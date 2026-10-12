@@ -5,49 +5,65 @@
  * @returns {Promise<string|null>} secure_url o null si no hay archivo
  */
 export async function uploadImageToCloudinary(file, { folder, publicId } = {}) {
-    if (!file) return null;
+  if (!file) return null
 
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 
-    if (!cloudName || !uploadPreset) {
-        throw new Error("Cloudinary no está configurado en el frontend.");
-    }
+  if (!cloudName || !uploadPreset) {
+    throw new Error('Cloudinary no está configurado en el frontend.')
+  }
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
-    if (folder) formData.append("folder", folder);
-    if (publicId) formData.append("public_id", publicId);
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', uploadPreset)
+  if (folder) formData.append('folder', folder)
+  if (publicId) formData.append('public_id', publicId)
 
-    const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: "POST", body: formData },
-    );
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  })
 
-    const json = await response.json();
-    if (!response.ok) {
-        throw new Error(json.error?.message || "Error al subir la imagen a Cloudinary.");
-    }
+  const json = await response.json()
+  if (!response.ok) {
+    throw new Error(json.error?.message || 'Error al subir la imagen a Cloudinary.')
+  }
 
-    return json.secure_url ?? null;
+  return json.secure_url ?? null
 }
 
+export const TENANT_FOLDER_ROOT = 'tenants'
+
 export const CLOUDINARY_FOLDERS = {
-    CUSTOMER_PROFILE: "customer_profiles",
-    SALE_RECEIPT: "sale_receipts",
-    EXPENSE_RECEIPT: "ticket_receipts",
-    SUPPORT: "tickets_support",
-    BUSINESS_LOGO: "business_logos",
-    APPOINTMENT_GALLERY: "appointment_gallery",
-    PRESCRIPTION_IMAGES: "prescription_images",
-};
+  CUSTOMER_PROFILE: 'customer_profiles',
+  SALE_RECEIPT: 'sale_receipts',
+  EXPENSE_RECEIPT: 'ticket_receipts',
+  SUPPORT: 'tickets_support',
+  BUSINESS_LOGO: 'business_logos',
+  APPOINTMENT_GALLERY: 'appointment_gallery',
+  PRESCRIPTION_IMAGES: 'prescription_images',
+}
+
+/**
+ * Carpeta por negocio: tenants/{businessId}/{assetType}
+ * Permite borrar toda la media de un cliente con un prefix.
+ */
+export function buildTenantFolder(businessId, assetType) {
+  if (typeof businessId !== 'string' || businessId.trim() === '') {
+    throw new Error('No se pudo identificar el negocio para subir la imagen.')
+  }
+  if (typeof assetType !== 'string' || assetType.trim() === '') {
+    throw new Error('El tipo de archivo de Cloudinary no es válido.')
+  }
+  return `${TENANT_FOLDER_ROOT}/${businessId.trim()}/${assetType.trim()}`
+}
 
 /** Public ID único por subida — evita sobrescribir y permite borrar la imagen anterior. */
 export function buildCustomerImagePublicId(customerId) {
-    return `customer-${customerId}-${Date.now()}`;
+  return `customer-${customerId}-${Date.now()}`
 }
 
 export function buildPrescriptionImagePublicId(customerId) {
-    return `prescription-${customerId}-${Date.now()}`;
+  return `prescription-${customerId}-${Date.now()}`
 }

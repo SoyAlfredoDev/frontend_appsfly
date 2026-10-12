@@ -7,6 +7,7 @@ import InputFloatingComponent from "../inputs/InputFloatingComponent.jsx";
 import { createTransaction } from "../../api/transaction.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import { PAYMENT_METHODS } from "../../utils/transactionUtils.js";
+import { MANUAL_MOVEMENT_OPTIONS } from "../../utils/cashBook.ts";
 import {
   PRIMARY_BTN,
 } from "../../utils/expenseUiPatterns.js";
@@ -31,10 +32,10 @@ export default function AddTransactionModal({
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState({
     transactionId,
-    transactionType: "ADJUSTMENT",
+    transactionType: "OPENING",
     transactionMethod: "2",
     direction: "IN",
-    transactionNewValue: 100000,
+    transactionNewValue: "",
     transactionDescription: "",
   });
 
@@ -52,10 +53,10 @@ export default function AddTransactionModal({
       const id = uuidv4();
       setData({
         transactionId: id,
-        transactionType: "ADJUSTMENT",
+        transactionType: "OPENING",
         transactionMethod: "2",
         direction: "IN",
-        transactionNewValue: 100000,
+        transactionNewValue: "",
         transactionDescription: "",
       });
     }
@@ -66,10 +67,29 @@ export default function AddTransactionModal({
     setData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const selectedMovement =
+    MANUAL_MOVEMENT_OPTIONS.find((option) => option.id === data.transactionType) ??
+    MANUAL_MOVEMENT_OPTIONS[0];
+
+  const handleTypeChange = (event) => {
+    const nextType = event.target.value;
+    const option = MANUAL_MOVEMENT_OPTIONS.find((item) => item.id === nextType);
+    setData((prev) => ({
+      ...prev,
+      transactionType: nextType,
+      direction: option?.direction ?? prev.direction,
+      transactionMethod: option?.lockCash ? "2" : prev.transactionMethod,
+    }));
+  };
+
   const handleSave = async () => {
     const amount = Number(data.transactionNewValue);
-    if (!amount || amount <= 0) {
-      toast.info("Monto requerido", "Ingresa un monto mayor a cero.");
+    if (!Number.isInteger(amount) || amount <= 0) {
+      toast.info("Monto requerido", "Ingresa un monto entero mayor a cero.");
+      return;
+    }
+    if (selectedMovement.id !== "ADJUSTMENT" && !data.transactionDescription.trim()) {
+      toast.info("Nota requerida", "Describe el movimiento para poder cuadrar la caja.");
       return;
     }
 
@@ -78,19 +98,19 @@ export default function AddTransactionModal({
       const res = await createTransaction({
         transactionId: data.transactionId,
         transactionType: data.transactionType,
-        transactionMethod: data.transactionMethod,
+        transactionMethod: selectedMovement.lockCash ? "2" : data.transactionMethod,
         transactionDescription: data.transactionDescription,
         amount,
-        direction: data.direction,
+        direction: selectedMovement.direction ?? data.direction,
       });
       if (res.status === 200 || res.status === 201) {
-        toast.success("Transacción agregada", "La transacción se registró correctamente.");
+        toast.success("Movimiento registrado", "Quedó anotado en el libro de caja.");
         onCreated?.();
         closeModal();
       }
     } catch (error) {
       console.error("Error creating transaction:", error);
-      toast.error("Error", "No se pudo registrar la transacción.");
+        toast.error("Error", error.response?.data?.message || "No se pudo registrar el movimiento.");
     } finally {
       setIsLoading(false);
     }
@@ -113,7 +133,7 @@ export default function AddTransactionModal({
             className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
           >
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-800">Agregar Transacción</h2>
+              <h2 className="text-lg font-semibold text-gray-800">Registrar movimiento</h2>
               <button type="button" onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
                 <FaTimes />
               </button>
@@ -128,8 +148,9 @@ export default function AddTransactionModal({
                   <select
                     className="w-full h-11 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                     name="direction"
-                    value={data.direction}
+                    value={selectedMovement.direction ?? data.direction}
                     onChange={handleInputChange}
+                    disabled={Boolean(selectedMovement.direction)}
                   >
                     <option value="IN">Entrada (+)</option>
                     <option value="OUT">Salida (−)</option>
@@ -141,9 +162,13 @@ export default function AddTransactionModal({
                     className="w-full h-11 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                     name="transactionType"
                     value={data.transactionType}
-                    disabled
+                    onChange={handleTypeChange}
                   >
-                    <option value="ADJUSTMENT">Ajuste manual</option>
+                    {MANUAL_MOVEMENT_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -153,8 +178,9 @@ export default function AddTransactionModal({
                   <select
                     className="w-full h-11 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                     name="transactionMethod"
-                    value={data.transactionMethod}
+                    value={selectedMovement.lockCash ? "2" : data.transactionMethod}
                     onChange={handleInputChange}
+                    disabled={selectedMovement.lockCash}
                   >
                     {PAYMENT_METHODS.map((m) => (
                       <option key={m.id} value={m.id}>

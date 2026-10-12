@@ -11,6 +11,10 @@ export const TRANSACTION_TYPE_LABELS = {
     PURCHASE: "Compra",
     PURCHASE_CANCEL: "Anulación compra",
     ADJUSTMENT: "Ajuste manual",
+    OPENING: "Fondo inicial",
+    WITHDRAWAL: "Retiro a banco",
+    OTHER_INCOME: "Otro ingreso",
+    SUPPLIER_PAYMENT: "Pago a proveedor",
 };
 
 export const TRANSACTION_DIRECTION_LABELS = {

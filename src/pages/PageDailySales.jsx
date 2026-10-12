@@ -32,6 +32,7 @@ import ExpenseTableCard, {
   ExpenseTableLoading,
   ExpenseTableEmpty,
 } from "../components/ui/ExpenseTableCard.jsx";
+import DataErrorPanel from "../components/ui/DataErrorPanel.tsx";
 import {
   PRIMARY_BTN,
   KPI_CARD,
@@ -48,7 +49,13 @@ import {
   TD_AMOUNT,
   ACTION_VIEW,
 } from "../utils/expenseUiPatterns.js";
-import { formatClosureDate, formatMoney, isDailySalesDayInCurrentMonth } from "../utils/dailySalesUi.js";
+import {
+  closureDayKey,
+  closureRowsFromPayload,
+  formatClosureDate,
+  formatMoney,
+  isDailySalesDayInCurrentMonth,
+} from "../utils/dailySalesUi.js";
 import { getTodayBusinessDate, resolveBusinessTimezone } from "../utils/businessTime.js";
 import { useAuth } from "../context/authContext.jsx";
 
@@ -64,6 +71,9 @@ export default function PageDailySales() {
   const [pendingClosure, setPendingClosure] = useState(null);
   const [pendingDates, setPendingDates] = useState([]);
   const [closingAll, setClosingAll] = useState(false);
+  const [arqueoDay, setArqueoDay] = useState(null);
+  const [countedCash, setCountedCash] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const applyClosureStatus = useCallback((data) => {
     const dates = data?.fechasPendientes ?? [];
@@ -79,10 +89,19 @@ export default function PageDailySales() {
         axios.get("/dailySales", { signal }),
         getClosureStatus({ signal }),
       ]);
-      setDailySales(listRes.data || []);
+      const rows = closureRowsFromPayload(listRes.data);
+      if (rows) {
+        setDailySales(rows);
+        setLoadError("");
+      } else {
+        setLoadError("No se pudo leer el historial de cierres.");
+      }
       applyClosureStatus(statusRes.data);
     } catch (error) {
-      if (!isAbortError(error)) console.error(error);
+      if (!isAbortError(error)) {
+        console.error(error);
+        setLoadError("No se pudo actualizar los cierres diarios.");
+      }
     } finally {
       if (showTableLoading) setLoading(false);
     }
@@ -129,34 +148,50 @@ export default function PageDailySales() {
     }
   };
 
-  const submitDailyClose = async (day) => {
+  const submitDailyClose = async (day, counted) => {
     try {
-      await axios.post("/dailySales", {
+      const response = await axios.post("/dailySales", {
         dailySalesId: uuidv4(),
         dailySalesDay: day,
+        countedCash: counted,
       });
+      const created = response.data;
+      if (created?.dailySalesId) {
+        setDailySales((current) => {
+          const rows = Array.isArray(current) ? current : [];
+          if (rows.some((row) => row.dailySalesId === created.dailySalesId)) return rows;
+          return [created, ...rows];
+        });
+      }
       toast.success("Cierre realizado", `Cierre diario del ${formatClosureDate(day)} registrado correctamente.`);
+      setArqueoDay(null);
+      setCountedCash("");
       await refreshPageData(undefined, { showTableLoading: false });
     } catch (error) {
       if (error.response?.data?.type === "DUPLICATE_DATE") {
         toast.info("Cierre existente", "Ya existe un cierre registrado para esa fecha.");
       } else if (error.response?.data?.type === "NO_SALES") {
         toast.info("Sin ventas", error.response?.data?.message ?? "No hay ventas ese día para generar cierre.");
+      } else if (error.response?.data?.code === "CLOSURE_COUNT_INVALID") {
+        toast.info("Conteo inválido", error.response.data.message);
       } else {
         toast.error("Error", "No se pudo realizar el cierre. Intente nuevamente.");
       }
     }
   };
 
-  const handleCreateCloseForDate = async (day) => {
-    const isConfirmed = await confirm({
-      title: "¿Realizar cierre diario?",
-      message: `Se generará el cierre para el día ${formatClosureDate(day)}.`,
-      variant: "success",
-      confirmText: "Sí, cerrar caja",
-      cancelText: "Cancelar",
-    });
-    if (isConfirmed) await submitDailyClose(day);
+  const handleCreateCloseForDate = (day) => {
+    setCountedCash("");
+    setArqueoDay(day);
+  };
+
+  const confirmArqueo = async () => {
+    if (!arqueoDay) return;
+    if (countedCash.trim() === "" || !Number.isInteger(Number(countedCash)) || Number(countedCash) < 0) {
+      toast.info("Conteo requerido", "Ingresa el efectivo contado, en pesos, sin decimales.");
+      return;
+    }
+    await submitDailyClose(arqueoDay, Number(countedCash));
   };
 
   const handleCreateClose = async () => {
@@ -164,12 +199,14 @@ export default function PageDailySales() {
     await handleCreateCloseForDate(today);
   };
 
+  const closureRows = Array.isArray(dailySales) ? dailySales : [];
+
   const monthlyDailySales = useMemo(
     () =>
-      dailySales.filter((row) =>
-        isDailySalesDayInCurrentMonth(row.dailySalesDay, new Date(), businessTimezone),
+      closureRows.filter((row) =>
+        isDailySalesDayInCurrentMonth(row?.dailySalesDay, new Date(), businessTimezone),
       ),
-    [dailySales, businessTimezone]
+    [closureRows, businessTimezone]
   );
 
   const summary = useMemo(() => {
@@ -189,15 +226,16 @@ export default function PageDailySales() {
   }, [monthlyDailySales]);
 
   const trendData = useMemo(() => {
-    return [...dailySales]
-      .sort((a, b) => a.dailySalesDay.localeCompare(b.dailySalesDay))
+    return [...closureRows]
+      .filter((row) => closureDayKey(row?.dailySalesDay))
+      .sort((a, b) => closureDayKey(a.dailySalesDay).localeCompare(closureDayKey(b.dailySalesDay)))
       .slice(-10)
-      .map((d) => ({
-        date: d.dailySalesDay.slice(5),
-        ventas: Number(d.dailySalesTotalSales ?? 0),
-        abonado: Number(d.dailySalesTotalIncome ?? 0),
+      .map((row) => ({
+        date: closureDayKey(row.dailySalesDay).slice(5),
+        ventas: Number(row.dailySalesTotalSales ?? 0),
+        abonado: Number(row.dailySalesTotalIncome ?? 0),
       }));
-  }, [dailySales]);
+  }, [closureRows]);
 
   const columns = [
     {
@@ -260,9 +298,9 @@ export default function PageDailySales() {
     },
   ];
 
-  const filtered = dailySales.filter((row) => {
+  const filtered = closureRows.filter((row) => {
     if (!globalFilter.trim()) return true;
-    return row.dailySalesDay?.includes(globalFilter);
+    return closureDayKey(row?.dailySalesDay).includes(globalFilter);
   });
 
   const table = useReactTable({
@@ -332,6 +370,44 @@ export default function PageDailySales() {
         )}
       </AnimatePresence>
 
+      {loadError && (
+        <DataErrorPanel
+          message={loadError}
+          onRetry={() => refreshPageData(undefined, { showTableLoading: true })}
+        />
+      )}
+
+      {arqueoDay && (
+        <div className="rounded-xl border border-gray-200 bg-white p-4 flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-gray-900">Arqueo de {formatClosureDate(arqueoDay)}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Cuenta el efectivo del cajón. El esperado es el saldo del libro hasta el final de ese día.
+            </p>
+            <label className="block text-xs text-gray-500 mt-3">
+              Efectivo contado
+              <input
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={countedCash}
+                onChange={(event) => setCountedCash(event.target.value)}
+                className="mt-1 w-full sm:w-56 h-10 px-3 border border-gray-200 rounded-lg text-sm"
+              />
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setArqueoDay(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg">
+              Cancelar
+            </button>
+            <button type="button" onClick={confirmArqueo} className={PRIMARY_BTN}>
+              <FaLock /> Guardar cierre
+            </button>
+          </div>
+        </div>
+      )}
+
       <ExpenseAnimatedSection className="space-y-6">
         {/* KPI resumen */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -388,7 +464,11 @@ export default function PageDailySales() {
                   <YAxis
                     tick={{ fontSize: 10 }}
                     stroke="#9ca3af"
-                    tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                    tickFormatter={(value) => {
+                      const amount = Number(value);
+                      if (!Number.isFinite(amount)) return "$0";
+                      return `$${Math.round(amount / 1000)}k`;
+                    }}
                   />
                   <Tooltip
                     formatter={(value) => formatMoney(value)}
@@ -430,7 +510,7 @@ export default function PageDailySales() {
               <tbody className={TBODY}>
                 {loading ? (
                   <ExpenseTableLoading colSpan={columns.length} message="Cargando registros..." />
-                ) : filtered.length === 0 ? (
+                ) : filtered.length === 0 && !loadError ? (
                   <ExpenseTableEmpty
                     colSpan={columns.length}
                     icon={<FaCalendarCheck className="text-4xl text-gray-300" />}

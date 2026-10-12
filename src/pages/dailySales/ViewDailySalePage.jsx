@@ -81,8 +81,10 @@ export default function ViewDailySalePage() {
 
   const closure = detail?.closure;
   const totals = detail?.totals;
-  const sales = detail?.sales ?? [];
-  const hourlySales = detail?.hourlySales ?? [];
+  const sales = Array.isArray(detail?.sales) ? detail.sales.filter((sale) => sale?.saleId) : [];
+  const hourlySales = Array.isArray(detail?.hourlySales)
+    ? detail.hourlySales.filter((bucket) => bucket && typeof bucket === "object")
+    : [];
 
   const detailIncome = useMemo(
     () => parseDetailIncome(closure?.dailySalesDetailIncome),
@@ -114,14 +116,14 @@ export default function ViewDailySalePage() {
   }, [detailIncome]);
 
   const hourlyChart = useMemo(() => {
-    const active = hourlySales.filter((h) => h.total > 0);
+    const active = hourlySales.filter((bucket) => Number(bucket.total) > 0);
     const source = active.length > 0 ? active : hourlySales.slice(8, 22);
     return {
-      labels: source.map((h) => h.label),
+      labels: source.map((bucket) => bucket.label ?? ""),
       datasets: [
         {
           label: "Ventas ($)",
-          data: source.map((h) => h.total),
+          data: source.map((bucket) => Number(bucket.total) || 0),
           backgroundColor: "rgba(1, 198, 118, 0.65)",
           borderColor: "#01c676",
           borderWidth: 1,
@@ -272,6 +274,33 @@ export default function ViewDailySalePage() {
           </div>
         </Motion.div>
 
+        <Motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className={KPI_CARD}>
+            <div>
+              <p className={KPI_LABEL}>Efectivo esperado</p>
+              <p className={KPI_VALUE}>
+                {closure.dailySalesExpectedCash == null ? "—" : formatMoney(closure.dailySalesExpectedCash)}
+              </p>
+            </div>
+          </div>
+          <div className={KPI_CARD}>
+            <div>
+              <p className={KPI_LABEL}>Efectivo contado</p>
+              <p className={KPI_VALUE}>
+                {closure.dailySalesCountedCash == null ? "Pendiente" : formatMoney(closure.dailySalesCountedCash)}
+              </p>
+            </div>
+          </div>
+          <div className={KPI_CARD}>
+            <div>
+              <p className={KPI_LABEL}>Diferencia</p>
+              <p className={KPI_VALUE}>
+                {closure.dailySalesCashDifference == null ? "—" : formatMoney(closure.dailySalesCashDifference)}
+              </p>
+            </div>
+          </div>
+        </Motion.div>
+
         {/* Cobranza progress */}
         <Motion.div variants={itemVariants} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <div className="flex justify-between items-end mb-2">
@@ -392,10 +421,12 @@ export default function ViewDailySalePage() {
                         className={TR_ROW}
                       >
                         <td className={TD_MUTED}>
-                          {new Date(sale.createdAt).toLocaleTimeString("es-CL", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {sale.createdAt && !Number.isNaN(new Date(sale.createdAt).getTime())
+                            ? new Date(sale.createdAt).toLocaleTimeString("es-CL", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "—"}
                         </td>
                         <td className="px-6 py-4 font-mono text-xs text-gray-600">{sale.saleNumber ?? "—"}</td>
                         <td className="px-6 py-4 text-gray-800 font-medium text-sm">{sale.customerName || "—"}</td>

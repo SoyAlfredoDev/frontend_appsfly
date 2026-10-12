@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FaCheckCircle, FaClock, FaSpinner, FaTimesCircle } from "react-icons/fa";
-import { confirmSubscriptionPayment } from "../../api/mercadopago/mpService.js";
-import { MP_CHECKOUT_STATUS } from "../../api/mercadopago/constants.js";
+import { confirmSubscriptionPayment, syncSubscriptionPreapproval } from "../../api/mercadopago/mpService.js";
+import { planSubscriptionReturn } from "../../utils/subscriptionReturn.ts";
 
 /**
  * Feedback transaccional tras retorno de Checkout Pro Mercado Pago Chile.
@@ -21,19 +21,15 @@ export default function PaymentReturnFeedback({ onApproved }) {
             const mpPaymentId =
                 searchParams.get("payment_id") || searchParams.get("collection_id");
             const externalReference = searchParams.get("external_reference");
+            const preapprovalId = searchParams.get("preapproval_id");
+            const plan = planSubscriptionReturn({
+                status,
+                paymentId: mpPaymentId,
+                externalReference,
+                preapprovalId,
+            });
 
-            if (!mpPaymentId) {
-                setState({
-                    phase: "error",
-                    message: "No se recibió el identificador del pago desde Mercado Pago.",
-                });
-                return;
-            }
-
-            if (
-                status === MP_CHECKOUT_STATUS.FAILURE
-                || status === MP_CHECKOUT_STATUS.REJECTED
-            ) {
+            if (plan.action === "rejected") {
                 setState({
                     phase: "error",
                     message: "El pago fue rechazado o cancelado en Mercado Pago.",
@@ -41,18 +37,28 @@ export default function PaymentReturnFeedback({ onApproved }) {
                 return;
             }
 
-            if (!externalReference) {
+            if (plan.action === "missing") {
+                setState({
+                    phase: "error",
+                    message: "No se recibió el identificador del pago desde Mercado Pago.",
+                });
+                return;
+            }
+
+            if (plan.action === "pending") {
                 setState({
                     phase: "pending",
-                    message: "Pago recibido. La confirmación puede tardar unos segundos.",
+                    message: "Suscripción recibida. La activación puede tardar unos segundos.",
                 });
                 return;
             }
 
             try {
-                const res = await confirmSubscriptionPayment(externalReference, mpPaymentId);
+                const res = plan.action === "sync-preapproval"
+                    ? await syncSubscriptionPreapproval(plan.externalReference)
+                    : await confirmSubscriptionPayment(plan.externalReference, plan.paymentId);
 
-                if (res.data?.payment?.status === "APPROVED") {
+                if (res.data?.payment?.status === "APPROVED" || res.data?.subscription) {
                     await onApproved?.();
                     setState({
                         phase: "success",

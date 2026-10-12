@@ -42,6 +42,7 @@ export default function NewPurchasePage() {
     date: getTodayBusinessDate(business),
     applyTax: false, // IVA Toggle
     note: "", // Comments
+    settlement: "CASH",
   });
 
   // Table Data
@@ -297,6 +298,7 @@ export default function NewPurchasePage() {
         purchaseProviderId: purchaseData.providerId,
         purchaseRealNumber: purchaseData.documentNumber.trim(),
         purchaseComment: purchaseData.note?.trim() || null,
+        purchaseSettlement: purchaseData.settlement === "CREDIT" ? "CREDIT" : "CASH",
         purchaseTotal: totals.subtotal,
         items: validItems.map((item) => ({
           id: uuidv4(),
@@ -311,7 +313,9 @@ export default function NewPurchasePage() {
 
       toast.success(
         `Compra #${result.data?.purchase?.purchaseNumber ?? ""}`.trim(),
-        "La compra se registró y el stock se actualizó correctamente.",
+        purchaseData.settlement === "CREDIT"
+          ? "La compra quedó a crédito. El stock se actualizó y la caja no se movió."
+          : "La compra se pagó de contado y salió de la caja. El stock se actualizó.",
       );
       navigate("/purchase");
     } catch (error) {
@@ -685,6 +689,21 @@ export default function NewPurchasePage() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-2">
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">
+                  Pago al proveedor
+                </label>
+                <select
+                  name="settlement"
+                  value={purchaseData.settlement}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-xs"
+                >
+                  <option value="CASH">Contado — sale de la caja ahora</option>
+                  <option value="CREDIT">Crédito — se paga después</option>
+                </select>
               </div>
 
               <div className="border-t border-gray-200 pt-2">

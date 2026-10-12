@@ -16,3 +16,6 @@ export const updatePurchase = (id, data) =>
 
 export const cancelPurchaseRequest = (id) =>
     axios.post(`/purchases/${id}/cancel`);
+
+export const paySupplierPurchaseRequest = (id, paymentMethod) =>
+    axios.post(`/purchases/${id}/pay`, { paymentMethod });

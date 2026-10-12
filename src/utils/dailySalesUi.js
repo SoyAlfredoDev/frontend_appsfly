@@ -10,9 +10,22 @@ export function getDailySalePaymentLabel(methodId) {
   return DAILY_SALE_PAYMENT_METHODS.find((m) => m.id === String(methodId))?.label ?? 'Otro';
 }
 
+/** YYYY-MM-DD from a date-only string, an ISO datetime, or timestamp text. */
+export function closureDayKey(value) {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return '';
+    return value.toISOString().slice(0, 10);
+  }
+  const match = String(value ?? '')
+    .trim()
+    .match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1] ?? '';
+}
+
 export function formatClosureDate(dateStr) {
-  if (!dateStr) return '—';
-  const [year, month, day] = dateStr.split('-').map(Number);
+  const key = closureDayKey(dateStr);
+  if (!key) return '—';
+  const [year, month, day] = key.split('-').map(Number);
   return new Date(year, month - 1, day).toLocaleDateString('es-CL', {
     weekday: 'long',
     day: 'numeric',
@@ -48,6 +61,13 @@ export function getCurrentMonthKey(date = new Date(), timeZone) {
 }
 
 export function isDailySalesDayInCurrentMonth(dailySalesDay, date = new Date(), timeZone) {
-  if (!dailySalesDay) return false;
-  return dailySalesDay.startsWith(getCurrentMonthKey(date, timeZone));
+  const key = closureDayKey(dailySalesDay);
+  if (!key) return false;
+  return key.startsWith(getCurrentMonthKey(date, timeZone));
+}
+
+/** List payloads that are not an array used to crash the page during render. */
+export function closureRowsFromPayload(payload) {
+  if (!Array.isArray(payload)) return null;
+  return payload.filter((row) => row && typeof row === 'object');
 }

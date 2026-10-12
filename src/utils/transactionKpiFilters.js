@@ -3,7 +3,7 @@ import { parseTransactionAmount } from "./transactionUtils.js";
 export const TRANSACTION_KPI_VIEWS = {
     cash: {
         title: "Efectivo disponible",
-        subtitle: "Detalle de pagos y gastos en efectivo que componen la caja",
+        subtitle: "Entradas y salidas en efectivo del libro de caja",
     },
     inMonth: {
         title: "Entradas del mes",

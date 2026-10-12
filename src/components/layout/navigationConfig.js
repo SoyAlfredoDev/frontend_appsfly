@@ -32,7 +32,6 @@ import { isOpticsBusiness } from "../../utils/businessModality.js";
  */
 export const OPTICS_DISABLED_PATH_PREFIXES = [
   "/campaigns-asmr",
-  "/transactions",
 ];
 
 /**
@@ -60,7 +59,7 @@ export const NAV_ITEMS = [
   { name: "Gastos", path: "/expenses", icon: FaReceipt, permission: "expenses:manage" },
   { name: "Reportes", path: "/reports", icon: FaFileAlt, permission: "reports:read" },
   { name: "Facturación", path: "/billing", icon: FaFileInvoice, permission: "billing:manage" },
-  { name: "Transacciones", path: "/transactions", icon: FaExchangeAlt, permission: "transactions:read", hideForOptics: true },
+  { name: "Movimientos", path: "/transactions", icon: FaExchangeAlt, permission: "transactions:read" },
   { name: "Usuarios", path: "/users", icon: FaUserFriends, permission: "users:manage" },
   { name: "Configuración", path: "/configuration", icon: FaCog, permission: "settings:manage" },
   { name: "Suscripción", path: "/configuration/subscription", icon: FaCreditCard, permission: "settings:manage" },
@@ -126,6 +125,7 @@ export const OPTICS_NAV_TREE = [
     name: "Caja",
     icon: FaCashRegister,
     children: [
+      { name: "Movimientos", path: "/transactions", icon: FaExchangeAlt, permission: "transactions:read" },
       { name: "Cierres Diarios", path: "/sales/dailySales", icon: FaCalendarCheck, permission: "daily-closures:read" },
       { name: "Gastos", path: "/expenses", icon: FaReceipt, permission: "expenses:manage" },
     ],

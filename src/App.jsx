@@ -58,6 +58,7 @@ import ViewPurchasePage from "./pages/purchase/ViewPurchasePage.jsx";
 /* Daily Sales */
 import PageDailySales from "./pages/PageDailySales.jsx";
 import ViewDailySalePage from "./pages/dailySales/ViewDailySalePage.jsx";
+import RouteErrorBoundary from "./components/ui/RouteErrorBoundary.tsx";
 
 /* Optics: Work Orders (OT) */
 import LaboratoriesPage from "./pages/optics/LaboratoriesPage.jsx";
@@ -81,7 +82,6 @@ import LogoutPage from "./pages/LogoutPage.jsx";
 /* Finance */
 import TransactionsPage from "./pages/TransactionsPage.jsx";
 import ExpensesPage from "./pages/ExpensesPage.jsx";
-import FinancePage from "./pages/FinancePage.jsx";
 import ReportsPage from "./pages/ReportsPage.jsx";
 import TaxBillingPage from "./pages/billing/TaxBillingPage.jsx";
 import ConfigurationPage from "./pages/settings/ConfigurationPage.jsx";
@@ -179,8 +179,22 @@ function App() {
                   <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/sales/register" element={<NewSalePage />} />
                   <Route path="/sales/quick" element={<QuickSalePage />} />
-                  <Route path="/sales/dailySales/view/:id" element={<ViewDailySalePage />} />
-                  <Route path="/sales/dailySales" element={<PageDailySales />} />
+                  <Route
+                    path="/sales/dailySales/view/:id"
+                    element={
+                      <RouteErrorBoundary message="No se pudo mostrar el cierre diario.">
+                        <ViewDailySalePage />
+                      </RouteErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/sales/dailySales"
+                    element={
+                      <RouteErrorBoundary message="No se pudo mostrar los cierres diarios.">
+                        <PageDailySales />
+                      </RouteErrorBoundary>
+                    }
+                  />
                   <Route path="/sales/view/:id" element={<ViewSalePage />} />
                   <Route path="/sales" element={<SalesPage />} />
                   <Route path="/quotations/register" element={<NewQuotationPage />} />
@@ -197,7 +211,14 @@ function App() {
                   <Route path="/purchase-certificates/:id" element={<PurchaseCertificateViewPage />} />
                   <Route path="/purchase/register" element={<NewPurchasePage />} />
                   <Route path="/purchase/view/:id" element={<ViewPurchasePage />} />
-                  <Route path="/daily-sales/view/:id" element={<ViewDailySalePage />} />
+                  <Route
+                    path="/daily-sales/view/:id"
+                    element={
+                      <RouteErrorBoundary message="No se pudo mostrar el cierre diario.">
+                        <ViewDailySalePage />
+                      </RouteErrorBoundary>
+                    }
+                  />
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/users/userGuest" element={<UserGuestPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
@@ -207,7 +228,7 @@ function App() {
                   <Route path="/billing" element={<TaxBillingPage />} />
                   <Route path="/configuration" element={<ConfigurationPage />} />
                   <Route path="/configuration/subscription" element={<SubscriptionSettingsPage />} />
-                  <Route path="/finance" element={<FinancePage />} />
+                  <Route path="/finance" element={<Navigate to="/transactions" replace />} />
                   <Route path="/support" element={<SupportPage />} />
                   <Route path="/business/register" element={<RegisterBusinessPage />} />
                   </Route>

@@ -12,7 +12,7 @@ import {
     FaPrint,
     FaExclamationTriangle,
 } from "react-icons/fa";
-import { getPurchaseById, cancelPurchaseRequest } from "../../api/purchase.js";
+import { getPurchaseById, cancelPurchaseRequest, paySupplierPurchaseRequest } from "../../api/purchase.js";
 import EditPurchaseModal from "../../components/modals/EditPurchaseModal.jsx";
 import PurchaseReceiptPDF from "../../components/Printables/PurchaseReceiptPDF.jsx";
 import ExpensePageLayout from "../../components/ui/ExpensePageLayout.jsx";
@@ -67,6 +67,8 @@ export default function ViewPurchasePage() {
     const [purchase, setPurchase] = useState(null);
     const [editOpen, setEditOpen] = useState(false);
     const [cancelling, setCancelling] = useState(false);
+    const [paying, setPaying] = useState(false);
+    const [payMethod, setPayMethod] = useState("2");
 
     const fetchPurchase = useCallback(async () => {
         setLoading(true);
@@ -118,6 +120,19 @@ export default function ViewPurchasePage() {
         }
     };
 
+    const handlePay = async () => {
+        setPaying(true);
+        try {
+            const res = await paySupplierPurchaseRequest(id, payMethod);
+            setPurchase(unwrapPurchaseResponse(res));
+            toast.success("Pago registrado", "El dinero salió del medio elegido y quedó en el libro.");
+        } catch (error) {
+            toast.error("Error", error.response?.data?.message || "No se pudo registrar el pago.");
+        } finally {
+            setPaying(false);
+        }
+    };
+
     const backLink = (
         <Link
             to="/purchase"
@@ -150,6 +165,8 @@ export default function ViewPurchasePage() {
     const canEdit = purchase.purchaseStatus !== "CANCELLED";
     const canCancel = purchase.purchaseStatus === "COMPLETED";
     const isCancelled = purchase.purchaseStatus === "CANCELLED";
+    const isCredit = purchase.purchaseSettlement === "CREDIT";
+    const awaitsSupplierPayment = isCredit && !purchase.purchasePaidAt && !isCancelled;
 
     return (
         <ExpensePageLayout
@@ -199,6 +216,37 @@ export default function ViewPurchasePage() {
                 </div>
             }
         >
+            {awaitsSupplierPayment && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 flex flex-col sm:flex-row sm:items-end gap-3">
+                    <div className="flex-1">
+                        <p className="font-semibold">Compra a crédito</p>
+                        <p className="mt-1">El stock ya entró. La caja se mueve cuando registras el pago al proveedor.</p>
+                        <label className="block text-xs mt-3">
+                            Medio de pago
+                            <select
+                                value={payMethod}
+                                onChange={(event) => setPayMethod(event.target.value)}
+                                className="mt-1 block w-full sm:w-64 h-10 px-3 border border-amber-200 rounded-lg bg-white text-sm"
+                            >
+                                <option value="2">Efectivo</option>
+                                <option value="3">Transferencia bancaria</option>
+                                <option value="0">Tarjeta de débito</option>
+                                <option value="1">Tarjeta de crédito</option>
+                            </select>
+                        </label>
+                    </div>
+                    <button type="button" onClick={handlePay} disabled={paying} className={PRIMARY_BTN}>
+                        {paying ? "Registrando..." : "Registrar pago"}
+                    </button>
+                </div>
+            )}
+
+            {!awaitsSupplierPayment && !isCancelled && (
+                <p className="text-sm text-gray-600">
+                    {isCredit ? "Crédito pagado al proveedor." : "Pagada de contado al registrarla."}
+                </p>
+            )}
+
             {isCancelled && (
                 <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                     <FaExclamationTriangle className="mt-0.5 shrink-0 text-red-500" />

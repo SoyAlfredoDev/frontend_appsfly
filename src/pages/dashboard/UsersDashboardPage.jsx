@@ -6,10 +6,9 @@ import {
   getDaySales,
   countSalesMonthRequest,
 } from "../../api/sale.js";
-import { calculateTotalAvailableByPaymentMethod } from "../../utils/financeUtils.js";
+import { getTransactionsSummary } from "../../api/transaction.js";
 import { useAuth } from "../../context/authContext.jsx";
 import useTenantPermissions from "../../hooks/useTenantPermissions.js";
-import { isOpticsBusiness } from "../../utils/businessModality.js";
 import { getTodayBusinessDate } from "../../utils/businessTime.js";
 import KpiComponent from "../../components/KpiComponent.jsx";
 import DashboardSalesDetailModal from "../../components/dashboard/DashboardSalesDetailModal.jsx";
@@ -32,11 +31,11 @@ import {
 export default function UsersDashboardPage() {
   const { isSuperAdmin, business } = useAuth();
   const { isTenantAdmin, can } = useTenantPermissions();
-  const isOptics = isOpticsBusiness(business);
 
   const [monthlySales, setMonthlySales] = useState(null);
   const [salePendingAmount, setSalePendingAmount] = useState(null);
   const [daySales, setDaySales] = useState(null);
+  const [dayIncome, setDayIncome] = useState(null);
   const [cashAvailable, setCashAvailable] = useState(null);
   const [countSalesMonth, setCountSalesMonth] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -81,11 +80,15 @@ export default function UsersDashboardPage() {
         });
 
       const cashPromise = isTenantAdmin
-        ? calculateTotalAvailableByPaymentMethod(2)
-            .then((totalCash) => setCashAvailable(Number(totalCash ?? 0)))
+        ? getTransactionsSummary()
+            .then((res) => {
+              setCashAvailable(Number(res.data?.cashAvailable ?? 0));
+              setDayIncome(Number(res.data?.collectedToday ?? 0));
+            })
             .catch((error) => {
               setCashAvailable(null);
-              console.error("Error al obtener el total de efectivo disponible:", error);
+              setDayIncome(null);
+              console.error("Error al obtener el libro de caja:", error);
             })
         : Promise.resolve();
 
@@ -142,8 +145,8 @@ export default function UsersDashboardPage() {
         <KpiComponent
           title="Ingresos del Día"
           icon={<FaChartLine />}
-          value={daySales}
-          footer="Ingresos de hoy · Ver detalle"
+          value={isTenantAdmin ? dayIncome : daySales}
+          footer={isTenantAdmin ? "Cobros registrados hoy · Ver detalle" : "Ingresos de hoy · Ver detalle"}
           loading={loading}
           onClick={() => openSalesDetail("dayIncome")}
         />
@@ -169,9 +172,9 @@ export default function UsersDashboardPage() {
               title="Efectivo Disponible"
               icon={<FaMoneyBillWave />}
               value={cashAvailable}
-              footer={isOptics ? "Caja disponible" : "Caja disponible · Ver transacciones"}
+              footer="Caja disponible · Ver movimientos"
               loading={loading}
-              to={isOptics ? undefined : "/transactions"}
+              to="/transactions"
             />
           </>
         )}
@@ -217,10 +220,10 @@ export default function UsersDashboardPage() {
               tone="secondary"
             />
           )}
-          {can("transactions:read") && !isOptics && (
+          {can("transactions:read") && (
             <QuickAccessLink
               to="/transactions"
-              label="Transacciones"
+              label="Movimientos"
               icon={<FaExchangeAlt />}
               tone="secondary"
             />
