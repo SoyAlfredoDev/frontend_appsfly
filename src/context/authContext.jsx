@@ -103,6 +103,8 @@ export const AuthProvider = ({ children }) => {
   /** Recarga negocio, suscripciones y datos del tenant tras crear negocio o cambiar contexto. */
   const reloadTenantContext = useCallback(async (userId) => {
     if (!userId) return null
+    const sessionToken = localStorage.getItem('token')
+    setTenantAccessReady(false)
     try {
       const userBusiness = await getUserBusinessById(userId)
       const list = userBusiness.data ?? []
@@ -111,6 +113,8 @@ export const AuthProvider = ({ children }) => {
 
       setHasBusiness(exists)
       setBusinessSelected(selected)
+      setBusiness(null)
+      setSubscriptions([])
       clearTenantSelection()
       if (selected) sessionStorage.setItem('appsfly_business_id', selected.userBusinessBusinessId)
 
@@ -127,6 +131,8 @@ export const AuthProvider = ({ children }) => {
       if (isSessionChangedError(error)) return
       console.error('Error reloading tenant context:', error)
       return null
+    } finally {
+      if (localStorage.getItem('token') === sessionToken) setTenantAccessReady(true)
     }
   }, [])
 
@@ -281,6 +287,7 @@ export const AuthProvider = ({ children }) => {
       throw invalidResponseError
     }
 
+    resetTenantContext()
     localStorage.setItem('token', res.data.token)
     setUser(data)
     setIsAuthenticated(true)
