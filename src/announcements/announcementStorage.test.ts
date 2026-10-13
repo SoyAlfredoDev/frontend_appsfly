@@ -39,9 +39,9 @@ describe('announcementStorage', () => {
     resetAnnouncementStorageForTests()
     expect(isAnnouncementDismissedForever('pwa-install-v2', { userId: 'user-a' })).toBe(true)
     expect(isAnnouncementDismissedForever('pwa-install-v2', { userId: 'user-b' })).toBe(false)
-    expect(
-      localStorage.getItem('appsfly_announcement_user_user-a_pwa-install-v2_forever'),
-    ).toBe('1')
+    expect(localStorage.getItem('appsfly_announcement_user_user-a_pwa-install-v2_forever')).toBe(
+      '1',
+    )
   })
 
   it('keeps a dismissal that was saved before this version', () => {

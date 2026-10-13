@@ -7,7 +7,9 @@ export async function fetchDismissedAnnouncementsRequest() {
 }
 
 export async function dismissAnnouncementOnServerRequest(announcementIds: string[]) {
-  const uniqueIds = [...new Set(announcementIds.filter((id) => typeof id === 'string' && id.trim()))]
+  const uniqueIds = [
+    ...new Set(announcementIds.filter((id) => typeof id === 'string' && id.trim())),
+  ]
   if (uniqueIds.length === 0) return []
 
   const response = await axios.post('/users/me/dismissed-announcements', {

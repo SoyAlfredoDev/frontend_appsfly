@@ -1,3 +1,4 @@
+import { clearTenantSelection, isSessionChangedError } from '../utils/sessionIsolation.ts'
 import { useContext, useState, createContext, useEffect, useMemo, useCallback } from 'react'
 import { registerRequest, loginRequest, logoutRequest, authVerifyRequest } from '../api/auth.js'
 import { getMyPendingInvitesRequest } from '../api/userGuest.js'
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   const [loginSessionKey, setLoginSessionKey] = useState(0)
 
   useEffect(() => {
-    const businessId = resolveTenantBusinessId({ businessSelected, business })
+    const businessId = businessSelected?.userBusinessBusinessId ?? business?.businessId ?? null
     if (businessId) {
       sessionStorage.setItem('appsfly_business_id', businessId)
     } else {
@@ -48,7 +49,7 @@ export const AuthProvider = ({ children }) => {
   }, [businessSelected, business])
 
   const activeBusinessId = useMemo(
-    () => resolveTenantBusinessId({ businessSelected, business }),
+    () => businessSelected?.userBusinessBusinessId ?? business?.businessId ?? null,
     [businessSelected, business],
   )
 
@@ -90,6 +91,7 @@ export const AuthProvider = ({ children }) => {
         setSubscriptions(list)
         return list
       } catch (error) {
+        if (isSessionChangedError(error)) return
         console.error('Error fetching subscriptions:', error)
         setSubscriptions([])
         return []
@@ -109,6 +111,8 @@ export const AuthProvider = ({ children }) => {
 
       setHasBusiness(exists)
       setBusinessSelected(selected)
+      clearTenantSelection()
+      if (selected) sessionStorage.setItem('appsfly_business_id', selected.userBusinessBusinessId)
 
       if (selected?.userBusinessBusinessId) {
         await getSubscriptionsByBusinessId(selected.userBusinessBusinessId)
@@ -120,6 +124,7 @@ export const AuthProvider = ({ children }) => {
 
       return selected
     } catch (error) {
+      if (isSessionChangedError(error)) return
       console.error('Error reloading tenant context:', error)
       return null
     }
@@ -137,6 +142,7 @@ export const AuthProvider = ({ children }) => {
       }
       return list
     } catch (error) {
+      if (isSessionChangedError(error)) return
       console.log('Error in searchUserGuestExists:', error)
       setUserGuestExists(false)
       return []
@@ -148,6 +154,7 @@ export const AuthProvider = ({ children }) => {
       const res = await userIsSuperAdminRequest()
       setIsSuperAdmin(res.data.isSuperAdmin)
     } catch (error) {
+      if (isSessionChangedError(error)) return
       console.log('Error in checkIfUserIsSuperAdmin:', error)
     }
   }
@@ -160,13 +167,19 @@ export const AuthProvider = ({ children }) => {
 
       setHasBusiness(exists)
 
-      if (exists) {
-        setBusinessSelected(userBusiness.data[0])
+      const selected = userBusiness.data[0] ?? null
+      setBusinessSelected(selected)
+      clearTenantSelection()
+      if (selected) sessionStorage.setItem('appsfly_business_id', selected.userBusinessBusinessId)
+      if (!exists) {
+        setBusiness(null)
+        setSubscriptions([])
       }
 
       // Always return the actual response so we can use it immediately
       return userBusiness.data[0] ?? null
     } catch (error) {
+      if (isSessionChangedError(error)) return
       console.error('Error fetching user business:', error)
     }
   }
@@ -176,6 +189,7 @@ export const AuthProvider = ({ children }) => {
       const businessFound = await getBusinessByIdRequest(businessId)
       setBusiness(businessFound.data)
     } catch (error) {
+      if (isSessionChangedError(error)) return
       console.error('Error fetching user business:', error)
     }
   }
@@ -188,21 +202,45 @@ export const AuthProvider = ({ children }) => {
       setSubscriptions(list)
       return list
     } catch (error) {
+      if (isSessionChangedError(error)) return
       console.error('Error fetching subscriptions:', error)
       setSubscriptions([])
       return []
     }
   }
 
+  const resetTenantContext = () => {
+    clearTenantSelection()
+    setBusinessSelected(null)
+    setBusiness(null)
+    setSubscriptions([])
+    setHasBusiness(false)
+    setUserGuestExists(false)
+    setIsSuperAdmin(false)
+    setTenantAccessReady(false)
+  }
+
+  // A token change in another tab invalidates all mounted tenant data here.
+  useEffect(() => {
+    const onStorage = (event) => {
+      if (event.key === 'token' || event.key === null) {
+        clearTenantSelection()
+        window.location.reload()
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   // Signup process
   const signup = async (userForm) => {
     try {
       const res = await registerRequest(userForm)
-      console.log(res)
       if (res.status == 400) {
         return { error: res.data.error }
       }
       const data = res.data.user
+      resetTenantContext()
       localStorage.setItem('token', res.data.token)
       setUser(data)
       setIsAuthenticated(true)
@@ -216,6 +254,7 @@ export const AuthProvider = ({ children }) => {
       setTenantAccessReady(true)
       return { ...data, emailSent: res.data.emailSent !== false }
     } catch (error) {
+      if (isSessionChangedError(error)) return
       return {
         error: error.response?.data?.error,
         message: error.response?.data?.message,
@@ -230,6 +269,7 @@ export const AuthProvider = ({ children }) => {
     try {
       res = await loginRequest(userForm)
     } catch (error) {
+      if (isSessionChangedError(error)) return
       console.log('Error in signin', error)
       throw error
     }
@@ -267,7 +307,8 @@ export const AuthProvider = ({ children }) => {
 
   // Logout process
   const logout = async () => {
-    await logoutRequest()
+    // Invalidate local identity immediately, even when the network logout fails.
+    const pendingLogout = logoutRequest().catch(() => undefined)
     localStorage.removeItem('token')
     sessionStorage.removeItem('appsfly_business_id')
     setUser(null)
@@ -279,6 +320,7 @@ export const AuthProvider = ({ children }) => {
     setBusiness(null)
     setTenantAccessReady(false)
     setIsSuperAdmin(false)
+    await pendingLogout
   }
 
   // Restore session automatically using Bearer Token
@@ -290,8 +332,10 @@ export const AuthProvider = ({ children }) => {
       if (!token) {
         setIsAuthenticated(false)
         setUser(null)
-        setTenantAccessReady(true)
-        setLoadingAuth(false)
+        if (localStorage.getItem('token') === token || !localStorage.getItem('token')) {
+          setTenantAccessReady(true)
+          setLoadingAuth(false)
+        }
         return
       }
 
@@ -320,15 +364,19 @@ export const AuthProvider = ({ children }) => {
         }
         await checkIfUserIsSuperAdmin()
       } catch (error) {
+        if (isSessionChangedError(error)) return
         // ❌ Token expiró o inválido → limpiar
         console.log('Auth restore error:', error)
 
+        resetTenantContext()
         localStorage.removeItem('token')
         setUser(null)
         setIsAuthenticated(false)
       } finally {
-        setTenantAccessReady(true)
-        setLoadingAuth(false)
+        if (localStorage.getItem('token') === token || !localStorage.getItem('token')) {
+          setTenantAccessReady(true)
+          setLoadingAuth(false)
+        }
       }
     }
 
