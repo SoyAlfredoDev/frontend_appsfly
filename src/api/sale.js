@@ -3,6 +3,7 @@ export const getSales = (params = {}, config) => axios.get('/sales', { ...config
 export const getDashboardSalesView = (view) => axios.get(`/sales/dashboard/${view}`);
 export const createSale = (data) => axios.post('/sales', data);
 export const getSaleById = (id) => axios.get(`/sales/${id}`);
+export const updateSale = (id, data) => axios.patch(`/sales/${id}`, data);
 export const getMonthlySales = (month, year) => axios.get(`/sales/month/${month}/${year}`);
 export const getMonthlySalesNow = () => axios.get('/sales/monthNow');
 export const getDaySales = (day, month, year) => axios.get(`/sales/day/${day}/${month}/${year}`);
