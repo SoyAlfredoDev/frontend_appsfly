@@ -1,10 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
-import { getSaleById, markSaleDeliveredRequest, sendSaleEmail, getSaleShareLink } from '../../api/sale.js'
+import { getSaleById, updateSale, markSaleDeliveredRequest, sendSaleEmail, getSaleShareLink } from '../../api/sale.js'
 import { getSaleDetailById } from '../../api/saleDetail.js'
 import { getPaymentBySaleId, createPayment } from '../../api/payment.js'
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../../context/authContext.jsx'
+import useTenantPermissions from '../../hooks/useTenantPermissions.js'
 import useReceiptBusiness from '../../hooks/useReceiptBusiness.js'
 import {
     buildSaleWhatsAppMessage,
@@ -44,6 +45,7 @@ import {
 
 export default function ViewSalePage() {
     const { business } = useAuth();
+    const { isTenantAdmin } = useTenantPermissions();
     const receiptBusiness = useReceiptBusiness();
     const confirm = useConfirm();
     const toast = useToast();
@@ -61,6 +63,10 @@ export default function ViewSalePage() {
     const [sendingEmail, setSendingEmail] = useState(false);
     const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
     const [workOrders, setWorkOrders] = useState([]);
+    const [editingSale, setEditingSale] = useState(false);
+    const [editPrices, setEditPrices] = useState({});
+    const [editPayments, setEditPayments] = useState([]);
+    const [savingSale, setSavingSale] = useState(false);
 
     const DOCUMENT_LABELS = {
         RECEIPT: "Comprobante de venta",
@@ -107,6 +113,7 @@ export default function ViewSalePage() {
     ].filter(Boolean).join(" ").trim();
 
     const documentLabel = DOCUMENT_LABELS[sale?.documentType] || DOCUMENT_LABELS.RECEIPT;
+    const activePayments = tablaPayment.filter((item) => Number(item.paymentAmount) > 0);
 
     // Payment methods for the modal
     const methods = [
@@ -116,7 +123,7 @@ export default function ViewSalePage() {
         { methodId: 3, methodName: 'Transferencia Bancaria', icon: <FaUniversity /> },
     ];
 
-    const searchSaleById = async () => {
+    const searchSaleById = useCallback(async () => {
         try {
             const saleData = await getSaleById(id);
             const saleDetailData = await getSaleDetailById(id);
@@ -132,7 +139,7 @@ export default function ViewSalePage() {
         } catch (error) {
             console.log(error);
         }
-    };
+    }, [id]);
 
     const fetchWorkOrders = async () => {
         if (!isOptics) return;
@@ -147,7 +154,7 @@ export default function ViewSalePage() {
     // Call search function on initial load
     useEffect(() => {
         searchSaleById();
-    }, []);
+    }, [searchSaleById]);
 
     useEffect(() => {
         fetchWorkOrders();
@@ -209,6 +216,70 @@ export default function ViewSalePage() {
         setPayment(sale.salePendingAmount || 0);
         setMethod(""); 
         setShowPaymentModal(true);
+    };
+
+    const startSaleEdit = () => {
+        setEditPrices(Object.fromEntries(
+            tableProductAndService
+                .filter((item) => item.saleDetailType === "PRODUCT" && item.product?.productPriceFixed === false)
+                .map((item) => [item.saleDetailId, String(item.saleDetailPrice)]),
+        ));
+        setEditPayments(tablaPayment
+            .filter((item) => Number(item.paymentAmount) > 0)
+            .map((item) => ({
+                paymentMethod: String(item.paymentMethod),
+                paymentAmount: String(item.paymentAmount),
+            })));
+        setEditingSale(true);
+    };
+
+    const saveSaleEdit = async () => {
+        const details = tableProductAndService.flatMap((item) => {
+            if (!Object.hasOwn(editPrices, item.saleDetailId)) return [];
+            const saleDetailPrice = Number(editPrices[item.saleDetailId]);
+            return saleDetailPrice === Number(item.saleDetailPrice)
+                ? []
+                : [{ saleDetailId: item.saleDetailId, saleDetailPrice }];
+        });
+        const payments = editPayments.map((item) => ({
+            paymentMethod: item.paymentMethod,
+            paymentAmount: Number(item.paymentAmount),
+        }));
+        const updatedTotal = tableProductAndService.reduce((sum, item) => {
+            const price = Object.hasOwn(editPrices, item.saleDetailId)
+                ? Number(editPrices[item.saleDetailId])
+                : Number(item.saleDetailPrice);
+            return sum + price * Number(item.saleDetailQuantity);
+        }, 0);
+
+        if (details.some((item) => !Number.isSafeInteger(item.saleDetailPrice) || item.saleDetailPrice < 0)) {
+            toast.error("Precio inválido", "Usa montos enteros iguales o mayores que cero.");
+            return;
+        }
+        if (payments.some((item) => !["0", "1", "2", "3"].includes(item.paymentMethod)
+            || !Number.isSafeInteger(item.paymentAmount) || item.paymentAmount <= 0)) {
+            toast.error("Pago inválido", "Cada método añadido debe tener un monto entero mayor que cero.");
+            return;
+        }
+        if (payments.reduce((sum, item) => sum + item.paymentAmount, 0) > updatedTotal) {
+            toast.error("Montos excedidos", "Los pagos no pueden superar el total de la venta.");
+            return;
+        }
+
+        setSavingSale(true);
+        try {
+            await updateSale(sale.saleId, { details, payments });
+            setEditingSale(false);
+            await searchSaleById();
+            toast.success("Venta actualizada", "Se guardaron los precios y la distribución de pagos.");
+        } catch (error) {
+            toast.error(
+                "No se pudo actualizar",
+                error.response?.data?.message ?? "Ocurrió un error al guardar los cambios.",
+            );
+        } finally {
+            setSavingSale(false);
+        }
     };
 
     const handleMarkDelivered = async () => {
@@ -319,10 +390,7 @@ export default function ViewSalePage() {
         visible: { transition: { staggerChildren: 0.04 } }
     };
 
-    const itemVariants = {
-        hidden: { y: 8 },
-        visible: { y: 0 }
-    };
+    const itemVariants = { hidden: { y: 8 }, visible: { y: 0 } };
 
     return (
         <PageContainer>
@@ -351,6 +419,24 @@ export default function ViewSalePage() {
                             <Link to="/sales" className="flex items-center gap-2 px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-sm font-medium">
                                 <FaArrowLeft /> Volver
                             </Link>
+
+                            {!isLoading && isTenantAdmin && sale.editability && !sale.editability.allowed && (
+                                <span className="self-center text-xs text-gray-500">
+                                    {sale.editability.reason === "DAY_CLOSED" ? "Día cerrado: edición bloqueada." : "Solo se editan ventas de hoy o ayer."}
+                                </span>
+                            )}
+
+                            {!isLoading && isTenantAdmin && sale.editability?.allowed && !editingSale && (
+                                <button type="button" onClick={startSaleEdit} className="flex items-center gap-2 px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 shadow-sm text-sm font-bold">
+                                    <FaClipboardList /> Editar venta
+                                </button>
+                            )}
+                            {editingSale && (
+                                <>
+                                    <button type="button" onClick={() => setEditingSale(false)} disabled={savingSale} className="px-3 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium disabled:opacity-60">Cancelar</button>
+                                    <button type="button" onClick={saveSaleEdit} disabled={savingSale} className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold disabled:opacity-60">{savingSale ? "Guardando…" : "Guardar cambios"}</button>
+                                </>
+                            )}
 
                             {!isLoading && sale.salePendingAmount > 0 && (
                                 <button
@@ -555,8 +641,14 @@ export default function ViewSalePage() {
                                                         {ps.product?.productName || ps.service?.serviceName}
                                                     </td>
                                                     <td className="px-4 py-3 text-center text-sm font-medium text-gray-700">{ps?.saleDetailQuantity}</td>
-                                                    <td className="px-4 py-3 text-right text-sm text-gray-600">{formatCurrency(ps?.saleDetailPrice)}</td>
-                                                    <td className="px-4 py-3 text-right text-sm font-bold text-gray-800">{formatCurrency(ps.saleDetailTotal)}</td>
+                                                    <td className="px-4 py-3 text-right text-sm text-gray-600">
+                                                        {editingSale && ps.saleDetailType === "PRODUCT" && ps.product?.productPriceFixed === false ? (
+                                                            <input aria-label={`Precio ${ps.product?.productName}`} type="number" min="0" step="1" value={editPrices[ps.saleDetailId] ?? ps.saleDetailPrice} onChange={(event) => setEditPrices((current) => ({ ...current, [ps.saleDetailId]: event.target.value }))} className="w-32 rounded border border-gray-300 px-2 py-1 text-right" />
+                                                        ) : formatCurrency(ps?.saleDetailPrice)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right text-sm font-bold text-gray-800">
+                                                        {formatCurrency((editingSale && Object.hasOwn(editPrices, ps.saleDetailId) ? Number(editPrices[ps.saleDetailId]) : Number(ps.saleDetailPrice)) * Number(ps.saleDetailQuantity))}
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -567,10 +659,30 @@ export default function ViewSalePage() {
                             {/* 3. Payments Table (Compact) — debajo de productos */}
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                                 <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
-                                    <h5 className="font-bold text-gray-800 text-sm uppercase">Detalle de Pagos</h5>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h5 className="font-bold text-gray-800 text-sm uppercase">Detalle de Pagos</h5>
+                                        {editingSale && <button type="button" onClick={() => setEditPayments((current) => [...current, { paymentMethod: "2", paymentAmount: "" }])} className="text-sm font-semibold text-emerald-700">+ Añadir método</button>}
+                                    </div>
                                 </div>
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-left">
+                                    {editingSale ? (
+                                        <div className="space-y-3 p-4">
+                                            {editPayments.map((item, index) => (
+                                                <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_160px_auto]">
+                                                    <select aria-label={`Método de pago ${index + 1}`} value={item.paymentMethod} onChange={(event) => setEditPayments((current) => current.map((paymentItem, paymentIndex) => paymentIndex === index ? { ...paymentItem, paymentMethod: event.target.value } : paymentItem))} className="rounded-lg border border-gray-300 p-2 text-sm">
+                                                        {methods.map((methodItem) => <option key={methodItem.methodId} value={String(methodItem.methodId)}>{methodItem.methodName}</option>)}
+                                                    </select>
+                                                    <input aria-label={`Monto del pago ${index + 1}`} type="number" min="1" step="1" value={item.paymentAmount} onChange={(event) => setEditPayments((current) => current.map((paymentItem, paymentIndex) => paymentIndex === index ? { ...paymentItem, paymentAmount: event.target.value } : paymentItem))} placeholder="Monto" className="rounded-lg border border-gray-300 p-2 text-right text-sm" />
+                                                    <button type="button" onClick={() => setEditPayments((current) => current.filter((_, paymentIndex) => paymentIndex !== index))} className="rounded px-3 py-2 text-sm text-red-700 hover:bg-red-50">Quitar</button>
+                                                </div>
+                                            ))}
+                                            <div className="flex flex-wrap justify-between gap-2 border-t pt-3 text-sm">
+                                                <span>Total actualizado: <strong>{formatCurrency(tableProductAndService.reduce((sum, item) => sum + (Object.hasOwn(editPrices, item.saleDetailId) ? Number(editPrices[item.saleDetailId]) : Number(item.saleDetailPrice)) * Number(item.saleDetailQuantity), 0))}</strong></span>
+                                                <span>Pagado: <strong>{formatCurrency(editPayments.reduce((sum, item) => sum + (Number(item.paymentAmount) || 0), 0))}</strong></span>
+                                                <span>Por cobrar: <strong>{formatCurrency(Math.max(0, tableProductAndService.reduce((sum, item) => sum + (Object.hasOwn(editPrices, item.saleDetailId) ? Number(editPrices[item.saleDetailId]) : Number(item.saleDetailPrice)) * Number(item.saleDetailQuantity), 0) - editPayments.reduce((sum, item) => sum + (Number(item.paymentAmount) || 0), 0)))}</strong></span>
+                                            </div>
+                                        </div>
+                                    ) : <table className="w-full text-left">
                                         <thead className="bg-white text-gray-500 text-[10px] uppercase tracking-wider border-b border-gray-100">
                                             <tr>
                                                 <th className="px-4 py-2 font-semibold">Fecha</th>
@@ -579,14 +691,14 @@ export default function ViewSalePage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
-                                            {tablaPayment?.length === 0 ? (
+                                            {activePayments.length === 0 ? (
                                                 <tr>
                                                     <td colSpan="3" className="px-4 py-6 text-center text-xs text-gray-500 italic">
                                                         No hay pagos registrados
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                tablaPayment?.map((p) => (
+                                                activePayments.map((p) => (
                                                     <tr key={p.paymentId}>
                                                         <td className="px-4 py-3 text-sm text-gray-600">
                                                             {new Date(p?.createdAt).toLocaleDateString('es-CL')}
@@ -604,7 +716,7 @@ export default function ViewSalePage() {
                                                 ))
                                             )}
                                         </tbody>
-                                    </table>
+                                    </table>}
                                 </div>
                             </div>
 
