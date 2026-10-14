@@ -1,3 +1,4 @@
+import ScheduledSubscriptionCard from "../subscription/ScheduledSubscriptionCard.tsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     FaCreditCard,
@@ -74,6 +75,7 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
     const { refreshSubscriptions } = useAuth();
     const [billing, setBilling] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [showCancelForm, setShowCancelForm] = useState(false);
     const [confirmationInput, setConfirmationInput] = useState("");
@@ -95,10 +97,12 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
             return;
         }
         setLoading(true);
+        setLoadError(false);
         try {
             const res = await getBusinessBillingRequest(businessId);
             setBilling(res.data);
         } catch (error) {
+            setLoadError(true);
             console.error("Error loading billing:", error);
             setBilling(null);
         } finally {
@@ -171,6 +175,8 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
         );
     }
 
+    if (loadError) return <div role="alert" className="p-6">No se pudo consultar tu suscripción. <button type="button" onClick={loadBilling}>Reintentar</button></div>;
+
     return (
         <ProfileSectionCard
             title="Suscripción AppsFly"
@@ -189,6 +195,7 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
                 )
             }
         >
+            {isAdmin && billing?.pendingCheckout && <ScheduledSubscriptionCard pending={billing.pendingCheckout} businessId={businessId} onChange={loadBilling} />}
             {!sub ? (
                 <div className="px-6 py-8 text-center text-sm text-gray-500">
                     Este negocio no tiene una suscripción registrada actualmente.
@@ -196,13 +203,13 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
             ) : sub.isPromoFreeTrial ? (
                 <div className="px-6 py-5 space-y-4">
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                        <p className="text-sm font-semibold text-dark">Plan promocional activo</p>
+                        <p className="text-sm font-semibold text-dark">{sub.accessStillValid ? "Prueba gratuita activa" : "Prueba gratuita finalizada"}</p>
                         <p className="text-xs text-gray-600 mt-1">
-                            Prueba gratuita vigente hasta el {formatDate(sub.subscriptionEndDate)}.
+                            {sub.accessStillValid ? "Vigente hasta el" : "Finalizó el"} {formatDate(sub.subscriptionEndDate)}.
                         </p>
                     </div>
                     <p className="text-xs text-gray-500">
-                        Al finalizar la promoción, podrás contratar un plan comercial con cobro mensual recurrente.
+                        {sub.accessStillValid ? "Puedes autorizar tu próximo plan ahora. El primer cobro se programará para el término de la prueba, sin acortar sus dos meses." : "Para continuar usando AppsFly, contrata un plan. Al haber finalizado la prueba, el primer cobro corresponde al contratarlo."}
                     </p>
                 </div>
             ) : (
@@ -373,7 +380,7 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
                 <div className="px-6 py-5 border-b border-gray-100 bg-slate-50/50">
                     <h3 className="text-sm font-semibold text-gray-800">{payActionLabel}</h3>
                     <p className="text-xs text-gray-500 mt-1 max-w-xl">
-                        El cobro de Start y Pro se hace en el link de Mercado Pago de cada plan. Los precios son netos; al pagar se suma IVA (19%).
+                        Autoriza la suscripción en el checkout seguro de Mercado Pago. Si tienes un período vigente, el primer cobro se programará para su término. Los importes incluyen el IVA indicado.
                     </p>
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {PAID_PLAN_OFFERS.map((plan) => (
@@ -401,7 +408,7 @@ export default function SubscriptionBillingCard({ businessId, isAdmin = false })
                                         plan={plan}
                                         businessId={businessId}
                                         buttonId={`profile-subscription-${plan.planId}`}
-                                        buttonLabel={`Pagar ${plan.planName}`}
+                                        buttonLabel={`Autorizar ${plan.planName}`}
                                         refreshSubscriptions={refreshSubscriptions}
                                     />
                                 </div>

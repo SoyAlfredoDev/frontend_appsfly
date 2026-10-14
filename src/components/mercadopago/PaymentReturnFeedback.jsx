@@ -1,3 +1,4 @@
+import { subscriptionPaymentFeedback } from "../../utils/subscriptionPaymentFeedback.ts";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FaCheckCircle, FaClock, FaSpinner, FaTimesCircle } from "react-icons/fa";
@@ -58,28 +59,9 @@ export default function PaymentReturnFeedback({ onApproved }) {
                     ? await syncSubscriptionPreapproval(plan.externalReference)
                     : await confirmSubscriptionPayment(plan.externalReference, plan.paymentId);
 
-                if (res.data?.payment?.status === "APPROVED" || res.data?.subscription) {
-                    await onApproved?.();
-                    setState({
-                        phase: "success",
-                        message: "Pago aprobado. Tu suscripción ha sido activada correctamente.",
-                    });
-                    setTimeout(() => navigate("/dashboard", { replace: true }), 2500);
-                    return;
-                }
-
-                if (res.data?.payment?.status === "PENDING") {
-                    setState({
-                        phase: "pending",
-                        message: "Pago pendiente de confirmación. Te avisaremos cuando se acredite.",
-                    });
-                    return;
-                }
-
-                setState({
-                    phase: "error",
-                    message: "No fue posible confirmar el pago. Contacta a soporte si el cargo fue realizado.",
-                });
+                const feedback = subscriptionPaymentFeedback(res.data || {});
+                if (["success", "authorized"].includes(feedback.phase)) await onApproved?.();
+                setState(feedback);
             } catch (error) {
                 console.error("[PaymentReturnFeedback]", error);
                 setState({
@@ -97,12 +79,14 @@ export default function PaymentReturnFeedback({ onApproved }) {
     const iconMap = {
         loading: <FaSpinner className="animate-spin text-3xl text-secondary" />,
         success: <FaCheckCircle className="text-3xl text-primary" />,
+        authorized: <FaCheckCircle className="text-3xl text-primary" />,
         pending: <FaClock className="text-3xl text-amber-500" />,
         error: <FaTimesCircle className="text-3xl text-red-500" />,
     };
 
     const titleMap = {
         success: "Pago confirmado",
+        authorized: "Autorización registrada",
         pending: "Pago pendiente",
         error: "Pago no completado",
         loading: "Procesando pago",

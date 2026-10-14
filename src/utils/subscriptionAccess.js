@@ -72,6 +72,7 @@ export function isSubscriptionPaymentReturnPath(pathname) {
 }
 
 export function isSubscriptionExemptPath(pathname, { hasBusiness = false } = {}) {
+    if (pathname === "/configuration/subscription") return true;
     if (isProfilePath(pathname)) return true;
     if (isSubscriptionPaymentReturnPath(pathname)) return true;
     if (!hasBusiness && isBusinessRegisterPath(pathname)) return true;
@@ -79,6 +80,7 @@ export function isSubscriptionExemptPath(pathname, { hasBusiness = false } = {})
 }
 
 export function isOperationalTenantPath(pathname) {
+    if (pathname === "/configuration/subscription") return false;
     if (isProfilePath(pathname)) return false;
     if (isBusinessRegisterPath(pathname)) return false;
     return true;

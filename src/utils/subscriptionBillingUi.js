@@ -2,6 +2,7 @@
  * Cuándo un administrador puede iniciar pago / renovación manual desde el perfil.
  */
 export function canAdminPayNextSubscription(billing) {
+    if (billing?.pendingCheckout) return false;
     const sub = billing?.subscription;
 
     if (!billing?.hasSubscription || !sub) return true;
