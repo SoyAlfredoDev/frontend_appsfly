@@ -21,7 +21,7 @@ function ProductSelect({ productsServices, value, onChange, mobile = false }) {
             const stock = Number(p.productStock ?? p.quantityOnHand ?? 0);
             return (
               <option key={p.productId} value={p.productId}>
-                {p.productName} (Stock: {stock})
+                {p.productName} · {p.productSKU} (Stock: {stock})
               </option>
             );
           })}

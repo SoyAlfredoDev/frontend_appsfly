@@ -623,6 +623,59 @@ export default function AddProductModal({
                                             </div>
                                         )}
 
+                                        {formData.typeSelect === "PRODUCT" && !isEditMode && (
+                                            <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={variantsEnabled}
+                                                        onChange={(e) => setVariantsEnabled(e.target.checked)}
+                                                        className="rounded text-primary"
+                                                    />
+                                                    Crear variantes con SKU e inventario independiente
+                                                </label>
+                                                {variantsEnabled && (
+                                                    <div className="space-y-3">
+                                                        <p className="text-xs text-slate-500">
+                                                            Escribe los valores separados por coma. Cada combinación tendrá SKU propio, precio inicial del producto y stock 0.
+                                                        </p>
+                                                        {variantAxes.map((axis, index) => (
+                                                            <div key={index} className="grid grid-cols-1 md:grid-cols-[180px_1fr_auto] gap-2">
+                                                                <input
+                                                                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                                                                    aria-label={`Nombre de opción ${index + 1}`}
+                                                                    placeholder="Opción (ej. Esfera)"
+                                                                    value={axis.key}
+                                                                    onChange={(e) => setVariantAxes((rows) => rows.map((row, i) => i === index ? { ...row, key: e.target.value } : row))}
+                                                                />
+                                                                <input
+                                                                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                                                                    aria-label={`Valores de opción ${index + 1}`}
+                                                                    placeholder="Valores (ej. 0.00, -0.25, -0.50)"
+                                                                    value={axis.values}
+                                                                    onChange={(e) => setVariantAxes((rows) => rows.map((row, i) => i === index ? { ...row, values: e.target.value } : row))}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setVariantAxes((rows) => rows.filter((_, i) => i !== index))}
+                                                                    className="rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                                                    aria-label={`Quitar opción ${index + 1}`}
+                                                                >
+                                                                    <FaTimes />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setVariantAxes((rows) => [...rows, { key: "", values: "" }])}
+                                                            className="text-sm font-medium text-primary hover:underline"
+                                                        >
+                                                            + Agregar opción
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </section>
+                                        )}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                                             <InputFloatingComponent
                                                 label="Precio"

@@ -22,7 +22,23 @@ export const getProductsAndServices = async (config) => {
         const servicesRaw =
             servicesResult.status === "fulfilled" ? servicesResult.value.data : [];
 
-        const products = unwrapListPayload(productsRaw).rows;
+        const firstProductPage = unwrapListPayload(productsRaw);
+        const productPages = [firstProductPage.rows];
+        if (firstProductPage.pagination?.pages > 1 && productsResult.status === "fulfilled") {
+            const extraPages = await Promise.allSettled(
+                Array.from({ length: firstProductPage.pagination.pages - 1 }, (_, index) =>
+                    getProducts({
+                        ...listConfig,
+                        params: { ...listConfig.params, page: index + 2 },
+                    }).then((response) => unwrapListPayload(response.data).rows),
+                ),
+            );
+            for (const page of extraPages) {
+                if (page.status === "fulfilled") productPages.push(page.value);
+                else console.error(">>>>>> getProductsAndServices.js (product page):", page.reason);
+            }
+        }
+        const products = productPages.flat();
         const services = Array.isArray(servicesRaw)
             ? servicesRaw
             : unwrapListPayload(servicesRaw).rows;

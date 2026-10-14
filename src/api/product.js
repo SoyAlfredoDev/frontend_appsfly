@@ -9,6 +9,7 @@ export const getProducts = (paramsOrConfig, maybeConfig) => {
     return axios.get('/products', { ...config, params: { page: 1, limit: 50, ...params, ...(config.params || {}) } });
 };
 export const createProducts = (data) => axios.post('/products', data);
+export const createProductsWithVariants = (data) => axios.post('/products/variants/bulk', data);
 export const updateProducts = (id, data) => axios.put(`/products/${id}`, data);
 export const getProductById = (id) => axios.get(`/products/${id}`);
 export const getProductWithAnalyticsRequest = (id, page = 1) => axios.get(`/products/${id}/view?page=${page}&limit=10`);
