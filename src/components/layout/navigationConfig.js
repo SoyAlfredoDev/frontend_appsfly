@@ -24,7 +24,7 @@ import {
   FaUserInjured,
   FaCreditCard,
 } from "react-icons/fa";
-import { isOpticsBusiness } from "../../utils/businessModality.js";
+import { isGeneralBusiness, isOpticsBusiness } from "../../utils/businessModality.js";
 
 /**
  * Rutas temporalmente deshabilitadas en modalidad Óptica
@@ -173,7 +173,8 @@ export function isNavPathActive(pathname, itemPath) {
     return (
       pathname.startsWith("/sales/") &&
       !pathname.startsWith("/sales/dailySales") &&
-      !pathname.startsWith("/sales/quick")
+      !pathname.startsWith("/sales/quick") &&
+      !pathname.startsWith(RECEIVABLES_PATH)
     );
   }
 
@@ -215,14 +216,32 @@ export function filterNavItems(items, can, business) {
   });
 }
 
-/**
- * Navegación según tipo de negocio.
- * Fase óptica-first: siempre menú agrupado (árbol).
- *
- * @returns {{ type: 'tree'|'flat', items: array }}
- */
+export const RECEIVABLES_PATH = "/sales/receivables";
+
+export function isPathAvailableForBusiness(pathname, business) {
+  const matches = (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`);
+  if (matches(RECEIVABLES_PATH)) return isGeneralBusiness(business);
+  if (!isGeneralBusiness(business)) return true;
+  return !NAV_ITEMS.some((item) => item.opticsOnly && matches(item.path));
+}
+
 export function getNavigationForBusiness(business, can) {
-  void business; // reservado para cuando otras modalidades vuelvan a menú propio
+  if (isGeneralBusiness(business)) {
+    const items = NAV_ITEMS.filter((item) => item.path !== "/campaigns-asmr").flatMap((item) =>
+      item.path === "/sales"
+        ? [
+            item,
+            {
+              name: "Cuentas por cobrar",
+              path: RECEIVABLES_PATH,
+              icon: FaReceipt,
+              permission: "sales:read",
+            },
+          ]
+        : [item],
+    );
+    return { type: "flat", items: filterNavItems(items, can, business) };
+  }
   return {
     type: "tree",
     items: filterNavTree(OPTICS_NAV_TREE, can),

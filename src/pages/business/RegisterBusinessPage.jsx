@@ -42,6 +42,7 @@ export default function RegisterBusinessPage() {
     const [validations, setValidations] = useState({});
 
     const businessTypesList = {
+        general: "Negocio general",
         minimarket: "Minimarket",
         cafe: "Cafetería / restaurante pequeño",
         optics: "Óptica",

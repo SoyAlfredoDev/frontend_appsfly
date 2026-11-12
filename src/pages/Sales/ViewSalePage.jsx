@@ -12,6 +12,7 @@ import {
     buildSaleWhatsAppShareUrl,
 } from '../../utils/saleShare.js'
 import { useConfirm } from '../../context/ConfirmationContext.jsx'
+import DataErrorPanel from '../../components/ui/DataErrorPanel'
 import { useToast } from '../../context/ToastContext.jsx'
 import { IconPrinter } from "../../components/IconComponent.jsx"
 import { PDFDownloadLink } from '@react-pdf/renderer'
@@ -58,6 +59,7 @@ export default function ViewSalePage() {
     const [payment, setPayment] = useState(0);
     const [btnModal, setBtnModal] = useState(false); // Used for loading state of button
     const [isLoading, setIsLoading] = useState(true);
+    const [loadFailed, setLoadFailed] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [markingDelivered, setMarkingDelivered] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
@@ -124,6 +126,7 @@ export default function ViewSalePage() {
     ];
 
     const searchSaleById = useCallback(async () => {
+        setLoadFailed(false);
         try {
             const saleData = await getSaleById(id);
             const saleDetailData = await getSaleDetailById(id);
@@ -138,6 +141,7 @@ export default function ViewSalePage() {
             setIsLoading(false);
         } catch (error) {
             console.log(error);
+            setLoadFailed(true);
         }
     }, [id]);
 
@@ -207,7 +211,8 @@ export default function ViewSalePage() {
             setPayment(0);
             setBtnModal(false);
         }).catch(err => {
-            console.error(err);
+            toast.error("No se pudo registrar el abono", err.response?.data?.message || "Intenta nuevamente.");
+            if (err.response?.data?.code === "PAYMENT_EXCEEDS_BALANCE") searchSaleById();
             setBtnModal(false);
         });
     };
@@ -507,7 +512,9 @@ export default function ViewSalePage() {
                         </div>
                     </div>
 
-                    {isLoading ? (
+                    {loadFailed ? (
+                        <DataErrorPanel message="No se pudo cargar la venta." onRetry={searchSaleById} />
+                    ) : isLoading ? (
                         <div className="flex justify-center items-center h-64">
                             <div className="spinner-border text-emerald-600 w-12 h-12 border-4 rounded-full" role="status"></div>
                         </div>

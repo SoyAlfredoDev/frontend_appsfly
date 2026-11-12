@@ -29,7 +29,7 @@ import BarcodeScanListener from "../../components/scan/BarcodeScanListener.jsx";
 import { validateSaleStockLines, formatSaleStockErrors } from "../../utils/validateSaleStock.js";
 import { isCreditSalesEnabled, isDeliveryControlEnabled } from "../../utils/businessReceiptSettings.js";
 import useDebouncedValue from "../../hooks/useDebouncedValue.js";
-import { isOpticsBusiness } from "../../utils/businessModality.js";
+import { isGeneralBusiness, isOpticsBusiness } from "../../utils/businessModality.js";
 import { getPrescriptionsByCustomerId } from "../../api/prescriptions.js";
 import {
     isSalePaymentComplete,
@@ -799,7 +799,7 @@ export default function NewSalePage() {
         salePayload,
         dataTable,
         dataSalePayments,
-        { sendByEmail: sendByEmail && customerHasEmail },
+        { sendByEmail: sendByEmail && customerHasEmail, atomic: isGeneralBusiness(business) },
       );
       if (res) {
         if (documentType === "BOLETA" || documentType === "FACTURA") {
@@ -906,7 +906,8 @@ export default function NewSalePage() {
           ? (error.response?.status === 404
               ? 'El servidor aún no tiene activo el módulo de cotizaciones. Espera unos minutos al despliegue del backend o contacta soporte.'
               : (apiError?.message || 'No se pudo registrar la cotización. Inténtalo de nuevo.'))
-          : 'No se pudo registrar la venta. Inténtalo de nuevo.',
+          : (isGeneralBusiness(business) && apiError?.message) ||
+            'No se pudo registrar la venta. Inténtalo de nuevo.',
       );
     } finally {
       setIsLoading(false);

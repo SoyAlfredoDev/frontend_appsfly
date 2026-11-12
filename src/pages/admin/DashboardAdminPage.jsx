@@ -309,6 +309,7 @@ export default function DashboardAdminPage() {
                                                 </td>
                                                 <td className={TD}>{formatName(biz?.businessCountry)}</td>
                                                 <td className={TD}>
+                                                    {biz?.businessType === "general" && "Negocio general"}
                                                     {biz?.businessType === "optics" && "Óptica"}
                                                     {biz?.businessType === "cafe" && "Cafetería"}
                                                     {biz?.businessType === "veterinary" && "Veterinaria"}

@@ -69,6 +69,7 @@ export const NAV_PERMISSION_BY_PATH = {
     "/inventory": "inventory:read",
     "/sales": "sales:read",
     "/sales/quick": "sales:create",
+    "/sales/receivables": "sales:read",
     "/quotations": "quotations:read",
     "/sales/dailySales": "daily-closures:read",
     "/purchase": "purchases:manage",

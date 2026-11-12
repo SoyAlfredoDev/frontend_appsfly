@@ -48,6 +48,7 @@ const PANEL_TABS = [
 ];
 
 const BUSINESS_TYPE_LABELS = {
+    general: "Negocio general",
     optics: "Óptica",
     cafe: "Cafetería",
     veterinary: "Veterinaria",

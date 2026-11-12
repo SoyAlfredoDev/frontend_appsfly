@@ -22,6 +22,10 @@ export function normalizeBusinessType(businessType) {
         .replace(/\p{M}/gu, "");
 }
 
+export function isGeneralBusiness(business) {
+    return normalizeBusinessType(business?.businessType) === "general";
+}
+
 export function isOpticsBusiness(business) {
     const type = normalizeBusinessType(business?.businessType);
     return type === "optics" || type === "optica";

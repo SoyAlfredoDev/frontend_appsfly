@@ -40,6 +40,7 @@ import InventoryPage from "./pages/InventoryPage.jsx";
 
 /* Sales */
 import SalesPage from "./pages/Sales/SalesPage.jsx";
+import ReceivablesPage from "./pages/Sales/ReceivablesPage";
 import NewSalePage from "./pages/Sales/NewSalePage.jsx";
 import QuickSalePage from "./pages/Sales/QuickSalePage.tsx";
 import ViewSalePage from "./pages/Sales/ViewSalePage.jsx";
@@ -197,6 +198,7 @@ function App() {
                   />
                   <Route path="/sales/view/:id" element={<ViewSalePage />} />
                   <Route path="/sales" element={<SalesPage />} />
+                  <Route path="/sales/receivables" element={<ReceivablesPage />} />
                   <Route path="/quotations/register" element={<NewQuotationPage />} />
                   <Route path="/quotations/view/:id" element={<ViewQuotationPage />} />
                   <Route path="/quotations" element={<QuotationsPage />} />

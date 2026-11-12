@@ -1,3 +1,4 @@
+import { createGeneralBusinessSale } from '../api/generalSales'
 import { createSale, sendSaleEmail } from '../api/sale.js';
 import { createSaleDetailUtils } from './createSaleDetail.js'
 import { createPayment } from '../api/payment.js'
@@ -6,41 +7,46 @@ export const createSaleGeneral = async (
     dataSaleGeneral,
     dataSaleDetail,
     dataPayment,
-    { sendByEmail = false } = {},
+    { sendByEmail = false, atomic = false } = {},
 ) => {
     try {
-        const saleCreated = await createSale(dataSaleGeneral);
-        const saleCustomerId = dataSaleGeneral.saleCustomerId;
         const saleId = dataSaleGeneral.saleId;
-        for (const saleDetail of dataSaleDetail) {
-            try {
-                await createSaleDetailUtils(saleDetail, saleId, saleCustomerId)
-            } catch (error) {
-                console.error('Error creating sale detail:', error);
-                if (error.response?.data?.code === 'INSUFFICIENT_STOCK') {
-                    const err = new Error(error.response.data.message);
-                    err.code = 'INSUFFICIENT_STOCK';
-                    err.response = error.response;
-                    throw err;
-                }
-                throw error;
-            }
-        }
-
-        for (const payment of dataPayment) {
-            try {
-                if (payment.amount > 0) {
-                    const data = {
-                        paymentId: payment.paymentId,
-                        saleId,
-                        paymentAmount: Number(payment.amount),
-                        paymentMethod: payment.methodId
+        let saleCreated;
+        if (atomic) {
+            saleCreated = await createGeneralBusinessSale(dataSaleGeneral, dataSaleDetail, dataPayment);
+        } else {
+            saleCreated = await createSale(dataSaleGeneral);
+            const saleCustomerId = dataSaleGeneral.saleCustomerId;
+            for (const saleDetail of dataSaleDetail) {
+                try {
+                    await createSaleDetailUtils(saleDetail, saleId, saleCustomerId)
+                } catch (error) {
+                    console.error('Error creating sale detail:', error);
+                    if (error.response?.data?.code === 'INSUFFICIENT_STOCK') {
+                        const err = new Error(error.response.data.message);
+                        err.code = 'INSUFFICIENT_STOCK';
+                        err.response = error.response;
+                        throw err;
                     }
-                    await createPayment(data)
+                    throw error;
                 }
-            } catch (error) {
-                console.error('Error creating payment:', error);
-                throw error;
+            }
+
+            for (const payment of dataPayment) {
+                try {
+                    if (payment.amount > 0) {
+                        const data = {
+                            paymentId: payment.paymentId,
+                            saleId,
+                            paymentAmount: Number(payment.amount),
+                            paymentMethod: payment.methodId
+                        }
+                        await createPayment(data)
+                    }
+                } catch (error) {
+                    console.error('Error creating payment:', error);
+                    throw error;
+                }
             }
         }
 
