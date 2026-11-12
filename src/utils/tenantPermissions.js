@@ -1,3 +1,5 @@
+import { CLOTHING_VARIANTS_PATH } from "./clothingOptions";
+
 export const TENANT_ROLES = {
     ADMIN: "ADMIN",
     /** Valor en BD: USER */
@@ -126,6 +128,9 @@ export function isAdminRoute(pathname) {
 }
 
 export function canAccessRoute(role, pathname) {
+    if (pathname === CLOTHING_VARIANTS_PATH || pathname.startsWith(`${CLOTHING_VARIANTS_PATH}/`)) {
+        return hasTenantPermission(role, "products:write");
+    }
     if (pathname === "/profile" || pathname.startsWith("/profile/")) {
         return hasTenantPermission(role, "profile:view");
     }

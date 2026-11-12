@@ -37,6 +37,8 @@ import CustomerViewPage from "./pages/CustomerViewPage.jsx";
 import ProductsServicesPage from "./pages/ProductsServicesPage.jsx";
 import ProductsServicesViewPage from "./pages/ProductsServicesViewPage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
+import ClothingVariantsPage from "./pages/products/ClothingVariantsPage";
+import { CLOTHING_VARIANTS_PATH } from "./utils/clothingOptions";
 
 /* Sales */
 import SalesPage from "./pages/Sales/SalesPage.jsx";
@@ -176,6 +178,7 @@ function App() {
                   <Route path="/customers/:id" element={<CustomerViewPage />} />
                   <Route path="/campaigns-asmr" element={<CampaignsAsmrPage />} />
                   <Route path="/products_services" element={<ProductsServicesPage />} />
+                  <Route path={CLOTHING_VARIANTS_PATH} element={<ClothingVariantsPage />} />
                   <Route path="/products/:id" element={<ProductsServicesViewPage />} />
                   <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/sales/register" element={<NewSalePage />} />

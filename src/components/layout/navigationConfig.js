@@ -24,7 +24,8 @@ import {
   FaUserInjured,
   FaCreditCard,
 } from "react-icons/fa";
-import { isGeneralBusiness, isOpticsBusiness } from "../../utils/businessModality.js";
+import { CLOTHING_VARIANTS_PATH } from "../../utils/clothingOptions";
+import { isClothingBusiness, usesRetailSales, isOpticsBusiness } from "../../utils/businessModality.js";
 
 /**
  * Rutas temporalmente deshabilitadas en modalidad Óptica
@@ -220,13 +221,14 @@ export const RECEIVABLES_PATH = "/sales/receivables";
 
 export function isPathAvailableForBusiness(pathname, business) {
   const matches = (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`);
-  if (matches(RECEIVABLES_PATH)) return isGeneralBusiness(business);
-  if (!isGeneralBusiness(business)) return true;
+  if (matches(CLOTHING_VARIANTS_PATH)) return isClothingBusiness(business);
+  if (matches(RECEIVABLES_PATH)) return usesRetailSales(business);
+  if (!usesRetailSales(business)) return true;
   return !NAV_ITEMS.some((item) => item.opticsOnly && matches(item.path));
 }
 
 export function getNavigationForBusiness(business, can) {
-  if (isGeneralBusiness(business)) {
+  if (usesRetailSales(business)) {
     const items = NAV_ITEMS.filter((item) => item.path !== "/campaigns-asmr").flatMap((item) =>
       item.path === "/sales"
         ? [

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-async function mockBusiness(page: Page, businessType: 'general' | 'optics') {
+async function mockBusiness(page: Page, businessType: 'general' | 'optics' | 'clothing_store') {
   const businessId = `qa-${businessType}`
   const customer = { customerId: 'customer-a', customerFirstName: 'Ana', customerLastName: 'Pérez' }
   const sale = {
@@ -14,6 +14,17 @@ async function mockBusiness(page: Page, businessType: 'general' | 'optics') {
     customerPendingAmount: 20000,
     customer,
   }
+  const clothingStock = ['M', 'L'].map((talla, index) => ({
+    productId: `pol-${talla}`,
+    productName: `Polera · Talla ${talla} · Color negro`,
+    modelName: 'Polera',
+    productSKU: `POL-${talla}`,
+    productPrice: 12000,
+    productPriceFixed: true,
+    productStock: index + 2,
+    quantityOnHand: index + 2,
+    variantOptions: { talla, color: 'negro' },
+  }))
   const paymentRows = [
     { paymentId: 'payment-1', paymentMethod: '2', paymentAmount: 10000, createdAt: sale.createdAt },
   ]
@@ -31,38 +42,60 @@ async function mockBusiness(page: Page, businessType: 'general' | 'optics') {
     else if (path === `/business/${businessId}`)
       data = { businessId, businessName: 'Local QA', businessType, businessAllowCreditSales: true }
     else if (path === '/customers') data = [customer]
+    else if (path === '/categories')
+      data = [{ categoryId: 'ropa', categoryName: 'Ropa', allowedFor: 'PRODUCTS' }]
     else if (path === '/products')
-      data = [
-        {
-          productId: 'product-a',
-          productName: 'Cuaderno',
-          productSKU: 'CUAD-1',
-          productPrice: 12000,
-          productPriceFixed: true,
-          productStock: 2,
-        },
-      ]
-    else if (path === '/dailySales/closure-status') data = { blocked: false }
+      data =
+        businessType === 'clothing_store'
+          ? clothingStock
+          : [
+              {
+                productId: 'product-a',
+                productName: 'Cuaderno',
+                productSKU: 'CUAD-1',
+                productPrice: 12000,
+                productPriceFixed: true,
+                productStock: 2,
+              },
+            ]
+    else if (path === '/products/variants/bulk' && route.request().method() === 'POST') {
+      expect(route.request().postDataJSON()).toMatchObject({
+        parent: { name: 'Polera', sku: 'POL', categoryId: 'ropa', price: 12000 },
+        variants: [
+          { sku: 'POL-M', options: { talla: 'M', color: 'Negro' }, initialStock: 2 },
+          { sku: 'POL-L', options: { talla: 'L', color: 'Negro' }, initialStock: 3 },
+        ],
+      })
+      data = { createdCount: 2, skippedCount: 0 }
+    } else if (path === '/dailySales/closure-status') data = { blocked: false }
     else if (path === '/sales/general' && route.request().method() === 'POST') {
       const input = route.request().postDataJSON()
+      const itemId = businessType === 'clothing_store' ? 'pol-M' : 'product-a'
       expect(input).toMatchObject({
         customerId: customer.customerId,
         documentType: 'RECEIPT',
-        lines: [{ itemId: 'product-a', type: 'PRODUCT', quantity: 1, price: 12000 }],
+        lines: [{ itemId, type: 'PRODUCT', quantity: 1, price: 12000 }],
         payments: [],
       })
+      if (businessType === 'clothing_store') {
+        clothingStock[0].quantityOnHand -= 1
+        clothingStock[0].productStock -= 1
+      }
       data = { sale: { saleId: input.saleId, saleNumber: 'a00002' } }
     } else if (path === '/inventory/summary')
       data = { totalSku: 1, totalUnits: 2, totalValuation: 20000 }
     else if (path === '/inventory/stock')
-      data = [
-        {
-          productId: 'product-a',
-          productName: 'Cuaderno',
-          productSKU: 'CUAD-1',
-          quantityOnHand: 2,
-        },
-      ]
+      data =
+        businessType === 'clothing_store'
+          ? clothingStock
+          : [
+              {
+                productId: 'product-a',
+                productName: 'Cuaderno',
+                productSKU: 'CUAD-1',
+                quantityOnHand: 2,
+              },
+            ]
     else if (path === '/inventory/movements')
       data = { rows: [], pagination: { total: 0, pages: 1 } }
     else if (path === '/sales/receivables') {
@@ -149,4 +182,58 @@ test('óptica conserva su navegación y la consulta de órdenes de trabajo', asy
   await expect(page.getByRole('link', { name: 'Cuentas por cobrar' })).toHaveCount(0)
   await page.goto('/sales/receivables')
   await expect(page.getByRole('heading', { name: 'Acceso restringido' })).toBeVisible()
+})
+
+test('tienda de ropa registra y vende la talla seleccionada y filtra su stock', async ({
+  page,
+}) => {
+  await mockBusiness(page, 'clothing_store')
+  await page.goto('/products_services')
+  await page.getByRole('link', { name: 'Nuevo modelo con variantes' }).click()
+  await expect(page.getByRole('heading', { name: 'Modelo de ropa con variantes' })).toBeVisible()
+  await page.getByLabel('Nombre del modelo').fill('Polera')
+  await page.getByLabel('SKU del modelo').fill('POL')
+  await page.getByLabel('Precio unitario (CLP)').fill('12000')
+  await page.getByRole('button', { name: 'Agregar variante' }).click()
+  for (const [number, talla, stock] of [
+    [1, 'M', '2'],
+    [2, 'L', '3'],
+  ] as const) {
+    const group = page.getByRole('group', { name: `Variante ${number}` })
+    await group.getByLabel('Talla', { exact: true }).fill(talla)
+    await group.getByLabel('Color', { exact: true }).fill('Negro')
+    await group.getByLabel('SKU de la variante').fill(`POL-${talla}`)
+    await group.getByLabel('Stock inicial').fill(stock)
+  }
+  await page.getByRole('button', { name: 'Guardar modelo' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Productos y Servicios', exact: true }),
+  ).toBeVisible()
+
+  await page.goto('/sales/register')
+  await page
+    .getByPlaceholder('Buscar por nombre, RUT, teléfono o correo...')
+    .filter({ visible: true })
+    .fill('Ana')
+  await page.getByRole('button', { name: /Ana Pérez/ }).click()
+  await page.locator('select:has(option[value="pol-M"]):visible').selectOption('pol-M')
+  await page.getByRole('button', { name: /^Finalizar(?: venta)?$/ }).click()
+  await page.getByRole('button', { name: 'Confirmar venta', exact: true }).click()
+  await expect(page.getByText('La venta se registró correctamente.')).toBeVisible()
+
+  await page.goto('/inventory')
+  await page.getByRole('combobox', { name: 'Talla', exact: true }).selectOption('M')
+  await page.getByRole('combobox', { name: 'Color', exact: true }).selectOption('negro')
+  const medium = page.getByRole('row').filter({ hasText: 'POL-M' })
+  await expect(medium.getByRole('cell', { name: '1', exact: true })).toBeVisible()
+  await expect(page.getByRole('row').filter({ hasText: 'POL-L' })).toHaveCount(0)
+  await page.getByRole('combobox', { name: 'Talla', exact: true }).selectOption('L')
+  await expect(
+    page
+      .getByRole('row')
+      .filter({ hasText: 'POL-L' })
+      .getByRole('cell', { name: '3', exact: true }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: 'Cuentas por cobrar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Cuentas por cobrar', exact: true })).toBeVisible()
 })

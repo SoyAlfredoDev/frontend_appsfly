@@ -1,3 +1,7 @@
+import ClothingStockFilters, { filterClothingStock } from "../components/ClothingStockFilters";
+import { useAuth } from "../context/authContext.jsx";
+import { isClothingBusiness } from "../utils/businessModality.js";
+import { clothingOptions } from "../utils/clothingOptions";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import { Link } from "react-router-dom";
@@ -72,6 +76,9 @@ function StockBadge({ qty, isLowStock }) {
 
 export default function InventoryPage() {
     const { can } = useTenantPermissions();
+    const { business } = useAuth();
+    const clothing = isClothingBusiness(business);
+    const [variantFilters, setVariantFilters] = useState({ size: "", color: "" });
     const toast = useToast();
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState(null);
@@ -158,7 +165,8 @@ export default function InventoryPage() {
         if (!loading) fetchMovements();
     }, [debouncedMovementSearch, movementType, movementsPage, fetchMovements, loading]);
 
-    const filteredStockCount = stockList.length;
+    const shownStock = clothing ? filterClothingStock(stockList, variantFilters) : stockList;
+    const filteredStockCount = shownStock.length;
 
     const handleAdjusted = () => {
         setMovementsPage(1);
@@ -244,6 +252,13 @@ export default function InventoryPage() {
                                 />
                                 Solo bajo stock
                             </label>
+                            {clothing && (
+                                <ClothingStockFilters
+                                    stock={stockList}
+                                    value={variantFilters}
+                                    onChange={setVariantFilters}
+                                />
+                            )}
                             <BarcodeScanListener
                                 onScan={handleStockScan}
                                 placeholder="Escanear para buscar…"
@@ -283,7 +298,7 @@ export default function InventoryPage() {
                                             Cargando stock...
                                         </td>
                                     </tr>
-                                ) : stockList.length === 0 ? (
+                                ) : shownStock.length === 0 ? (
                                     <tr>
                                         <td colSpan={8} className="px-6 py-12 text-center">
                                             <FaBoxOpen className="text-4xl text-gray-300 mx-auto mb-3" />
@@ -291,37 +306,47 @@ export default function InventoryPage() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    stockList.map((item) => (
-                                        <tr key={item.productId} className={TR_ROW}>
-                                            <td className={TD}>
-                                                <span className="font-medium text-gray-900">{item.productName}</span>
-                                            </td>
-                                            <td className={TD_MUTED}>{item.productSKU}</td>
-                                            <td className={TD_MUTED}>{item.categoryName}</td>
-                                            <td className={TD}>
-                                                <StockBadge
-                                                    qty={item.quantityOnHand}
-                                                    isLowStock={item.isLowStock}
-                                                />
-                                            </td>
-                                            <td className={TD_MUTED}>{formatCurrency(item.unitValue)}</td>
-                                            <td className={TD_MUTED}>{formatCurrency(item.totalValue)}</td>
-                                            <td className={TD_MUTED}>
-                                                {item.lastMovementAt
-                                                    ? formatDate(item.lastMovementAt)
-                                                    : "—"}
-                                            </td>
-                                            <td className={`${TD} text-center`}>
-                                                <Link
-                                                    to={`/products/${item.productId}`}
-                                                    className={ACTION_VIEW}
-                                                    title="Ver producto"
-                                                >
-                                                    <FaEye />
-                                                </Link>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    shownStock.map((item) => {
+                                        const { size, color } = clothingOptions(item.variantOptions);
+                                        return (
+                                            <tr key={item.productId} className={TR_ROW}>
+                                                <td className={TD}>
+                                                    <span className="font-medium text-gray-900">
+                                                        {clothing ? item.modelName || item.productName : item.productName}
+                                                    </span>
+                                                    {clothing && (size || color) && (
+                                                        <p className="text-xs text-slate-500">
+                                                            {[size && `Talla ${size}`, color && `Color ${color}`].filter(Boolean).join(" · ")}
+                                                        </p>
+                                                    )}
+                                                </td>
+                                                <td className={TD_MUTED}>{item.productSKU}</td>
+                                                <td className={TD_MUTED}>{item.categoryName}</td>
+                                                <td className={TD}>
+                                                    <StockBadge
+                                                        qty={item.quantityOnHand}
+                                                        isLowStock={item.isLowStock}
+                                                    />
+                                                </td>
+                                                <td className={TD_MUTED}>{formatCurrency(item.unitValue)}</td>
+                                                <td className={TD_MUTED}>{formatCurrency(item.totalValue)}</td>
+                                                <td className={TD_MUTED}>
+                                                    {item.lastMovementAt
+                                                        ? formatDate(item.lastMovementAt)
+                                                        : "—"}
+                                                </td>
+                                                <td className={`${TD} text-center`}>
+                                                    <Link
+                                                        to={`/products/${item.productId}`}
+                                                        className={ACTION_VIEW}
+                                                        title="Ver producto"
+                                                    >
+                                                        <FaEye />
+                                                    </Link>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>

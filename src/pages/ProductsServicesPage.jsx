@@ -1,3 +1,6 @@
+import { useAuth } from "../context/authContext.jsx";
+import { isClothingBusiness } from "../utils/businessModality.js";
+import { CLOTHING_VARIANTS_PATH } from "../utils/clothingOptions";
 import CategoryModal from "../components/modals/CategoryModal.jsx";
 import { getCategories } from "../api/category";
 import { getProductsAndServices } from "../libs/productsAndServices";
@@ -27,6 +30,8 @@ import {
 
 export default function ProductsServicesPage() {
     const { can } = useTenantPermissions();
+    const { business } = useAuth();
+    const clothing = isClothingBusiness(business);
     const [globalFilter, setGlobalFilter] = useState("");
     const [sorting, setSorting] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -193,7 +198,19 @@ export default function ProductsServicesPage() {
                     ? "Gestión de inventario y catálogo de servicios"
                     : "Consulta de catálogo para ventas"
             }
-            actions={can("products:write") ? <AddProductModal title="Nuevo Item" onCreated={fetchProducts} /> : null}
+            actions={can("products:write") ? (
+                <div className="flex flex-wrap items-center gap-2">
+                    {clothing && (
+                        <Link
+                            to={CLOTHING_VARIANTS_PATH}
+                            className="rounded-lg border border-primary px-3 py-2 text-sm font-semibold text-primary"
+                        >
+                            Nuevo modelo con variantes
+                        </Link>
+                    )}
+                    <AddProductModal title="Nuevo Item" onCreated={fetchProducts} />
+                </div>
+            ) : null}
         >
             <div className="flex flex-col lg:flex-row gap-6">
                 <ExpenseAnimatedSection className="lg:w-64 flex-shrink-0">

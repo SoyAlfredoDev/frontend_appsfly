@@ -22,8 +22,12 @@ export function normalizeBusinessType(businessType) {
         .replace(/\p{M}/gu, "");
 }
 
-export function isGeneralBusiness(business) {
-    return normalizeBusinessType(business?.businessType) === "general";
+export function isClothingBusiness(business) {
+    return normalizeBusinessType(business?.businessType) === "clothing_store";
+}
+
+export function usesRetailSales(business) {
+    return normalizeBusinessType(business?.businessType) === "general" || isClothingBusiness(business);
 }
 
 export function isOpticsBusiness(business) {
