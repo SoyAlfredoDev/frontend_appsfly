@@ -3,7 +3,7 @@ import Footer from '../FooterComponent.jsx'
 import NavbarHome from '../../pages/web/NavbarHome.jsx'
 import FaqSection from './FaqSection'
 import type { PublicPage } from '../../seo/publicSeo'
-import PlansHome from '../../pages/web/PlansHome.jsx'
+import PlansHome from '../../pages/web/PlansHome.tsx'
 
 type SeoArticlePageProps = {
   page: PublicPage
@@ -53,7 +53,7 @@ export default function SeoArticlePage({ page, showPlans = false }: SeoArticlePa
         {showPlans ? (
           <PlansHome
             heading="Planes"
-            subtitle="Los precios de abajo son netos. Suma el IVA. La prueba de 2 meses no pide tarjeta."
+            subtitle="Precios mensuales en pesos chilenos. Mostramos el neto y el total con IVA. Empieza con 2 meses gratis, sin tarjeta."
           />
         ) : null}
 

@@ -4,7 +4,7 @@ import OpticsDayToDay from "./web/optica/OpticsDayToDay.jsx";
 import OpticsFlow from "./web/optica/OpticsFlow.jsx";
 import OpticsWhy from "./web/optica/OpticsWhy.jsx";
 import OpticsFinalCta from "./web/optica/OpticsFinalCta.jsx";
-import PlansHome from "./web/PlansHome.jsx";
+import PlansHome from "./web/PlansHome.tsx";
 import Footer from "../components/FooterComponent.jsx";
 import FloatingWhatsApp from "../components/web/FloatingWhatsApp.jsx";
 import { SUPPORT_WHATSAPP_PHONE } from "../constants/supportContact.js";

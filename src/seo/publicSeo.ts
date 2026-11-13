@@ -1,3 +1,13 @@
+import {
+  START_NET_MONTHLY_CLP,
+  PRO_NET_MONTHLY_CLP,
+  publicPlanTotal,
+  formatPlanClp,
+  TRIAL_CONDITIONS,
+  RENEWAL_CONDITIONS,
+  TAX_REQUIREMENTS,
+} from '../config/publicPlans'
+export { START_NET_MONTHLY_CLP, PRO_NET_MONTHLY_CLP } from '../config/publicPlans'
 import { COMPANY } from '../constants/company'
 import { LANDING_SOCIAL_LINKS } from '../constants/landingNavigation.js'
 import { OPTICS_PROMO_SITE_URL } from '../utils/opticsPromoHost.js'
@@ -25,22 +35,17 @@ export const SITE_URL = resolveSiteUrl()
 export const OG_IMAGE_PATH = '/assets/seo/og-conversion.jpg'
 export const OG_IMAGE_URL = `${SITE_URL}${OG_IMAGE_PATH}`
 
-export const START_NET_MONTHLY_CLP = 24990
-export const PRO_NET_MONTHLY_CLP = 39990
 export const BASIC_NET_MONTHLY_CLP = START_NET_MONTHLY_CLP
 
-export function formatClp(amount: number) {
-  const body = String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return `$${body}`
-}
+export const formatClp = formatPlanClp
 
-export const PRICE_SUMMARY = `La prueba de 2 meses incluye Pro y no inicia un cobro. Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto/mes y Pro ${formatClp(PRO_NET_MONTHLY_CLP)}, más IVA.`
+export const PRICE_SUMMARY = `Empieza con 2 meses gratis de Pro, sin tarjeta. Start: ${formatClp(START_NET_MONTHLY_CLP)} netos (${formatClp(publicPlanTotal(START_NET_MONTHLY_CLP))} con IVA) al mes. Pro: ${formatClp(PRO_NET_MONTHLY_CLP)} netos (${formatClp(publicPlanTotal(PRO_NET_MONTHLY_CLP))} con IVA) al mes.`
 
-export const HOME_H1 = 'AppsFly: sistema para registrar ventas en Chile'
+export const HOME_H1 = 'Vende, controla tu inventario y cobra lo pendiente.'
 export const HOME_LEAD =
-  'AppsFly es un sistema para registrar ventas en Chile. Cada venta queda guardada con el producto o servicio, el monto y el medio de pago. Sirve para ópticas, minimarkets, restaurantes y comercios, y se usa desde computador, tablet o teléfono.'
+  'Ventas, clientes, abonos e inventario en un solo lugar. AppsFly se adapta a tu negocio general, tienda de ropa u óptica.'
 export const HOME_SUPPORT =
-  'No necesitas ser experto en tecnología. Si vendes todos los días —en una óptica, un mini market, un restaurante o tu propio emprendimiento— AppsFly te ayuda a llevar el registro de tus ventas sin complicaciones.'
+  'Registra tus ventas, consulta el stock y sigue los saldos de tus clientes desde computador, tablet o teléfono.'
 
 export const OPTICS_H1 = 'El sistema pensado para tu óptica'
 export const OPTICS_LEAD =
@@ -51,7 +56,7 @@ export const OPTICS_ARTICLE_LEAD =
   'AppsFly es un software para ópticas en Chile: registra la receta OD/OI, la venta, la orden de trabajo y el envío al laboratorio en el mismo sistema, con inventario de armazones, lentes y accesorios.'
 
 export const PRICES_H1 = 'Precios de AppsFly'
-export const PRICES_LEAD = `La prueba dura 2 meses, incluye las funciones de Pro y no inicia un cobro. Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto al mes y Pro ${formatClp(PRO_NET_MONTHLY_CLP)}, más IVA.`
+export const PRICES_LEAD = PRICE_SUMMARY
 
 export const ABOUT_H1 = 'Sobre Nosotros'
 export const ABOUT_LEAD =
@@ -66,8 +71,7 @@ export const PRIVACY_LEAD =
   'Transparencia total sobre cómo protegemos, aislamos y gestionamos tus datos.'
 
 export const REGISTER_H1 = 'Crear cuenta nueva'
-export const REGISTER_LEAD =
-  'Prueba AppsFly 2 meses gratis, sin tarjeta de crédito. Al terminar no se inicia un cobro: hay que elegir un plan de pago.'
+export const REGISTER_LEAD = `Prueba AppsFly 2 meses gratis, sin tarjeta. ${RENEWAL_CONDITIONS}`
 
 export type FaqEntry = {
   question: string
@@ -95,26 +99,33 @@ export type PublicPage = {
 
 const HOME_FAQS: FaqEntry[] = [
   {
-    question: '¿Qué es AppsFly?',
-    answer: HOME_LEAD,
+    question: '¿Qué incluye la prueba gratuita?',
+    answer: `Acceso a las funciones de Pro por 2 meses y hasta 5 usuarios. ${TRIAL_CONDITIONS}`,
   },
+  { question: '¿Cuánto cuesta AppsFly?', answer: PRICE_SUMMARY },
+  { question: '¿Qué pasa cuando termina la prueba?', answer: RENEWAL_CONDITIONS },
   {
-    question: '¿Cuánto cuesta AppsFly?',
-    answer: PRICE_SUMMARY,
-  },
-  {
-    question: '¿AppsFly sirve para una óptica?',
+    question: '¿Sirve para mi negocio?',
     answer:
-      'Sí. Además del registro de ventas, una óptica puede llevar recetas OD/OI, órdenes de trabajo, laboratorios e inventario de lentes y armazones. El detalle está en la página de software para ópticas.',
+      'Puedes elegir Negocio general, Tienda de ropa u Óptica. Comparten ventas, clientes, abonos e inventario. Ropa agrega tallas, colores y stock por variante; Óptica incorpora recetas, órdenes de trabajo y laboratorios.',
   },
   {
-    question: '¿Hay prueba gratis?',
+    question: '¿La facturación electrónica está lista al registrarme?',
+    answer: `Está disponible en Pro y en la prueba Pro. ${TAX_REQUIREMENTS}`,
+  },
+  {
+    question: '¿Qué puede hacer el asistente con IA?',
     answer:
-      'Sí. La prueba Pro dura 2 meses, incluye las funciones de Pro y no pide tarjeta de crédito para crear la cuenta.',
+      'En Pro y en la prueba Pro, el administrador puede consultar ventas, clientes, productos e inventario. El asistente es de consulta: no registra clientes ni envía mensajes.',
   },
   {
-    question: '¿Quién opera AppsFly y desde dónde?',
-    answer: `${COMPANY.legalName}, RUT ${COMPANY.rut}, en ${COMPANY.address}. El contacto público es ${COMPANY.email} y ${COMPANY.phoneDisplay}.`,
+    question: '¿Incluye notificaciones automáticas de WhatsApp?',
+    answer:
+      'Las notificaciones automáticas de WhatsApp aún no están disponibles. Puedes escribirnos por WhatsApp para recibir información sobre AppsFly.',
+  },
+  {
+    question: '¿Dónde puedo pedir ayuda?',
+    answer: `Escríbenos al WhatsApp ${COMPANY.phoneDisplay} o a ${COMPANY.email}. AppsFly es operado por ${COMPANY.legalName}, en Chile.`,
   },
 ]
 
@@ -135,27 +146,26 @@ const OPTICS_FAQS: FaqEntry[] = [
   },
   {
     question: '¿El precio incluye boleta electrónica?',
-    answer: `La boleta y la factura electrónica están en la prueba y en Pro. Start, a ${formatClp(START_NET_MONTHLY_CLP)} neto/mes más IVA, cubre la operación de la óptica sin esas funciones.`,
+    answer: `La boleta y la factura electrónica están en la prueba y en Pro. ${TAX_REQUIREMENTS} Start cubre ventas, clientes, inventario y la operación de la óptica.`,
   },
 ]
 
 const PRICE_FAQS: FaqEntry[] = [
   {
     question: '¿Cuál es el precio de Start?',
-    answer: `Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} neto al mes, más IVA, e incluye 1 usuario. La prueba de 2 meses cuesta $0, trae las funciones de Pro y no inicia un cobro al terminar.`,
+    answer: `Start cuesta ${formatClp(START_NET_MONTHLY_CLP)} netos al mes: ${formatClp(publicPlanTotal(START_NET_MONTHLY_CLP))} con IVA incluido. Incluye 1 usuario, ventas, clientes, abonos, inventario, caja y reportes.`,
   },
   {
     question: '¿Qué incluye Pro?',
-    answer: `Pro cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} neto al mes, más IVA, hasta 5 usuarios. Suma citas, boleta, factura electrónica y el asistente.`,
+    answer: `Pro cuesta ${formatClp(PRO_NET_MONTHLY_CLP)} netos al mes: ${formatClp(publicPlanTotal(PRO_NET_MONTHLY_CLP))} con IVA incluido. Incluye Start, hasta 5 usuarios, citas y asistente con IA para consultar datos. ${TAX_REQUIREMENTS}`,
   },
   {
     question: '¿Los precios de AppsFly incluyen IVA?',
-    answer: 'No. Los precios publicados son netos. Hay que sumar el IVA de Chile.',
+    answer: `Mostramos el precio neto y el total mensual con IVA del 19% incluido. El total es ${formatClp(publicPlanTotal(START_NET_MONTHLY_CLP))} para Start y ${formatClp(publicPlanTotal(PRO_NET_MONTHLY_CLP))} para Pro.`,
   },
   {
     question: '¿Puedo cambiar de plan después de la prueba?',
-    answer:
-      'Sí. La prueba no se convierte sola en un cobro. Cuando termina, hay que contratar un plan de pago.',
+    answer: `Sí. ${RENEWAL_CONDITIONS}`,
   },
 ]
 
@@ -164,7 +174,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
     path: '/',
     title: 'AppsFly | Sistema para registrar ventas en Chile',
     description:
-      'Sistema para registrar ventas, inventario y clientes en Chile. Prueba 2 meses sin cobro. Start desde $24.990 neto/mes + IVA.',
+      'Gestiona ventas, clientes, abonos e inventario en tu negocio general, tienda de ropa u óptica. Prueba AppsFly 2 meses gratis, sin tarjeta.',
     h1: HOME_H1,
     lead: HOME_LEAD,
     paragraphs: [HOME_SUPPORT],
@@ -221,16 +231,18 @@ export const PUBLIC_PAGES: PublicPage[] = [
     h1: PRICES_H1,
     lead: PRICES_LEAD,
     paragraphs: [
-      'Start y Pro se contratan con el link de Mercado Pago. La prueba de 2 meses trae las funciones de Pro y no pide tarjeta.',
+      TRIAL_CONDITIONS,
+      RENEWAL_CONDITIONS,
+      'Start y Pro se eligen desde Suscripción, dentro de tu cuenta. El pago se autoriza en Mercado Pago con un enlace exclusivo para tu negocio.',
     ],
     highlights: [
       {
         title: 'Start',
-        text: `${formatClp(START_NET_MONTHLY_CLP)} neto/mes + IVA. Un usuario y la operación diaria de la óptica.`,
+        text: `${formatClp(START_NET_MONTHLY_CLP)} neto/mes + IVA. Un usuario, ventas, clientes, cuentas por cobrar, inventario y caja para tu negocio.`,
       },
       {
         title: 'Pro',
-        text: `${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes + IVA. Hasta 5 usuarios, citas, boleta, factura y asistente.`,
+        text: `${formatClp(PRO_NET_MONTHLY_CLP)} neto/mes + IVA. Hasta 5 usuarios, citas, asistente de consultas y facturación electrónica con configuración previa.`,
       },
     ],
     faqs: PRICE_FAQS,
@@ -562,9 +574,9 @@ export function buildLlmsTxt() {
     `- [Óptica](${OPTICS_PROMO_SITE_URL}/): ${OPTICS_LEAD}`,
     '',
     '## Precios',
-    `- Prueba: 2 meses a $0 con las funciones de Pro, sin tarjeta y sin cobro automático.`,
-    `- Start: ${formatClp(START_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. 1 usuario.`,
-    `- Pro: ${formatClp(PRO_NET_MONTHLY_CLP)} CLP netos al mes, más IVA. Hasta 5 usuarios, citas, boleta, factura y asistente.`,
+    `- Prueba: 2 meses a $0 con funciones Pro. ${TRIAL_CONDITIONS} ${RENEWAL_CONDITIONS}`,
+    `- Start: ${formatClp(START_NET_MONTHLY_CLP)} netos, ${formatClp(publicPlanTotal(START_NET_MONTHLY_CLP))} con IVA al mes. 1 usuario.`,
+    `- Pro: ${formatClp(PRO_NET_MONTHLY_CLP)} netos, ${formatClp(publicPlanTotal(PRO_NET_MONTHLY_CLP))} con IVA al mes. Hasta 5 usuarios, citas, asistente de consultas y facturación electrónica con configuración previa.`,
     '',
     '## Contacto',
     `- Razón social: ${COMPANY.legalName}`,
@@ -645,23 +657,23 @@ export function buildJsonLd(page: PublicPage) {
           name: 'Prueba',
           price: '0',
           priceCurrency: 'CLP',
-          description: '2 meses sin tarjeta y sin cobro automático.',
+          description: `${TRIAL_CONDITIONS} ${RENEWAL_CONDITIONS}`,
           url: `${SITE_URL}/precios`,
         },
         {
           '@type': 'Offer',
           name: 'Start',
-          price: String(START_NET_MONTHLY_CLP),
+          price: String(publicPlanTotal(START_NET_MONTHLY_CLP)),
           priceCurrency: 'CLP',
-          description: 'Precio neto mensual, más IVA. 1 usuario.',
+          description: 'Total mensual con IVA incluido. 1 usuario.',
           url: `${SITE_URL}/precios`,
         },
         {
           '@type': 'Offer',
           name: 'Pro',
-          price: String(PRO_NET_MONTHLY_CLP),
+          price: String(publicPlanTotal(PRO_NET_MONTHLY_CLP)),
           priceCurrency: 'CLP',
-          description: 'Precio neto mensual, más IVA. Hasta 5 usuarios.',
+          description: 'Total mensual con IVA incluido. Hasta 5 usuarios.',
           url: `${SITE_URL}/precios`,
         },
       ],

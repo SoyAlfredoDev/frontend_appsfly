@@ -1,3 +1,5 @@
+import { SUPPORT_WHATSAPP_PHONE, SUPPORT_WHATSAPP_DISPLAY } from './supportContact.js'
+
 /** Identidad legal y contacto público de AppsFly. */
 export const COMPANY = {
   legalName: 'TECNOLOGÍA Y SERVICIOS APPSFLY SPA',
@@ -5,9 +7,9 @@ export const COMPANY = {
   rut: '77.719.288-4',
   address: 'Huérfanos 779, depto. 705, Santiago, Región Metropolitana',
   email: 'appsfly.cl@gmail.com',
-  phoneDisplay: '+56 9 2162 9730',
-  phoneE164: '+56921629730',
-  whatsappPhone: '56921629730',
+  phoneDisplay: SUPPORT_WHATSAPP_DISPLAY,
+  phoneE164: `+${SUPPORT_WHATSAPP_PHONE}`,
+  whatsappPhone: SUPPORT_WHATSAPP_PHONE,
 } as const
 
 export const COMPANY_EMAIL_URL = `mailto:${COMPANY.email}`

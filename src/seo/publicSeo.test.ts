@@ -121,7 +121,11 @@ describe('discovery files', () => {
       expect(json).toContain(faq.question)
       expect(json).toContain(faq.answer)
     }
-    expect(json).toContain('"price":"24990"')
+    expect(json).toContain('"price":"29738"')
+    expect(json).toContain('"price":"47588"')
+    expect(html).toContain('$29.738')
+    expect(html).toContain('$47.588')
+    expect(html).toContain('Solo habrá cobros si eliges y autorizas un plan de pago')
     expect(json).toContain('TECNOLOGÍA Y SERVICIOS APPSFLY SPA')
   })
 

@@ -79,7 +79,7 @@ const Footer = ({
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Link
                   to={registerTo}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:bg-[#00b067] transition-colors"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-dark shadow-lg shadow-primary/25 hover:bg-[#00b067] transition-colors"
                 >
                   Empezar gratis
                 </Link>

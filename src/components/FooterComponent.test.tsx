@@ -23,13 +23,13 @@ describe('Footer', () => {
       'href',
       'mailto:appsfly.cl@gmail.com',
     )
-    expect(screen.getByRole('link', { name: '+56 9 2162 9730' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: '+56 9 3578 4716' })).toHaveAttribute(
       'href',
-      'tel:+56921629730',
+      'tel:+56935784716',
     )
-    expect(screen.getByRole('link', { name: 'WhatsApp +56 9 2162 9730' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'WhatsApp +56 9 3578 4716' })).toHaveAttribute(
       'href',
-      'https://wa.me/56921629730',
+      'https://wa.me/56935784716',
     )
   })
 })
