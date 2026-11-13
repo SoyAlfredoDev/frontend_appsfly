@@ -237,3 +237,64 @@ test('tienda de ropa registra y vende la talla seleccionada y filtra su stock', 
   await page.getByRole('link', { name: 'Cuentas por cobrar', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Cuentas por cobrar', exact: true })).toBeVisible()
 })
+
+test('Óptica cierra un día pendiente con una sola acción y abre su detalle', async ({ page }) => {
+  await mockBusiness(page, 'optics')
+  let saved = false
+  const closure = {
+    dailySalesId: 'cierre-qa',
+    dailySalesDay: '2026-11-12',
+    dailySalesNumberOfSales: 3,
+    dailySalesTotalSales: 170000,
+    dailySalesTotalIncome: 170000,
+    dailySalesExpectedCash: 22000,
+    dailySalesCountedCash: 22000,
+    dailySalesCashDifference: 0,
+  }
+  await page.route(/\/api\/dailySales(?:\/|$)/, async (route) => {
+    const { pathname } = new URL(route.request().url())
+    if (pathname.endsWith('/closure-status')) {
+      return route.fulfill({
+        json: saved
+          ? { blocked: false, fechasPendientes: [] }
+          : {
+              blocked: true,
+              error: 'BLOQUEO_CIERRE_PENDIENTE',
+              fechaPendiente: closure.dailySalesDay,
+              fechasPendientes: [closure.dailySalesDay],
+            },
+      })
+    }
+    if (pathname.endsWith('/detail')) {
+      return route.fulfill({
+        json: {
+          closure,
+          sales: [],
+          payments: [],
+          hourlySales: [],
+          totals: { sales: 170000, income: 170000, pending: 0, transactions: 3 },
+        },
+      })
+    }
+    if (route.request().method() === 'POST') {
+      expect(pathname).toBe('/api/dailySales')
+      expect(route.request().postDataJSON()).toEqual({
+        dailySalesDay: closure.dailySalesDay,
+        countedCash: 22000,
+      })
+      saved = true
+      return route.fulfill({ status: 201, json: closure })
+    }
+    return route.fulfill({ json: saved ? [closure] : [] })
+  })
+  await page.goto('/sales/dailySales')
+  await expect(page.getByText('Cierres pendientes detectados')).toBeVisible()
+  await expect(page.getByRole('button', { name: /cerrar|cierre diario/i })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Realizar cierre diario' }).click()
+  await page.getByLabel('Efectivo contado').fill('22000')
+  await page.getByRole('button', { name: 'Guardar cierre' }).click()
+  await expect(page.getByText('Cierre realizado', { exact: true })).toBeVisible()
+  await expect(page.getByText('Cierres pendientes detectados')).toHaveCount(0)
+  await page.getByRole('link', { name: 'Ver detalle completo' }).click()
+  await expect(page.getByText('Efectivo esperado', { exact: true })).toBeVisible()
+})

@@ -18,6 +18,8 @@ vi.mock('recharts', () => ({
 const axiosGet = vi.fn()
 const axiosPost = vi.fn()
 const getClosureStatus = vi.fn()
+const closeAll = vi.fn()
+const confirm = vi.fn()
 const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() }
 
 vi.mock('../api/axios.js', () => ({
@@ -29,7 +31,7 @@ vi.mock('../api/axios.js', () => ({
 
 vi.mock('../api/dailySales.js', () => ({
   getClosureStatus: (...args: unknown[]) => getClosureStatus(...args),
-  closeAllPendingClosures: vi.fn(),
+  closeAllPendingClosures: () => closeAll(),
 }))
 
 vi.mock('../context/ToastContext.jsx', () => ({
@@ -37,7 +39,7 @@ vi.mock('../context/ToastContext.jsx', () => ({
 }))
 
 vi.mock('../context/ConfirmationContext.jsx', () => ({
-  useConfirm: () => vi.fn(),
+  useConfirm: () => confirm,
 }))
 
 vi.mock('../context/authContext.jsx', () => ({
@@ -106,6 +108,8 @@ describe('PageDailySales', () => {
       }) as DOMRect
     axiosGet.mockReset()
     axiosPost.mockReset()
+    closeAll.mockReset()
+    confirm.mockReset()
     getClosureStatus.mockReset().mockResolvedValue({ data: openStatus })
     toast.success.mockReset()
     toast.error.mockReset()
@@ -143,6 +147,67 @@ describe('PageDailySales', () => {
 
     expect(screen.getByRole('heading', { name: 'Cierres Diarios' })).toBeInTheDocument()
     expect(screen.getByText(/7 de octubre de 2026/i)).toBeInTheDocument()
+  })
+
+  it('uses the sole close action for one pending day and prevents a second submit', async () => {
+    const user = userEvent.setup()
+    axiosGet.mockResolvedValue({ data: [] })
+    getClosureStatus.mockResolvedValueOnce({
+      data: {
+        error: 'BLOQUEO_CIERRE_PENDIENTE',
+        fechaPendiente: '2026-11-12',
+        fechasPendientes: ['2026-11-12'],
+      },
+    })
+    let finish: (value: { data: ReturnType<typeof closure> }) => void = () => {}
+    axiosPost.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    render(
+      <MemoryRouter>
+        <PageDailySales />
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText(/Cierres pendientes detectados/)).toBeInTheDocument()
+    const actions = screen.getAllByRole('button', { name: /cerrar|cierre diario/i })
+    expect(actions).toHaveLength(1)
+    await user.click(actions[0])
+    expect(screen.getByText(/Arqueo de.*12 de noviembre/)).toBeVisible()
+    await user.type(screen.getByLabelText('Efectivo contado'), '0')
+    await user.dblClick(screen.getByRole('button', { name: /Guardar cierre/i }))
+    expect(axiosPost).toHaveBeenCalledExactlyOnceWith('/dailySales', {
+      dailySalesDay: '2026-11-12',
+      countedCash: 0,
+    })
+    finish({ data: closure('2026-11-12', 'pending') })
+    await waitFor(() => expect(toast.success).toHaveBeenCalled())
+    expect(closeAll).not.toHaveBeenCalled()
+  })
+
+  it('processes several pending days with the same action and refreshes after a partial failure', async () => {
+    const user = userEvent.setup()
+    axiosGet.mockResolvedValue({ data: [] })
+    getClosureStatus.mockResolvedValueOnce({
+      data: { error: 'BLOQUEO_CIERRE_PENDIENTE', fechasPendientes: ['2026-11-11', '2026-11-12'] },
+    })
+    confirm.mockResolvedValue(true)
+    closeAll.mockRejectedValue({ response: { data: { message: 'Actualiza el historial.' } } })
+    render(
+      <MemoryRouter>
+        <PageDailySales />
+      </MemoryRouter>,
+    )
+    await screen.findByText(/2 días requieren cierre/)
+    await user.click(screen.getByRole('button', { name: /Realizar Cierre Diario/i }))
+    await waitFor(() => expect(getClosureStatus).toHaveBeenCalledTimes(2))
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('sin conteo de efectivo') }),
+    )
+    expect(closeAll).toHaveBeenCalledOnce()
+    expect(toast.error).toHaveBeenCalledWith('Error', 'Actualiza el historial.')
   })
 
   it('does not blank the page when a closure day is not text', async () => {
