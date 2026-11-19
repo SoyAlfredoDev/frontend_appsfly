@@ -1,3 +1,4 @@
+import IntegrationKeys from './IntegrationKeys'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
@@ -414,6 +415,7 @@ export default function ConfigurationPage() {
           </Motion.div>
         </form>
       )}
+      {businessId && <IntegrationKeys key={businessId} />}
     </ExpensePageLayout>
   )
 }
