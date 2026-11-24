@@ -400,8 +400,8 @@ export default function NewSalePage() {
   }, [debouncedCustomerSearch, searchCustomers]);
 
   // ── Customer handlers ───────────────────────────────
-  const handleChangeCustomerSelect = (customerId) => {
-    const found = customers.find(
+  const handleChangeCustomerSelect = (customerId, matchedCustomer) => {
+    const found = matchedCustomer ?? customers.find(
       (c) => String(c.customerId) === String(customerId),
     );
     if (found) setSelectedCustomerCache(found);

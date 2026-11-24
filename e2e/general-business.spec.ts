@@ -298,3 +298,63 @@ test('Óptica cierra un día pendiente con una sola acción y abre su detalle', 
   await page.getByRole('link', { name: 'Ver detalle completo' }).click()
   await expect(page.getByText('Efectivo esperado', { exact: true })).toBeVisible()
 })
+
+test('busca el RUT antes de registrar y agrega al cliente existente con un clic', async ({
+  page,
+}) => {
+  await mockBusiness(page, 'general')
+  const lookedUp = {
+    customerId: 'existing-rut',
+    customerFirstName: 'Camila',
+    customerLastName: 'Prueba',
+    customerDocumentNumber: '12345678-5',
+  }
+  await page.route('**/api/customers/rut-lookup', async (route) => {
+    expect(route.request().postDataJSON()).toEqual({ rut: '12.345.678-5' })
+    await route.fulfill({ json: { rut: '12345678-5', customers: [lookedUp] } })
+  })
+  await page.goto('/sales/register')
+  await page.getByTitle('Registrar cliente').filter({ visible: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Registrar Cliente' })
+  await expect(dialog.getByRole('textbox', { name: /^Nombre/ })).toHaveCount(0)
+  await dialog.getByRole('textbox', { name: 'RUT del cliente' }).fill('12.345.678-5')
+  await dialog.getByRole('button', { name: 'Buscar RUT' }).click()
+  await expect(dialog.getByRole('status')).toHaveText('Este cliente ya está registrado')
+  await dialog.getByRole('button', { name: 'Agregar a la venta' }).click()
+  await expect(dialog).not.toBeVisible()
+  await expect(
+    page.getByText('Camila Prueba', { exact: true }).filter({ visible: true }),
+  ).toBeVisible()
+})
+
+test('abre el formulario con el RUT validado si la búsqueda no encuentra clientes', async ({
+  page,
+}) => {
+  await mockBusiness(page, 'general')
+  await page.route('**/api/customers/rut-lookup', async (route) => {
+    await route.fulfill({ json: { rut: '12345678-5', customers: [] } })
+  })
+  const newCustomer = { customerId: 'new-rut', customerFirstName: 'Sofía', customerLastName: 'QA' }
+  await page.route('**/api/customers', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback()
+    expect(route.request().postDataJSON()).toMatchObject({
+      customerFirstName: 'Sofía',
+      customerDocumentNumber: '12345678-5',
+    })
+    return route.fulfill({ status: 201, json: { customer: newCustomer } })
+  })
+  await page.route('**/api/customers/new-rut', (route) => route.fulfill({ json: newCustomer }))
+  await page.goto('/sales/register')
+  await page.getByTitle('Registrar cliente').filter({ visible: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Registrar Cliente' })
+  await dialog.getByRole('textbox', { name: 'RUT del cliente' }).fill('12.345.678-5')
+  await dialog.getByRole('button', { name: 'Buscar RUT' }).click()
+  await expect(dialog.getByRole('textbox', { name: /^Nombre/ })).toBeVisible()
+  await expect(dialog.getByRole('textbox', { name: 'Número de Documento' })).toHaveValue(
+    '12345678-5',
+  )
+  await dialog.getByRole('textbox', { name: /^Nombre/ }).fill('Sofía')
+  await dialog.getByRole('button', { name: 'Crear Cliente' }).click()
+  await expect(dialog).not.toBeVisible()
+  await expect(page.getByText('Sofía QA', { exact: true }).filter({ visible: true })).toBeVisible()
+})

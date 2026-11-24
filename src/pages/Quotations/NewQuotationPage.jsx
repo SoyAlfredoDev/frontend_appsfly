@@ -264,8 +264,8 @@ export default function NewQuotationPage() {
   };
 
   // Customer handlers
-  const handleChangeCustomerSelect = (customerId) => {
-    const found = customers.find((c) => c.customerId === customerId);
+  const handleChangeCustomerSelect = (customerId, matchedCustomer) => {
+    const found = matchedCustomer ?? customers.find((c) => c.customerId === customerId);
     if (found) setSelectedCustomerCache(found);
     setDataQuotation((prev) => ({
       ...prev,
@@ -505,6 +505,7 @@ export default function NewQuotationPage() {
             }}
             filteredCustomers={filteredCustomers}
             onCustomerCreated={handleCreated}
+            existingActionLabel="Agregar a la cotización"
           />
         </div>
       </Motion.div>

@@ -35,6 +35,7 @@ export default function RegisterCustomerBar({
   onClearCustomer,
   filteredCustomers,
   onCustomerCreated,
+  existingActionLabel,
   disabled = false,
   /** Solo la instancia visible (móvil o desktop) monta el dropdown y escucha clics externos. */
   isActive = true,
@@ -237,6 +238,8 @@ export default function RegisterCustomerBar({
               }
               title="Registrar Cliente"
               onCreated={onCustomerCreated}
+              existingActionLabel={existingActionLabel}
+              onSelectExisting={(customer) => onSelectCustomer(customer.customerId, customer)}
             />
           </div>
         </div>
