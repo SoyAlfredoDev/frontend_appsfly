@@ -113,7 +113,8 @@ import EmailCampaignDetailAdminPage from "./pages/admin/emailCampaigns/EmailCamp
 import EmailProspectsAdminPage from "./pages/admin/emailProspects/EmailProspectsAdminPage.jsx";
 import ProspectUnsubscribePage from "./pages/ProspectUnsubscribePage.jsx";
 import PublicSaleReceiptPage from "./pages/public/PublicSaleReceiptPage.jsx";
-import PublicRegisterAppointmentPage from "./pages/public/PublicRegisterAppointmentPage.jsx";
+import { sanitizeAppointmentTelemetry } from "./utils/sanitizeAppointmentTelemetry";
+import PublicRegisterAppointmentPage from "./pages/public/PublicRegisterAppointmentPage.tsx";
 import AppointmentsPage from "./pages/appointments/AppointmentsPage.jsx";
 import NotificationsAdminPage from "./pages/admin/NotificationsAdminPage.jsx";
 import AgentTasksAdminPage from "./pages/admin/AgentTasksAdminPage.jsx";
@@ -271,8 +272,8 @@ function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
             </PaymentModalProvider>
-            <Analytics />
-            <SpeedInsights />
+            <Analytics beforeSend={sanitizeAppointmentTelemetry} />
+            <SpeedInsights beforeSend={sanitizeAppointmentTelemetry} />
             </AnnouncementProvider>
           </BrowserRouter>
         </ConfirmationProvider>
