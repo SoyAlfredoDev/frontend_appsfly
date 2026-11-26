@@ -35,8 +35,8 @@ export const updateEmailCampaignRequest = (campaignId, data) =>
 export const deleteEmailCampaignRequest = (campaignId) =>
     axios.delete(`/admin/email-campaigns/${campaignId}`);
 
-export const previewEmailCampaignAudienceRequest = (audienceType) =>
-    axios.post("/admin/email-campaigns/preview-audience", { audienceType });
+export const previewEmailCampaignAudienceRequest = (audienceType, campaignId) =>
+    axios.post("/admin/email-campaigns/preview-audience", { audienceType, campaignId });
 
 export const SYSTEM_CAMPAIGN_KEY_MONTHLY_SUSPENDED = "monthly-suspended-reactivation";
 export const SYSTEM_CAMPAIGN_KEY_DAILY_PLAN_EXPIRY_5D = "daily-plan-expiry-warning-5d";

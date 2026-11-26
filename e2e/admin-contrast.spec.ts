@@ -315,6 +315,57 @@ for (const [device, viewport] of [
       await expect(page.getByText(/2 destinatarios estimados/)).toBeVisible()
     })
 
+    test('campaign preview uses its ID only for the saved audience', async ({ page }) => {
+      const campaignId = 'expiry-campaign'
+      const savedAudienceType = 'BUSINESS_ADMINS_PLAN_EXPIRING_5D'
+      const newAudienceType = 'NEWSLETTER_SUBSCRIBERS'
+      const headers = {
+        'access-control-allow-origin': '*',
+        'access-control-allow-headers': 'Authorization, Content-Type',
+        'access-control-allow-methods': 'GET, POST, OPTIONS',
+      }
+      await page.route('**/api/admin/email-campaigns/metadata', (route) =>
+        route.fulfill({
+          headers,
+          json: {
+            audienceTypes: [
+              { value: savedAudienceType, label: 'Plan vence en 5 días' },
+              { value: newAudienceType, label: 'Newsletter' },
+            ],
+          },
+        }),
+      )
+      await page.route(`**/api/admin/email-campaigns/${campaignId}`, (route) =>
+        route.fulfill({
+          headers,
+          json: {
+            campaignId,
+            campaignName: 'Aviso de renovación',
+            audienceType: savedAudienceType,
+          },
+        }),
+      )
+      await page.route('**/api/admin/email-campaigns/preview-audience', async (route) => {
+        if (route.request().method() === 'OPTIONS') {
+          await route.fulfill({ status: 204, headers })
+          return
+        }
+        const data = route.request().postDataJSON()
+        if (data.audienceType === savedAudienceType) {
+          expect(data).toEqual({ audienceType: savedAudienceType, campaignId })
+          await route.fulfill({ headers, json: { estimatedRecipients: 3 } })
+        } else {
+          expect(data).toEqual({ audienceType: newAudienceType })
+          await route.fulfill({ headers, json: { estimatedRecipients: 2 } })
+        }
+      })
+
+      await page.goto(`/admin/email-campaigns/${campaignId}/settings`)
+      await expect(page.getByText(/3 destinatarios estimados/)).toBeVisible()
+      await page.getByLabel(/A quién se enviará/).selectOption(newAudienceType)
+      await expect(page.getByText(/2 destinatarios estimados/)).toBeVisible()
+    })
+
     test('campaign actions and navigation are legible', async ({ page }) => {
       await page.goto('/admin/email-campaigns')
       const sections = page.getByRole('navigation', { name: 'Secciones de campañas de email' })

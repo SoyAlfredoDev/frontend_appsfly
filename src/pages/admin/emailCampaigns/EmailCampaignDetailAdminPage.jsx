@@ -50,6 +50,8 @@ const EMPTY_FORM = {
     campaignName: "",
     campaignDescription: "",
     audienceType: "NEWSLETTER_SUBSCRIBERS",
+    savedAudienceType: null,
+    campaignId: null,
     emailSubject: "",
     senderName: "",
     senderEmail: "",
@@ -117,6 +119,8 @@ export default function EmailCampaignDetailAdminPage() {
                 campaignName: c.campaignName ?? "",
                 campaignDescription: c.campaignDescription ?? "",
                 audienceType: c.audienceType ?? "NEWSLETTER_SUBSCRIBERS",
+                savedAudienceType: c.audienceType ?? null,
+                campaignId: id,
                 emailSubject: c.emailSubject ?? "",
                 senderName: c.senderName ?? "",
                 senderEmail: c.senderEmail ?? "",
@@ -152,18 +156,6 @@ export default function EmailCampaignDetailAdminPage() {
         }
     }, [id, isNew]);
 
-    const loadAudiencePreview = useCallback(async (audienceType) => {
-        setPreviewLoading(true);
-        try {
-            const res = await previewEmailCampaignAudienceRequest(audienceType);
-            setAudiencePreview(res.data);
-        } catch {
-            setAudiencePreview(null);
-        } finally {
-            setPreviewLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
         loadMetadata();
         loadCampaign();
@@ -171,10 +163,25 @@ export default function EmailCampaignDetailAdminPage() {
     }, [loadMetadata, loadCampaign, loadStats]);
 
     useEffect(() => {
-        if (form.audienceType) {
-            loadAudiencePreview(form.audienceType);
-        }
-    }, [form.audienceType, loadAudiencePreview]);
+        if (!form.audienceType || (!isNew && form.campaignId !== id)) return;
+        const campaignId = !isNew && form.audienceType === form.savedAudienceType ? id : undefined;
+        let current = true;
+
+        const loadAudiencePreview = async () => {
+            setPreviewLoading(true);
+            try {
+                const res = await previewEmailCampaignAudienceRequest(form.audienceType, campaignId);
+                if (current) setAudiencePreview(res.data);
+            } catch {
+                if (current) setAudiencePreview(null);
+            } finally {
+                if (current) setPreviewLoading(false);
+            }
+        };
+        loadAudiencePreview();
+
+        return () => { current = false; };
+    }, [form.audienceType, form.campaignId, form.savedAudienceType, id, isNew]);
 
     const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -206,6 +213,7 @@ export default function EmailCampaignDetailAdminPage() {
                 navigate(`/admin/email-campaigns/${res.data.campaignId}/settings`, { replace: true });
             } else {
                 await updateEmailCampaignRequest(id, payload);
+                setForm((prev) => ({ ...prev, savedAudienceType: payload.audienceType }));
                 toast.success("Guardado", "La campaña se actualizó correctamente.");
                 await loadStats();
             }
