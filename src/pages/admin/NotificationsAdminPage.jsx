@@ -20,6 +20,7 @@ import {
     markAllAdminNotificationsReadRequest,
 } from "../../api/adminNotifications.js";
 import { executeEmailCampaignRequest } from "../../api/adminEmailCampaign.js";
+import { campaignPauseNotice } from "../../utils/campaignDeliveryPause";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
 import { useAdminNotifications } from "../../context/AdminNotificationsContext.jsx";
@@ -141,8 +142,12 @@ export default function NotificationsAdminPage() {
         setSendingCampaignId(notification.campaignId);
         try {
             const res = await executeEmailCampaignRequest(notification.campaignId);
-            const sent = res.data?.run?.sentCount ?? 0;
-            toast.success("Campaña enviada", `Se enviaron ${sent} correo(s).`);
+            if (res.data?.paused) {
+                toast.info("Envío en pausa", campaignPauseNotice(res.data));
+            } else {
+                const sent = res.data?.run?.sentCount ?? 0;
+                toast.success("Campaña enviada", `Se enviaron ${sent} correo(s).`);
+            }
             if (!notification.isRead) {
                 await markAdminNotificationReadRequest(notification.notificationId);
             }

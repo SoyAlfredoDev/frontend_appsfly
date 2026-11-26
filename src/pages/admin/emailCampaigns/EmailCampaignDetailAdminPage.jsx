@@ -26,6 +26,7 @@ import {
     updateEmailCampaignRequest,
 } from "../../../api/adminEmailCampaign.js";
 import {
+    audienceLabel,
     statusLabel,
     EMAIL_CAMPAIGN_STATUS_STYLES,
     scheduleModeLabel,
@@ -36,6 +37,7 @@ import {
     formatWeeklyRunDays,
     SCHEDULE_MODE_STYLES,
 } from "../../../utils/adminEmailCampaignConstants.js";
+import { campaignPauseNotice } from "../../../utils/campaignDeliveryPause";
 import { useToast } from "../../../context/ToastContext.jsx";
 import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 import {
@@ -47,7 +49,7 @@ const SECONDARY_BTN =
 const EMPTY_FORM = {
     campaignName: "",
     campaignDescription: "",
-    audienceType: "ALL_USERS",
+    audienceType: "NEWSLETTER_SUBSCRIBERS",
     emailSubject: "",
     senderName: "",
     senderEmail: "",
@@ -59,6 +61,7 @@ const EMPTY_FORM = {
     scheduleFrequency: "MANUAL",
     audienceParams: null,
     lastRunAt: null,
+    deliveryPause: null,
 };
 
 function FieldLabel({ children, hint }) {
@@ -72,7 +75,7 @@ function FieldLabel({ children, hint }) {
 
 export default function EmailCampaignDetailAdminPage() {
     const { id } = useParams();
-    const isNew = id === "new";
+    const isNew = id === undefined;
     const navigate = useNavigate();
     const toast = useToast();
     const confirm = useConfirm();
@@ -101,7 +104,11 @@ export default function EmailCampaignDetailAdminPage() {
     }, []);
 
     const loadCampaign = useCallback(async () => {
-        if (isNew) return;
+        if (isNew) {
+            setForm(EMPTY_FORM);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const res = await getEmailCampaignRequest(id);
@@ -109,7 +116,7 @@ export default function EmailCampaignDetailAdminPage() {
             setForm({
                 campaignName: c.campaignName ?? "",
                 campaignDescription: c.campaignDescription ?? "",
-                audienceType: c.audienceType ?? "ALL_USERS",
+                audienceType: c.audienceType ?? "NEWSLETTER_SUBSCRIBERS",
                 emailSubject: c.emailSubject ?? "",
                 senderName: c.senderName ?? "",
                 senderEmail: c.senderEmail ?? "",
@@ -121,6 +128,7 @@ export default function EmailCampaignDetailAdminPage() {
                 scheduleFrequency: c.scheduleFrequency ?? "MANUAL",
                 audienceParams: c.audienceParams ?? null,
                 lastRunAt: c.lastRunAt ?? null,
+                deliveryPause: c.deliveryPause ?? null,
             });
         } catch (err) {
             console.error(err);
@@ -132,7 +140,10 @@ export default function EmailCampaignDetailAdminPage() {
     }, [id, isNew, navigate, toast]);
 
     const loadStats = useCallback(async () => {
-        if (isNew) return;
+        if (isNew) {
+            setStats(null);
+            return;
+        }
         try {
             const res = await getEmailCampaignStatsRequest(id);
             setStats(res.data);
@@ -245,8 +256,12 @@ export default function EmailCampaignDetailAdminPage() {
 
         setExecuting(true);
         try {
-            await executeEmailCampaignRequest(id, { force });
-            toast.success("Campaña enviada", "Revisa las métricas de entrega abajo.");
+            const res = await executeEmailCampaignRequest(id, { force });
+            if (res.data?.paused) {
+                toast.info("Envío en pausa", campaignPauseNotice(res.data));
+            } else {
+                toast.success("Campaña enviada", "Revisa las métricas de entrega abajo.");
+            }
             await loadCampaign();
             await loadStats();
         } catch (err) {
@@ -259,17 +274,20 @@ export default function EmailCampaignDetailAdminPage() {
         }
     };
 
-    const audienceOptions =
-        metadata?.audienceTypes?.map((a) => ({ value: a.value, label: a.label })) ?? [];
+    const audienceOptions = metadata?.audienceTypes ?? [];
+    const selectableAudiences =
+        !isNew && !audienceOptions.some((audience) => audience.value === form.audienceType)
+            ? [{ value: form.audienceType, label: audienceLabel(form.audienceType) }, ...audienceOptions]
+            : audienceOptions;
 
     const statusStyle =
         EMAIL_CAMPAIGN_STATUS_STYLES[form.campaignStatus] ??
         EMAIL_CAMPAIGN_STATUS_STYLES.DRAFT;
 
     const monthlyEligible = stats?.monthlyEligibility?.allowed !== false;
-    const sendEligible =
-        form.scheduleFrequency === "MONTHLY" ? monthlyEligible : true;
-    const schedulePending = stats?.scheduleEligibility?.due === true;
+    const pauseNotice = campaignPauseNotice(form.deliveryPause);
+    const sendEligible = !pauseNotice && (form.scheduleFrequency !== "MONTHLY" || monthlyEligible);
+    const schedulePending = !pauseNotice && stats?.scheduleEligibility?.due === true;
     const schedulePendingLabel = scheduleEligibilityLabel(stats?.scheduleEligibility);
 
     if (loading) {
@@ -332,7 +350,7 @@ export default function EmailCampaignDetailAdminPage() {
                                 <FaPaperPlane />
                                 {executing ? "Enviando…" : "Enviar campaña"}
                             </button>
-                            {form.scheduleFrequency === "MONTHLY" && !monthlyEligible && (
+                            {!pauseNotice && form.scheduleFrequency === "MONTHLY" && !monthlyEligible && (
                                 <button
                                     type="button"
                                     onClick={() => handleExecute(true)}
@@ -346,6 +364,13 @@ export default function EmailCampaignDetailAdminPage() {
                     )
                 }
             />
+
+            {pauseNotice && (
+                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex gap-3">
+                    <FaInfoCircle className="shrink-0 mt-0.5 text-amber-700" />
+                    <p>{pauseNotice}</p>
+                </div>
+            )}
 
             {isSystemCampaign && !isNew && schedulePending && schedulePendingLabel && (
                 <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex gap-3">
@@ -475,7 +500,7 @@ export default function EmailCampaignDetailAdminPage() {
                             label="¿A quién se enviará?"
                             value={form.audienceType}
                             onChange={(e) => updateField("audienceType", e.target.value)}
-                            options={audienceOptions}
+                            options={selectableAudiences}
                             disabled={!isEditable || audienceOptions.length === 0 || isSystemCampaign}
                         />
                         <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm text-slate-600">
@@ -537,7 +562,7 @@ export default function EmailCampaignDetailAdminPage() {
                                         hint={
                                             isSystemCampaign
                                                 ? "Asignado por el sistema para distribuir envíos"
-                                                : `Solo correos @${metadata?.sender?.domain ?? "appsfly.app"}`
+                                                : `Solo correos @${metadata?.sender?.domain ?? "appsfly.cl"}`
                                         }
                                     >
                                         Nombre remitente
@@ -559,7 +584,7 @@ export default function EmailCampaignDetailAdminPage() {
                                         onChange={(e) => updateField("senderEmail", e.target.value)}
                                         disabled={!isEditable || isSystemCampaign}
                                         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:bg-slate-50"
-                                        placeholder={`avisos@${metadata?.sender?.domain ?? "appsfly.app"}`}
+                                        placeholder={`avisos@${metadata?.sender?.domain ?? "appsfly.cl"}`}
                                     />
                                 </div>
                             </div>

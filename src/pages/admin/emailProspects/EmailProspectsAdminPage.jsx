@@ -35,6 +35,7 @@ import {
     getEmailCampaignsRequest,
     SYSTEM_CAMPAIGN_KEY_WEEKLY_PROSPECTS,
 } from "../../../api/adminEmailCampaign.js";
+import { campaignPauseNotice } from "../../../utils/campaignDeliveryPause";
 import { useToast } from "../../../context/ToastContext.jsx";
 import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 import {
@@ -248,10 +249,9 @@ export default function EmailProspectsAdminPage() {
     };
 
     const handleSendOutreach = async () => {
-        const pending = Math.max(0, (stats.active ?? 0) - (stats.contacted ?? 0));
         const ok = await confirm({
             title: "Enviar outreach ahora",
-            message: `¿Disparar la campaña de prospectos manualmente? Se enviarán hasta 70 correos (hay ~${pending.toLocaleString("es-CL")} en cola sin contactar este mes).`,
+            message: "¿Ejecutar la campaña para los prospectos autorizados dentro del cupo de Resend?",
             variant: "danger",
             confirmText: "Enviar outreach",
             cancelText: "Cancelar",
@@ -273,8 +273,12 @@ export default function EmailProspectsAdminPage() {
                 toast.error("Error", "No se encontró la campaña de prospectos.");
                 return;
             }
-            await executeEmailCampaignRequest(campaignId);
-            toast.success("Outreach enviado", "Revisa el historial de la campaña para ver resultados.");
+            const res = await executeEmailCampaignRequest(campaignId);
+            if (res.data?.paused) {
+                toast.info("Envío en pausa", campaignPauseNotice(res.data));
+            } else {
+                toast.success("Campaña enviada", "Revisa el historial de la campaña para ver resultados.");
+            }
             await load();
         } catch (err) {
             toast.error(
@@ -309,7 +313,7 @@ export default function EmailProspectsAdminPage() {
         <PageContainer>
             <PageHeader
                 title="Prospectos de email"
-                subtitle="Lista de contactos externos. Campaña automática lun/mié/vie con recuperación si el servidor estuvo apagado."
+                subtitle="Gestiona la lista de contactos externos y consulta sus campañas."
                 actions={
                     <Link to="/admin/email-campaigns" className={SECONDARY_BTN}>
                         Ver campañas
@@ -323,7 +327,7 @@ export default function EmailProspectsAdminPage() {
                     title="Activos"
                     value={stats.active}
                     icon={FaUserCheck}
-                    footer="Reciben correos"
+                    footer="Activos en la lista"
                 />
                 <KpiComponent
                     title="Contactados"
@@ -356,17 +360,10 @@ export default function EmailProspectsAdminPage() {
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex gap-3">
                 <FaInfoCircle className="shrink-0 mt-0.5 text-amber-600" />
                 <div>
-                    <p className="font-medium">Límites de envío a prospectos (anti-spam)</p>
+                    <p className="font-medium">Envío a prospectos</p>
                     <p className="mt-1 text-amber-800/90">
-                        La campaña automática corre <strong>lunes, miércoles y viernes</strong> y
-                        envía hasta <strong>70 correos por ciclo</strong> (de los 100/día del plan
-                        gratuito de Resend; los otros 30 quedan para avisos de plan y reactivación).
-                        Cada lote rota entre <strong>3 mensajes distintos</strong> (propuesta de valor,
-                        oferta 2 meses gratis, equipo multi-usuario) y registra aperturas por variante.
-                        Si el servidor estuvo apagado, al encenderse recupera el envío del último
-                        día programado perdido. Rota remitente cada <strong>18 envíos</strong> (hola@,
-                        novedades@, invitaciones@, contacto@ en appsfly.app). El resto queda en cola
-                        para el próximo ciclo.
+                        La campaña incluye solo contactos con consentimiento y está sujeta al cupo
+                        diario y mensual de Resend.
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                         <button
@@ -380,7 +377,7 @@ export default function EmailProspectsAdminPage() {
                         </button>
                         {prospectCampaignId && (
                             <Link
-                                to={`/admin/email-campaigns/${prospectCampaignId}/edit`}
+                                to={`/admin/email-campaigns/${prospectCampaignId}/settings`}
                                 className={SECONDARY_BTN}
                             >
                                 <FaCog /> Configurar campaña

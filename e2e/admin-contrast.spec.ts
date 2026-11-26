@@ -233,6 +233,88 @@ for (const [device, viewport] of [
       await expect(page.getByRole('heading', { name: 'Actualizar listado' })).toHaveCount(0)
     })
 
+    test('a paused campaign shows the Resend reset and hides send actions', async ({ page }) => {
+      const resumeAt = new Date(Date.now() + 86_400_000).toISOString()
+      const pause = { code: 'CAMPAIGN_MONTHLY_QUOTA', resumeAt }
+      const campaign = {
+        campaignId: 'example-campaign',
+        campaignName: 'Campaña de ejemplo',
+        audienceType: 'NEWSLETTER_SUBSCRIBERS',
+        scheduleEligibility: { due: true },
+      }
+      let paused = false
+
+      const headers = {
+        'access-control-allow-origin': '*',
+        'access-control-allow-headers': 'Authorization, Content-Type',
+        'access-control-allow-methods': 'GET, POST, OPTIONS',
+      }
+      await page.route(
+        (url) => url.pathname === '/api/admin/email-campaigns',
+        (route) =>
+          route.request().method() === 'OPTIONS'
+            ? route.fulfill({ status: 204, headers })
+            : route.fulfill({
+                headers,
+                json: [{ ...campaign, ...(paused ? { deliveryPause: pause } : {}) }],
+              }),
+      )
+      await page.route('**/api/admin/email-campaigns/example-campaign/execute', async (route) => {
+        if (route.request().method() === 'OPTIONS') {
+          await route.fulfill({ status: 204, headers })
+          return
+        }
+        expect(route.request().method()).toBe('POST')
+        paused = true
+        await route.fulfill({ status: 202, headers, json: { ...pause, paused: true } })
+      })
+
+      await page.goto('/admin/email-campaigns')
+      await page.getByRole('button', { name: 'Enviar ahora' }).click()
+      await page.getByRole('button', { name: 'Enviar ahora' }).last().click()
+
+      const card = page.getByRole('article').filter({ hasText: campaign.campaignName })
+      await expect(card.getByText(/cupo mensual agotado.+hora de Chile/)).toBeVisible()
+      await expect(card.getByRole('button', { name: 'Enviar ahora' })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: 'Enviar pendientes' })).toHaveCount(0)
+      await expect(page.getByText('Campaña enviada', { exact: true })).toHaveCount(0)
+    })
+
+    test('a new campaign starts with the newsletter audience and previews it', async ({ page }) => {
+      const headers = {
+        'access-control-allow-origin': '*',
+        'access-control-allow-headers': 'Authorization, Content-Type',
+        'access-control-allow-methods': 'GET, POST, OPTIONS',
+      }
+      await page.route('**/api/admin/email-campaigns/metadata', (route) =>
+        route.fulfill({
+          headers,
+          json: {
+            audienceTypes: [{ value: 'NEWSLETTER_SUBSCRIBERS', label: 'Newsletter' }],
+            sender: { domain: 'appsfly.cl' },
+          },
+        }),
+      )
+      await page.route('**/api/admin/email-campaigns/preview-audience', async (route) => {
+        if (route.request().method() === 'OPTIONS') {
+          await route.fulfill({ status: 204, headers })
+          return
+        }
+        expect(route.request().postDataJSON()).toEqual({
+          audienceType: 'NEWSLETTER_SUBSCRIBERS',
+        })
+        await route.fulfill({ headers, json: { estimatedRecipients: 2 } })
+      })
+
+      await page.goto('/admin/email-campaigns')
+      await page.getByRole('link', { name: 'Nueva campaña' }).click()
+
+      await expect(page).toHaveURL(/\/admin\/email-campaigns\/new$/)
+      await expect(page.getByRole('heading', { name: 'Nueva campaña de email' })).toBeVisible()
+      await expect(page.getByLabel(/A quién se enviará/)).toHaveValue('NEWSLETTER_SUBSCRIBERS')
+      await expect(page.getByText(/2 destinatarios estimados/)).toBeVisible()
+    })
+
     test('campaign actions and navigation are legible', async ({ page }) => {
       await page.goto('/admin/email-campaigns')
       const sections = page.getByRole('navigation', { name: 'Secciones de campañas de email' })

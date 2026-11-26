@@ -33,6 +33,7 @@ import {
     formatCampaignSender,
 } from "../../../utils/adminEmailCampaignConstants.js";
 import { formatRecordCount } from "../../../utils/expenseUiPatterns.js";
+import { campaignPauseNotice } from "../../../utils/campaignDeliveryPause";
 import { useToast } from "../../../context/ToastContext.jsx";
 import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 
@@ -52,7 +53,8 @@ function ScheduleBadge({ campaign }) {
 
 function CampaignCard({ campaign, onSend, sendingId }) {
     const dueLabel = scheduleEligibilityLabel(campaign.scheduleEligibility);
-    const isDue = campaign.scheduleEligibility?.due;
+    const pauseNotice = campaignPauseNotice(campaign.deliveryPause);
+    const isDue = campaign.scheduleEligibility?.due && !pauseNotice;
     const isSending = sendingId === campaign.campaignId;
 
     return (
@@ -78,10 +80,10 @@ function CampaignCard({ campaign, onSend, sendingId }) {
                     <ScheduleBadge campaign={campaign} />
                 </div>
 
-                {isDue && dueLabel && (
+                {(pauseNotice || (isDue && dueLabel)) && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 flex items-start gap-2">
                         <FaExclamationTriangle className="shrink-0 mt-0.5" />
-                        <span>{dueLabel}</span>
+                        <span>{pauseNotice ?? dueLabel}</span>
                     </div>
                 )}
 
@@ -196,7 +198,7 @@ export default function EmailCampaignsAdminPage() {
     }, [loadCampaigns]);
 
     const dueCampaigns = useMemo(
-        () => campaigns.filter((c) => c.scheduleEligibility?.due),
+        () => campaigns.filter((c) => c.scheduleEligibility?.due && !campaignPauseNotice(c.deliveryPause)),
         [campaigns],
     );
 
@@ -233,11 +235,15 @@ export default function EmailCampaignsAdminPage() {
         setSendingId(campaign.campaignId);
         try {
             const res = await executeEmailCampaignRequest(campaign.campaignId);
-            const sent = res.data?.run?.sentCount ?? 0;
-            toast.success(
-                "Campaña enviada",
-                `Se enviaron ${sent} correo(s). Revisa el historial para ver entregas.`,
-            );
+            if (res.data?.paused) {
+                toast.info("Envío en pausa", campaignPauseNotice(res.data));
+            } else {
+                const sent = res.data?.run?.sentCount ?? 0;
+                toast.success(
+                    "Campaña enviada",
+                    `Se enviaron ${sent} correo(s). Revisa el historial para ver entregas.`,
+                );
+            }
             await loadCampaigns();
         } catch (err) {
             toast.error(
@@ -262,10 +268,14 @@ export default function EmailCampaignsAdminPage() {
         setRunningDue(true);
         try {
             const res = await runDueEmailCampaignsRequest();
-            toast.success(
-                res.data?.ran ? "Envíos procesados" : "Sin pendientes",
-                res.data?.message ?? "Revisa el historial de cada campaña.",
-            );
+            if (res.data?.paused) {
+                toast.info("Envíos en pausa", res.data.message ?? campaignPauseNotice(res.data));
+            } else {
+                toast.success(
+                    res.data?.ran ? "Envíos procesados" : "Sin pendientes",
+                    res.data?.message ?? "Revisa el historial de cada campaña.",
+                );
+            }
             await loadCampaigns();
         } catch (err) {
             toast.error(

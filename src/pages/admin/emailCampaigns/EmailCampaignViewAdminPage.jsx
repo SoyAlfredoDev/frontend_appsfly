@@ -32,6 +32,7 @@ import {
     SCHEDULE_MODE_STYLES,
     formatCampaignSender,
 } from "../../../utils/adminEmailCampaignConstants.js";
+import { campaignPauseNotice } from "../../../utils/campaignDeliveryPause";
 import { useToast } from "../../../context/ToastContext.jsx";
 import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 
@@ -96,8 +97,12 @@ export default function EmailCampaignViewAdminPage() {
         setExecuting(true);
         try {
             const res = await executeEmailCampaignRequest(id);
-            const sent = res.data?.run?.sentCount ?? 0;
-            toast.success("Campaña enviada", `Se enviaron ${sent} correo(s).`);
+            if (res.data?.paused) {
+                toast.info("Envío en pausa", campaignPauseNotice(res.data));
+            } else {
+                const sent = res.data?.run?.sentCount ?? 0;
+                toast.success("Campaña enviada", `Se enviaron ${sent} correo(s).`);
+            }
             await load();
         } catch (err) {
             toast.error(
@@ -132,7 +137,8 @@ export default function EmailCampaignViewAdminPage() {
 
     const automated = isAutomatedCampaign(campaign);
     const dueLabel = scheduleEligibilityLabel(campaign.scheduleEligibility);
-    const isDue = campaign.scheduleEligibility?.due;
+    const pauseNotice = campaignPauseNotice(campaign.deliveryPause);
+    const isDue = campaign.scheduleEligibility?.due && !pauseNotice;
 
     return (
         <PageContainer>
@@ -145,10 +151,10 @@ export default function EmailCampaignViewAdminPage() {
                 </Link>
             </div>
 
-            {isDue && dueLabel && (
+            {(pauseNotice || (isDue && dueLabel)) && (
                 <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-start gap-2">
                     <FaExclamationTriangle className="shrink-0 mt-0.5" />
-                    <span>{dueLabel}</span>
+                    <span>{pauseNotice ?? dueLabel}</span>
                 </div>
             )}
 
