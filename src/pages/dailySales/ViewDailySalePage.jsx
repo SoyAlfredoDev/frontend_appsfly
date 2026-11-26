@@ -287,7 +287,7 @@ export default function ViewDailySalePage() {
             <div>
               <p className={KPI_LABEL}>Efectivo contado</p>
               <p className={KPI_VALUE}>
-                {closure.dailySalesCountedCash == null ? "Pendiente" : formatMoney(closure.dailySalesCountedCash)}
+                {closure.dailySalesCountedCash == null ? "Sin arqueo" : formatMoney(closure.dailySalesCountedCash)}
               </p>
             </div>
           </div>

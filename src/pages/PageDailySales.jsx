@@ -1,10 +1,9 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback } from "react";
 import axios from "../api/axios.js";
 import { Link, useNavigate } from "react-router-dom";
 import ExpensePageLayout, { ExpenseAnimatedSection } from "../components/ui/ExpensePageLayout.jsx";
-import { getClosureStatus, closeAllPendingClosures } from "../api/dailySales.js";
-import { useToast } from "../context/ToastContext.jsx";
-import { useConfirm } from "../context/ConfirmationContext.jsx";
+import { getClosureStatus } from "../api/dailySales.js";
+import DailyClosureForm, { pendingClosureDays } from "../components/sales/DailyClosureForm";
 import { useAbortEffect, isAbortError } from "../hooks/useAbortEffect.js";
 import {
   FaEye,
@@ -59,8 +58,6 @@ import { getTodayBusinessDate, resolveBusinessTimezone } from "../utils/business
 import { useAuth } from "../context/authContext.jsx";
 
 export default function PageDailySales() {
-  const toast = useToast();
-  const confirm = useConfirm();
   const navigate = useNavigate();
   const { business } = useAuth();
   const businessTimezone = resolveBusinessTimezone(business);
@@ -69,19 +66,11 @@ export default function PageDailySales() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [dayClosed, setDayClosed] = useState(false);
   const [pendingDates, setPendingDates] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const closureInProgress = useRef(false);
   const [arqueoDay, setArqueoDay] = useState(null);
-  const [countedCash, setCountedCash] = useState("");
   const [loadError, setLoadError] = useState("");
 
   const applyClosureStatus = useCallback((data) => {
-    const dates = Array.isArray(data?.fechasPendientes) ? data.fechasPendientes : [];
-    if (dates.length === 0 && data?.error === "BLOQUEO_CIERRE_PENDIENTE" && data.fechaPendiente) {
-      setPendingDates([data.fechaPendiente]);
-    } else {
-      setPendingDates(dates);
-    }
+    setPendingDates(pendingClosureDays(data));
     setDayClosed(data?.error === "DAY_CLOSED");
   }, []);
 
@@ -115,83 +104,12 @@ export default function PageDailySales() {
     refreshPageData(signal, { showTableLoading: true });
   }, [refreshPageData]);
 
-  const runClosure = async (action) => {
-    if (closureInProgress.current) return;
-    closureInProgress.current = true;
-    setSaving(true);
-    try {
-      await action();
-    } finally {
-      closureInProgress.current = false;
-      setSaving(false);
+  const onClosureSaved = async (created) => {
+    if (created) {
+      setDailySales((rows) => [created, ...rows.filter((row) => row.dailySalesId !== created.dailySalesId)]);
     }
-  };
-
-  const handleCreateClose = () => {
-    if (pendingDates.length <= 1) {
-      setCountedCash("");
-      setArqueoDay(pendingDates[0] ?? getTodayBusinessDate(businessTimezone));
-      return;
-    }
-
-    return runClosure(async () => {
-      const isConfirmed = await confirm({
-        title: "¿Cerrar los días pendientes?",
-        message: `Se registrarán ${pendingDates.length} cierres en orden cronológico. Estos cierres quedarán sin conteo de efectivo.`,
-        variant: "success",
-        confirmText: "Cerrar días pendientes",
-        cancelText: "Cancelar",
-      });
-      if (!isConfirmed) return;
-
-      try {
-        const { data } = await closeAllPendingClosures();
-        if (data?.closedCount > 0) {
-          toast.success("Cierres completados", `Se registraron ${data.closedCount} cierres.`);
-        } else {
-          toast.info("Sin pendientes", data?.message ?? "No había cierres pendientes.");
-        }
-      } catch (error) {
-        toast.error("Error", error.response?.data?.message ?? "No se pudieron procesar los cierres pendientes.");
-      } finally {
-        await refreshPageData();
-      }
-    });
-  };
-
-  const confirmArqueo = () => {
-    const amount = Number(countedCash);
-    if (!/^\d+$/.test(countedCash.trim()) || amount > 2_147_483_647) {
-      toast.info("Conteo requerido", "Ingresa el efectivo contado, en pesos, sin decimales.");
-      return;
-    }
-
-    return runClosure(async () => {
-      try {
-        const { data: created } = await axios.post("/dailySales", {
-          dailySalesDay: arqueoDay,
-          countedCash: amount,
-        });
-        if (created?.dailySalesId) {
-          setDailySales((rows) => [created, ...rows.filter((row) => row.dailySalesId !== created.dailySalesId)]);
-        }
-        toast.success("Cierre realizado", `Cierre diario del ${formatClosureDate(arqueoDay)} registrado correctamente.`);
-        setArqueoDay(null);
-        await refreshPageData();
-      } catch (error) {
-        const data = error.response?.data;
-        const code = data?.code ?? data?.type;
-        if (code === "DUPLICATE_DATE") {
-          toast.info("Cierre existente", "Ya existe un cierre registrado para esa fecha.");
-          setArqueoDay(null);
-          await refreshPageData();
-        } else if (code === "NO_SALES" || code === "CLOSURE_COUNT_INVALID") {
-          toast.info(code === "NO_SALES" ? "Sin ventas" : "Conteo inválido", data?.message);
-        } else {
-          toast.error("Error", data?.message ?? "No se pudo realizar el cierre. Intenta nuevamente.");
-        }
-      }
-    });
+    setArqueoDay(null);
+    await refreshPageData();
   };
 
   const closureRows = dailySales;
@@ -277,6 +195,13 @@ export default function PageDailySales() {
       },
     },
     {
+      header: "Arqueo",
+      accessorKey: "dailySalesCountedCash",
+      cell: (info) => info.getValue() == null ? (
+        <span className="font-medium text-amber-800">Sin arqueo</span>
+      ) : formatMoney(info.getValue()),
+    },
+    {
       header: "Acciones",
       accessorKey: "dailySalesId",
       cell: (info) => (
@@ -315,12 +240,12 @@ export default function PageDailySales() {
         !arqueoDay && (
           <button
             type="button"
-            onClick={handleCreateClose}
+            onClick={() => setArqueoDay(pendingDates[0] ?? getTodayBusinessDate(businessTimezone))}
             className={PRIMARY_BTN}
-            disabled={saving || loading || Boolean(loadError) || (dayClosed && pendingDates.length === 0)}
+            disabled={loading || Boolean(loadError) || (dayClosed && pendingDates.length === 0)}
           >
             <FaLock />
-            {saving ? "Cerrando…" : dayClosed && pendingDates.length === 0 ? "Día cerrado" : "Realizar cierre diario"}
+            {dayClosed && pendingDates.length === 0 ? "Día cerrado" : "Realizar cierre diario"}
           </button>
         )
       }
@@ -356,34 +281,12 @@ export default function PageDailySales() {
       )}
 
       {arqueoDay && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 flex flex-col sm:flex-row sm:items-end gap-3">
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-gray-900">Arqueo de {formatClosureDate(arqueoDay)}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              Cuenta el efectivo del cajón. El esperado es el saldo del libro hasta el final de ese día.
-            </p>
-            <label className="block text-xs text-gray-500 mt-3">
-              Efectivo contado
-              <input
-                type="number"
-                min="0"
-                step="1"
-                inputMode="numeric"
-                value={countedCash}
-                onChange={(event) => setCountedCash(event.target.value)}
-                className="mt-1 w-full sm:w-56 h-10 px-3 border border-gray-200 rounded-lg text-sm"
-              />
-            </label>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setArqueoDay(null)} disabled={saving} className="px-4 py-2 text-sm border border-gray-200 rounded-lg">
-              Cancelar
-            </button>
-            <button type="button" onClick={confirmArqueo} disabled={saving} className={PRIMARY_BTN}>
-              <FaLock /> {saving ? "Guardando…" : "Guardar cierre"}
-            </button>
-          </div>
-        </div>
+        <DailyClosureForm
+          day={arqueoDay}
+          timeZone={businessTimezone}
+          onCancel={() => setArqueoDay(null)}
+          onSaved={onClosureSaved}
+        />
       )}
 
       <ExpenseAnimatedSection className="space-y-6">

@@ -50,7 +50,10 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa";
 
-import { getClosureStatus, closeAllPendingClosures } from "../../api/dailySales.js";
+import { getClosureStatus } from "../../api/dailySales.js";
+import DailyClosureForm, { pendingClosureDays } from "../../components/sales/DailyClosureForm";
+import useTenantPermissions from "../../hooks/useTenantPermissions.js";
+import { resolveBusinessTimezone } from "../../utils/businessTime.js";
 import { useAbortEffect, isAbortError } from "../../hooks/useAbortEffect.js";
 import { useMatchMedia } from "../../hooks/useMatchMedia.js";
 import { SaleLineItemMobileCard } from "../../components/sales/SaleRegisterLineItem.jsx";
@@ -116,7 +119,8 @@ export default function NewSalePage() {
   const navigate = useNavigate();
   /** { blocked, error, fechaPendiente, fechasPendientes, message } | null */
   const [closureBlock, setClosureBlock] = useState(null);
-  const [closingAllPending, setClosingAllPending] = useState(false);
+  const [arqueoDay, setArqueoDay] = useState(null);
+  const { can } = useTenantPermissions();
   const [saleId, setSaleId] = useState(uuidv4());
   const [quotationId, setQuotationId] = useState(uuidv4());
   const [sendByEmail, setSendByEmail] = useState(false);
@@ -177,6 +181,7 @@ export default function NewSalePage() {
   const customerSearchReadyRef = useRef(false);
 
   const isSalesBlocked = closureBlock?.blocked === true;
+  const pendingDay = pendingClosureDays(closureBlock)[0];
   /** Ventas bloqueadas por cierre; las cotizaciones siguen habilitadas. */
   const blockSalesRegistration = isSalesBlocked && !isQuotationMode;
   const isDesktopLayout = useMatchMedia("(min-width: 768px)");
@@ -453,37 +458,6 @@ export default function NewSalePage() {
       console.error(error);
     }
   };
-  const handleCloseAllPending = async () => {
-    const pendingCount = closureBlock?.fechasPendientes?.length ?? (closureBlock?.fechaPendiente ? 1 : 0);
-    if (pendingCount === 0) return;
-
-    const isConfirmed = await confirm({
-      title: '¿Cerrar todos los días pendientes?',
-      message: `Se procesarán ${pendingCount} cierre(s) diario(s) para habilitar nuevas ventas.`,
-      variant: 'success',
-      confirmText: 'Sí, cerrar todos',
-      cancelText: 'Cancelar',
-    });
-    if (!isConfirmed) return;
-
-    try {
-      setClosingAllPending(true);
-      const res = await closeAllPendingClosures();
-      const { closedCount = 0 } = res.data ?? {};
-      if (closedCount > 0) {
-        toast.success('Cierres completados', `Se registraron ${closedCount} cierre(s) pendiente(s).`);
-        await checkSalesClosureStatus();
-      } else {
-        toast.info('Sin pendientes', 'No había cierres pendientes por procesar.');
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('Error', 'No se pudieron cerrar los días pendientes.');
-    } finally {
-      setClosingAllPending(false);
-    }
-  };
-
   // ── Table handlers ──────────────────────────────────
   const newRow = () => {
     setDataTable((prev) => [...prev, createEmptyRow()]);
@@ -1078,7 +1052,7 @@ export default function NewSalePage() {
                         <>
                           Se requiere el cierre diario del día{" "}
                           <span className="font-semibold text-gray-800">
-                            {formatPendingClosureDate(closureBlock?.fechaPendiente)}
+                            {formatPendingClosureDate(pendingDay ?? closureBlock?.fechaPendiente)}
                           </span>{" "}
                           antes de registrar nuevas ventas.
                         </>
@@ -1086,18 +1060,15 @@ export default function NewSalePage() {
                     </p>
                   </div>
                 </div>
-                {closureBlock?.error === "BLOQUEO_CIERRE_PENDIENTE" && (
+                {pendingDay && !arqueoDay && can("daily-closures:execute") && (
                   <div className="flex flex-col sm:flex-row gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={handleCloseAllPending}
-                      disabled={closingAllPending}
+                      onClick={() => setArqueoDay(pendingDay)}
                       className={PRIMARY_BTN}
                     >
                       <FaLock />
-                      {closingAllPending
-                        ? 'Cerrando...'
-                        : `Cerrar todos (${closureBlock?.fechasPendientes?.length ?? 1})`}
+                      Realizar cierre diario
                     </button>
                     <Link
                       to="/sales/dailySales"
@@ -1108,6 +1079,17 @@ export default function NewSalePage() {
                   </div>
                 )}
               </div>
+              {arqueoDay && (
+                <DailyClosureForm
+                  day={arqueoDay}
+                  timeZone={resolveBusinessTimezone(business)}
+                  onCancel={() => setArqueoDay(null)}
+                  onSaved={async () => {
+                    setArqueoDay(null);
+                    await checkSalesClosureStatus();
+                  }}
+                />
+              )}
             </Motion.div>
           )}
         </AnimatePresence>
