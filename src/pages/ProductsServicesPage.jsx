@@ -1,5 +1,5 @@
 import { useAuth } from "../context/authContext.jsx";
-import { isClothingBusiness } from "../utils/businessModality.js";
+import { isClothingBusiness, isHardwareBusiness } from "../utils/businessModality.js";
 import { CLOTHING_VARIANTS_PATH } from "../utils/clothingOptions";
 import CategoryModal from "../components/modals/CategoryModal.jsx";
 import { getCategories } from "../api/category";
@@ -274,7 +274,7 @@ export default function ProductsServicesPage() {
                         </div>
 
                         {can("products:write") && (
-                            <CategoryModal onCategoryAdded={fetchCategories} />
+                            <CategoryModal onCategoryAdded={fetchCategories} editable={isHardwareBusiness(business)} />
                         )}
                     </div>
                 </ExpenseAnimatedSection>

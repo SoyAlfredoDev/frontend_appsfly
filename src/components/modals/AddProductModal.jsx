@@ -7,20 +7,8 @@ import { getCategories } from "../../api/category.js";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { FaPlus, FaTimes, FaBoxOpen, FaHandHoldingHeart, FaEdit } from "react-icons/fa";
 import { useToast } from "../../context/ToastContext.jsx";
-import { isOpticsBusiness } from "../../utils/businessModality.js";
-
-function parseAttrOptions(optionsJson) {
-    if (!optionsJson) return [];
-    try {
-        const parsed = JSON.parse(optionsJson);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return String(optionsJson)
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-    }
-}
+import { parseCategoryAttributeOptions } from "../../utils/categoryAttributes";
+import { isHardwareBusiness, isOpticsBusiness } from "../../utils/businessModality.js";
 
 function boolFromStored(value) {
     return value === true || value === "true" || value === "1";
@@ -38,6 +26,7 @@ export default function AddProductModal({
 }) {
     const { user, business } = useAuth();
     const toast = useToast();
+    const hardware = isHardwareBusiness(business);
     const showOpticsFields = isOpticsBusiness(business);
     const isEditMode = Boolean(productToEdit || productId);
     const [isOpen, setIsOpen] = useState(false);
@@ -289,7 +278,7 @@ export default function AddProductModal({
         const value = attributes[key] ?? "";
         const label = `${attr.attributeLabel}${attr.isRequired ? " *" : ""}`;
 
-        if (attr.dataType === "BOOLEAN") {
+        if (attr.dataType === "BOOLEAN" && !hardware) {
             return (
                 <label
                     key={attr.categoryAttributeId || key}
@@ -306,8 +295,9 @@ export default function AddProductModal({
             );
         }
 
-        if (attr.dataType === "SELECT") {
-            const options = parseAttrOptions(attr.optionsJson);
+        if (attr.dataType === "SELECT" || attr.dataType === "BOOLEAN") {
+            const boolean = attr.dataType === "BOOLEAN";
+            const options = boolean ? ["true", "false"] : parseCategoryAttributeOptions(attr.optionsJson);
             return (
                 <div key={attr.categoryAttributeId || key} className="relative">
                     <select
@@ -318,9 +308,12 @@ export default function AddProductModal({
                         required={attr.isRequired}
                     >
                         <option value="">Selecciona…</option>
+                        {hardware && value !== "" && !options.includes(value) && (
+                            <option value={value}>{value}</option>
+                        )}
                         {options.map((opt) => (
                             <option key={opt} value={opt}>
-                                {opt}
+                                {boolean ? (opt === "true" ? "Sí" : "No") : opt}
                             </option>
                         ))}
                     </select>
@@ -337,8 +330,10 @@ export default function AddProductModal({
         return (
             <InputFloatingComponent
                 key={attr.categoryAttributeId || key}
-                label={label}
+                label={hardware ? attr.attributeLabel : label}
                 type={attr.dataType === "NUMBER" ? "number" : "text"}
+                required={!hardware || attr.isRequired}
+                step={hardware && attr.dataType === "NUMBER" ? "any" : undefined}
                 name={`attr_${key}`}
                 value={value}
                 onChange={(e) => handleAttrChange(key, e.target.value)}

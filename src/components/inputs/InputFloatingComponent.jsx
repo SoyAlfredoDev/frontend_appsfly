@@ -15,6 +15,7 @@ export default function InputFloatingComponent({
     disabled = false,
     showPasswordToggle = false,
     inputMode = undefined,
+    step = undefined,
     maxLength = undefined,
     spellCheck = undefined,
     autoCapitalize = undefined,
@@ -51,6 +52,7 @@ export default function InputFloatingComponent({
                 disabled={disabled}
                 autoComplete={autoComplete}
                 inputMode={inputMode}
+                step={step}
                 maxLength={maxLength}
                 spellCheck={spellCheck}
                 autoCapitalize={autoCapitalize}

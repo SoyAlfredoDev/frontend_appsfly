@@ -26,8 +26,12 @@ export function isClothingBusiness(business) {
     return normalizeBusinessType(business?.businessType) === "clothing_store";
 }
 
+export function isHardwareBusiness(business) {
+    return normalizeBusinessType(business?.businessType) === "hardware_store";
+}
+
 export function usesRetailSales(business) {
-    return normalizeBusinessType(business?.businessType) === "general" || isClothingBusiness(business);
+    return normalizeBusinessType(business?.businessType) === "general" || isClothingBusiness(business) || isHardwareBusiness(business);
 }
 
 export function isOpticsBusiness(business) {

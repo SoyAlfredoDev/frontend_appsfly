@@ -54,6 +54,7 @@ const BUSINESS_TYPE_LABELS = {
     veterinary: "Veterinaria",
     hair_salon: "Peluquería",
     clothing_store: "Tienda",
+    hardware_store: "Ferretería / tienda de repuestos",
     minimarket: "Minimarket",
 };
 

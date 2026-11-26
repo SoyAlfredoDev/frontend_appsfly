@@ -49,6 +49,7 @@ export default function RegisterBusinessPage() {
         veterinary: "Veterinaria",
         hair_salon: "Peluquería / barbería",
         clothing_store: "Tienda de ropa / boutique",
+        hardware_store: "Ferretería / tienda de repuestos",
     };
 
     const countryCodes = [

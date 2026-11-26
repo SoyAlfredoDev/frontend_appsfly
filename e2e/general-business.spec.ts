@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 
-async function mockBusiness(page: Page, businessType: 'general' | 'optics' | 'clothing_store') {
+async function mockBusiness(
+  page: Page,
+  businessType: 'general' | 'optics' | 'clothing_store' | 'hardware_store',
+) {
   const businessId = `qa-${businessType}`
   const customer = { customerId: 'customer-a', customerFirstName: 'Ana', customerLastName: 'Pérez' }
   const sale = {
@@ -25,6 +28,29 @@ async function mockBusiness(page: Page, businessType: 'general' | 'optics' | 'cl
     quantityOnHand: index + 2,
     variantOptions: { talla, color: 'negro' },
   }))
+  const hardwareCategory = {
+    categoryId: 'tornilleria',
+    categoryName: 'Tornillería',
+    allowedFor: 'PRODUCTS',
+    attributes: [
+      {
+        categoryAttributeId: 'largo',
+        attributeKey: 'largo_mm',
+        attributeLabel: 'Largo (mm)',
+        dataType: 'NUMBER',
+        isRequired: false,
+        isVisible: true,
+      },
+      {
+        categoryAttributeId: 'material',
+        attributeKey: 'material',
+        attributeLabel: 'Material',
+        dataType: 'TEXT',
+        isRequired: false,
+        isVisible: true,
+      },
+    ],
+  }
   const paymentRows = [
     { paymentId: 'payment-1', paymentMethod: '2', paymentAmount: 10000, createdAt: sale.createdAt },
   ]
@@ -41,18 +67,50 @@ async function mockBusiness(page: Page, businessType: 'general' | 'optics' | 'cl
       data = [{ subscriptionStatus: 'ACTIVE', subscriptionEndDate: '2100-01-01' }]
     else if (path === `/business/${businessId}`)
       data = { businessId, businessName: 'Local QA', businessType, businessAllowCreditSales: true }
-    else if (path === '/customers') data = [customer]
-    else if (path === '/categories')
-      data = [{ categoryId: 'ropa', categoryName: 'Ropa', allowedFor: 'PRODUCTS' }]
-    else if (path === '/products')
+    else if (path === '/customers') {
+      expect(route.request().method()).toBe('GET')
+      data = [customer]
+    } else if (path === '/categories')
+      data =
+        businessType === 'hardware_store'
+          ? [hardwareCategory]
+          : [{ categoryId: 'ropa', categoryName: 'Ropa', allowedFor: 'PRODUCTS' }]
+    else if (path === '/categories/tornilleria' && route.request().method() === 'PUT') {
+      expect(route.request().postDataJSON()).toEqual({ categoryName: 'Tornillos' })
+      hardwareCategory.categoryName = 'Tornillos'
+      data = hardwareCategory
+    } else if (
+      path === '/categories/tornilleria/attributes/material' &&
+      route.request().method() === 'PUT'
+    ) {
+      expect(route.request().postDataJSON()).toEqual({
+        attributeLabel: 'Material base',
+        isRequired: false,
+        optionsJson: null,
+      })
+      hardwareCategory.attributes[1].attributeLabel = 'Material base'
+      data = hardwareCategory.attributes[1]
+    } else if (
+      path === '/products' &&
+      route.request().method() === 'POST' &&
+      businessType === 'hardware_store'
+    ) {
+      expect(route.request().postDataJSON()).toMatchObject({
+        categoryId: 'tornilleria',
+        name: 'Tornillo',
+        sku: 'TOR-1',
+        attributes: { largo_mm: '12.5' },
+      })
+      data = { product: { productId: 'product-a', productName: 'Tornillo' } }
+    } else if (path === '/products')
       data =
         businessType === 'clothing_store'
           ? clothingStock
           : [
               {
                 productId: 'product-a',
-                productName: 'Cuaderno',
-                productSKU: 'CUAD-1',
+                productName: businessType === 'hardware_store' ? 'Tornillo' : 'Cuaderno',
+                productSKU: businessType === 'hardware_store' ? 'TOR-1' : 'CUAD-1',
                 productPrice: 12000,
                 productPriceFixed: true,
                 productStock: 2,
@@ -91,8 +149,8 @@ async function mockBusiness(page: Page, businessType: 'general' | 'optics' | 'cl
           : [
               {
                 productId: 'product-a',
-                productName: 'Cuaderno',
-                productSKU: 'CUAD-1',
+                productName: businessType === 'hardware_store' ? 'Tornillo' : 'Cuaderno',
+                productSKU: businessType === 'hardware_store' ? 'TOR-1' : 'CUAD-1',
                 quantityOnHand: 2,
               },
             ]
@@ -129,49 +187,53 @@ async function mockBusiness(page: Page, businessType: 'general' | 'optics' | 'cl
   })
 }
 
-test('negocio general muestra clientes, stock y cobranza de una venta anterior', async ({
-  page,
-}) => {
-  await mockBusiness(page, 'general')
-  await page.goto('/customers')
-  await expect(page.getByText('Ana Pérez')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Ventas', exact: true })).toBeVisible()
-  await page.getByRole('link', { name: 'Inventario', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Control de Inventario' })).toBeVisible()
-  await expect(page.getByText('Cuaderno')).toBeVisible()
+for (const businessType of ['general', 'hardware_store'] as const) {
+  test(`${businessType} muestra clientes, stock y cobranza de una venta anterior`, async ({
+    page,
+  }) => {
+    await mockBusiness(page, businessType)
+    await page.goto('/customers')
+    await expect(page.getByText('Ana Pérez')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Ventas', exact: true })).toBeVisible()
+    await page.getByRole('link', { name: 'Inventario', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Control de Inventario' })).toBeVisible()
+    await expect(
+      page.getByText(businessType === 'hardware_store' ? 'Tornillo' : 'Cuaderno'),
+    ).toBeVisible()
 
-  await page.getByRole('link', { name: 'Cuentas por cobrar', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Cuentas por cobrar' })).toBeVisible()
-  await expect(page.getByRole('row').filter({ hasText: 'Ana Pérez' })).toContainText('20.000')
-  await page.getByRole('link', { name: 'Ver y abonar venta a00001' }).click()
-  await page.getByRole('button', { name: 'Abonar', exact: true }).click()
-  await page.getByRole('button', { name: 'Efectivo', exact: true }).click()
-  await page.getByRole('button', { name: 'Confirmar Pago' }).click()
-  await expect(page.getByRole('button', { name: 'Abonar', exact: true })).toHaveCount(0)
-  await page.getByRole('link', { name: 'Cuentas por cobrar', exact: true }).click()
-  await expect(page.getByText('No hay ventas con saldo pendiente.')).toBeVisible()
+    await page.getByRole('link', { name: 'Cuentas por cobrar', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Cuentas por cobrar' })).toBeVisible()
+    await expect(page.getByRole('row').filter({ hasText: 'Ana Pérez' })).toContainText('20.000')
+    await page.getByRole('link', { name: 'Ver y abonar venta a00001' }).click()
+    await page.getByRole('button', { name: 'Abonar', exact: true }).click()
+    await page.getByRole('button', { name: 'Efectivo', exact: true }).click()
+    await page.getByRole('button', { name: 'Confirmar Pago' }).click()
+    await expect(page.getByRole('button', { name: 'Abonar', exact: true })).toHaveCount(0)
+    await page.getByRole('link', { name: 'Cuentas por cobrar', exact: true }).click()
+    await expect(page.getByText('No hay ventas con saldo pendiente.')).toBeVisible()
 
-  await page.goto('/work-orders')
-  await expect(page.getByRole('heading', { name: 'Acceso restringido' })).toBeVisible()
-})
+    await page.goto('/work-orders')
+    await expect(page.getByRole('heading', { name: 'Acceso restringido' })).toBeVisible()
+  })
 
-test('una venta con saldo en Negocio general guarda sus líneas juntas', async ({ page }) => {
-  await mockBusiness(page, 'general')
-  await page.goto('/sales/register')
-  await page
-    .getByPlaceholder('Buscar por nombre, RUT, teléfono o correo...')
-    .filter({ visible: true })
-    .fill('Ana')
-  await page.getByRole('button', { name: /Ana Pérez/ }).click()
-  await page.locator('select:has(option[value="product-a"]):visible').selectOption('product-a')
-  await page.getByRole('button', { name: /^Finalizar(?: venta)?$/ }).click()
-  const saved = page.waitForResponse(
-    (response) => new URL(response.url()).pathname === '/api/sales/general',
-  )
-  await page.getByRole('button', { name: 'Confirmar venta', exact: true }).click()
-  expect((await saved).ok()).toBe(true)
-  await expect(page.getByText('La venta se registró correctamente.')).toBeVisible()
-})
+  test(`${businessType} registra una venta con saldo por cobrar`, async ({ page }) => {
+    await mockBusiness(page, businessType)
+    await page.goto('/sales/register')
+    await page
+      .getByPlaceholder('Buscar por nombre, RUT, teléfono o correo...')
+      .filter({ visible: true })
+      .fill('Ana')
+    await page.getByRole('button', { name: /Ana Pérez/ }).click()
+    await page.locator('select:has(option[value="product-a"]):visible').selectOption('product-a')
+    await page.getByRole('button', { name: /^Finalizar(?: venta)?$/ }).click()
+    const saved = page.waitForResponse(
+      (response) => new URL(response.url()).pathname === '/api/sales/general',
+    )
+    await page.getByRole('button', { name: 'Confirmar venta', exact: true }).click()
+    expect((await saved).ok()).toBe(true)
+    await expect(page.getByText('La venta se registró correctamente.')).toBeVisible()
+  })
+}
 
 test('óptica conserva su navegación y la consulta de órdenes de trabajo', async ({ page }) => {
   await mockBusiness(page, 'optics')
@@ -236,6 +298,44 @@ test('tienda de ropa registra y vende la talla seleccionada y filtra su stock', 
   ).toBeVisible()
   await page.getByRole('link', { name: 'Cuentas por cobrar', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Cuentas por cobrar', exact: true })).toBeVisible()
+})
+
+test('ferretería edita categorías y atributos y guarda un producto con una medida decimal', async ({
+  page,
+}) => {
+  await mockBusiness(page, 'hardware_store')
+  await page.goto('/products_services')
+  await expect(page.getByRole('link', { name: 'Ventas', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Inventario', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Cuentas por cobrar', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Nuevo modelo con variantes' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Categorías y atributos' }).click()
+  await page.getByRole('button', { name: 'Editar categoría Tornillería' }).click()
+  await page.getByRole('textbox', { name: /Nombre/ }).fill('Tornillos')
+  await page.getByRole('button', { name: 'Guardar categoría' }).click()
+  await page.getByRole('button', { name: 'Atributos', exact: true }).click()
+  await page.getByRole('button', { name: 'Editar atributo Material' }).click()
+  await page.getByRole('textbox', { name: /Etiqueta/ }).fill('Material base')
+  await page.getByRole('button', { name: 'Guardar atributo' }).click()
+  await expect(page.getByRole('button', { name: 'Editar atributo Material base' })).toBeVisible()
+  await page.getByRole('button', { name: 'Cerrar categorías' }).click()
+
+  await page.getByRole('button', { name: 'Agregar', exact: true }).click()
+  await page.getByRole('textbox', { name: /^SKU/ }).fill('TOR-1')
+  await page.getByRole('textbox', { name: /^Nombre/ }).fill('Tornillo')
+  await page.getByRole('textbox', { name: /^Descripción/ }).fill('Tornillo de acero')
+  await page.getByRole('combobox', { name: 'Categoría' }).selectOption('tornilleria')
+  await page.getByRole('spinbutton', { name: 'Largo (mm)' }).fill('12.5')
+  await expect(page.getByRole('textbox', { name: 'Material base' })).toHaveValue('')
+  await page.getByRole('spinbutton', { name: /^Precio/ }).fill('12000')
+  const saved = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/products' &&
+      response.request().method() === 'POST',
+  )
+  await page.getByRole('button', { name: 'Crear Registro' }).click()
+  expect((await saved).ok()).toBe(true)
+  await expect(page.getByText('El producto se registró correctamente.')).toBeVisible()
 })
 
 test('Óptica cierra un día pendiente con una sola acción y abre su detalle', async ({ page }) => {

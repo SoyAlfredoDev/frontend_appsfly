@@ -3,6 +3,7 @@ import InputFloatingComponent from "../inputs/InputFloatingComponent";
 import { useAuth } from "../../context/authContext";
 import {
     createCategory,
+    updateCategory,
     getCategories,
     deleteCategory,
     createCategoryAttribute,
@@ -21,6 +22,7 @@ import {
     FaEyeSlash,
     FaChevronLeft,
 } from "react-icons/fa";
+import { categoryAttributeKey, parseCategoryAttributeOptions } from "../../utils/categoryAttributes";
 import { useToast } from "../../context/ToastContext.jsx";
 
 const MySwal = withReactContent(Swal);
@@ -32,10 +34,12 @@ const ATTR_TYPES = [
     { value: "SELECT", label: "Lista" },
 ];
 
-export default function CategoryModal({ onCategoryAdded }) {
+export default function CategoryModal({ onCategoryAdded, editable = false }) {
     const { user } = useAuth();
     const toast = useToast();
     const [isOpen, setIsOpen] = useState(false);
+    const [editingCategoryId, setEditingCategoryId] = useState(null);
+    const [editingAttributeId, setEditingAttributeId] = useState(null);
     const [view, setView] = useState("list"); // list | create | attributes
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
@@ -85,6 +89,8 @@ export default function CategoryModal({ onCategoryAdded }) {
     const openModal = () => setIsOpen(true);
     const closeModal = () => {
         setIsOpen(false);
+        setEditingCategoryId(null);
+        setEditingAttributeId(null);
         setError(null);
         setView("list");
         setSelectedCategory(null);
@@ -107,12 +113,15 @@ export default function CategoryModal({ onCategoryAdded }) {
         if (onCategoryAdded) onCategoryAdded();
     };
 
-    const createCategoryFn = async (data) => {
+    const saveCategory = async (data) => {
         try {
             setLoading(true);
-            const category = await createCategory(data);
+            const category = editingCategoryId
+                ? await updateCategory(editingCategoryId, { categoryName: data.categoryName })
+                : await createCategory(data);
             if (category.status === 200) {
-                toast.success("Categoría creada", `${category.data.categoryName} se creó con éxito`);
+                toast.success(editingCategoryId ? "Categoría actualizada" : "Categoría creada", category.data.categoryName);
+                setEditingCategoryId(null);
                 setFormData({
                     categoryName: "",
                     allowedForProducts: true,
@@ -153,11 +162,23 @@ export default function CategoryModal({ onCategoryAdded }) {
             .toLowerCase()
             .replace(/^\w/, (c) => c.toUpperCase());
 
-        createCategoryFn({
+        saveCategory({
             ...formData,
             categoryName: formattedName,
             allowedFor,
         });
+    };
+
+    const openCategoryForm = (category = null) => {
+        setEditingCategoryId(category?.categoryId ?? null);
+        setFormData({
+            categoryName: category?.categoryName ?? "",
+            allowedForProducts: !category || category.allowedFor !== "SERVICES",
+            allowedForServices: category ? category.allowedFor !== "PRODUCTS" : !editable,
+            createdByUserId: user.userId,
+        });
+        setError(null);
+        setView("create");
     };
 
     const handleDeleteCategory = async (cat) => {
@@ -185,6 +206,7 @@ export default function CategoryModal({ onCategoryAdded }) {
 
     const openAttributes = (cat) => {
         setSelectedCategory(cat);
+        setEditingAttributeId(null);
         setView("attributes");
         setAttrForm({
             attributeKey: "",
@@ -244,7 +266,21 @@ export default function CategoryModal({ onCategoryAdded }) {
         }
     };
 
-    const handleCreateAttribute = async (e) => {
+    const openAttributeEditor = (attribute) => {
+        setEditingAttributeId(attribute.categoryAttributeId);
+        setAttrForm({
+            attributeKey: attribute.attributeKey,
+            attributeLabel: attribute.attributeLabel,
+            dataType: attribute.dataType,
+            optionsText: attribute.dataType === "SELECT"
+                ? parseCategoryAttributeOptions(attribute.optionsJson).join(", ")
+                : "",
+            isRequired: attribute.isRequired,
+        });
+        setError(null);
+    };
+
+    const handleSaveAttribute = async (e) => {
         e.preventDefault();
         if (!selectedCategory) return;
         if (!attrForm.attributeLabel.trim()) {
@@ -253,11 +289,13 @@ export default function CategoryModal({ onCategoryAdded }) {
         }
         const key =
             attrForm.attributeKey.trim() ||
-            attrForm.attributeLabel
-                .trim()
-                .toLowerCase()
-                .replace(/\s+/g, "_")
-                .replace(/[^a-z0-9_]/g, "");
+            categoryAttributeKey(attrForm.attributeLabel);
+
+        const options = [...new Set(attrForm.optionsText.split(",").map((option) => option.trim()).filter(Boolean))];
+        if (editable && (!key || (attrForm.dataType === "SELECT" && options.length === 0))) {
+            setError(!key ? "Ingresa una clave para el atributo." : "Agrega al menos una opción.");
+            return;
+        }
 
         const payload = {
             attributeKey: key,
@@ -266,18 +304,21 @@ export default function CategoryModal({ onCategoryAdded }) {
             isRequired: attrForm.isRequired,
             optionsJson:
                 attrForm.dataType === "SELECT"
-                    ? JSON.stringify(
-                          attrForm.optionsText
-                              .split(",")
-                              .map((s) => s.trim())
-                              .filter(Boolean),
-                      )
+                    ? JSON.stringify(options)
                     : null,
         };
 
         try {
             setLoading(true);
-            await createCategoryAttribute(selectedCategory.categoryId, payload);
+            if (editingAttributeId) {
+                const { attributeLabel, isRequired, optionsJson } = payload;
+                await updateCategoryAttribute(selectedCategory.categoryId, editingAttributeId, {
+                    attributeLabel, isRequired, optionsJson,
+                });
+            } else {
+                await createCategoryAttribute(selectedCategory.categoryId, payload);
+            }
+            setEditingAttributeId(null);
             setAttrForm({
                 attributeKey: "",
                 attributeLabel: "",
@@ -287,7 +328,7 @@ export default function CategoryModal({ onCategoryAdded }) {
             });
             setError(null);
             await refreshSelected();
-            toast.success("Atributo creado", payload.attributeLabel);
+            toast.success(editingAttributeId ? "Atributo actualizado" : "Atributo creado", payload.attributeLabel);
         } catch (err) {
             const msg = err.response?.data?.message || "No se pudo crear el atributo.";
             setError(msg);
@@ -309,7 +350,7 @@ export default function CategoryModal({ onCategoryAdded }) {
 
     const headerTitle =
         view === "create"
-            ? "Nueva categoría"
+            ? (editingCategoryId ? "Editar categoría" : "Nueva categoría")
             : view === "attributes"
               ? `Atributos · ${selectedCategory?.categoryName || ""}`
               : "Administrar categorías";
@@ -321,7 +362,7 @@ export default function CategoryModal({ onCategoryAdded }) {
                 onClick={openModal}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors shadow-sm text-sm font-medium mt-4"
             >
-                <FaTags /> Admin Categorías
+                <FaTags /> {editable ? "Categorías y atributos" : "Admin Categorías"}
             </button>
 
             <AnimatePresence>
@@ -360,6 +401,8 @@ export default function CategoryModal({ onCategoryAdded }) {
                                     <h3 className="text-xl font-bold text-gray-800 truncate">{headerTitle}</h3>
                                 </div>
                                 <button
+                                    type="button"
+                                    aria-label="Cerrar categorías"
                                     onClick={closeModal}
                                     className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
                                 >
@@ -372,10 +415,7 @@ export default function CategoryModal({ onCategoryAdded }) {
                                     <div className="space-y-4">
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setView("create");
-                                                setError(null);
-                                            }}
+                                            onClick={() => openCategoryForm()}
                                             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
                                         >
                                             <FaPlus /> Nueva categoría
@@ -418,6 +458,16 @@ export default function CategoryModal({ onCategoryAdded }) {
                                                         >
                                                             Atributos
                                                         </button>
+                                                        {editable && !cat.isSystem && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openCategoryForm(cat)}
+                                                                aria-label={`Editar categoría ${cat.categoryName}`}
+                                                                className="px-2.5 py-1.5 text-xs font-medium text-primary hover:underline"
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                        )}
                                                         {!cat.isSystem && (
                                                             <button
                                                                 type="button"
@@ -456,6 +506,7 @@ export default function CategoryModal({ onCategoryAdded }) {
                                                             className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer"
                                                             type="checkbox"
                                                             name="allowedForProducts"
+                                                            disabled={Boolean(editingCategoryId)}
                                                             checked={formData.allowedForProducts}
                                                             onChange={handleCheckboxChange}
                                                         />
@@ -468,6 +519,7 @@ export default function CategoryModal({ onCategoryAdded }) {
                                                             className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer"
                                                             type="checkbox"
                                                             name="allowedForServices"
+                                                            disabled={Boolean(editingCategoryId)}
                                                             checked={formData.allowedForServices}
                                                             onChange={handleCheckboxChange}
                                                         />
@@ -499,7 +551,7 @@ export default function CategoryModal({ onCategoryAdded }) {
                                                 className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
                                                 disabled={loading}
                                             >
-                                                {loading ? "Creando..." : "Crear Categoría"}
+                                                {loading ? "Guardando…" : editingCategoryId ? "Guardar categoría" : "Crear Categoría"}
                                             </button>
                                         </div>
                                     </form>
@@ -553,6 +605,16 @@ export default function CategoryModal({ onCategoryAdded }) {
                                                     >
                                                         {attr.isVisible ? <FaEye /> : <FaEyeSlash />}
                                                     </button>
+                                                    {editable && !attr.isSystem && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openAttributeEditor(attr)}
+                                                            aria-label={`Editar atributo ${attr.attributeLabel}`}
+                                                            className="px-2.5 py-1.5 text-xs font-medium text-primary hover:underline"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                    )}
                                                     {!attr.isSystem && (
                                                         <button
                                                             type="button"
@@ -573,11 +635,11 @@ export default function CategoryModal({ onCategoryAdded }) {
                                         </ul>
 
                                         <form
-                                            onSubmit={handleCreateAttribute}
+                                            onSubmit={handleSaveAttribute}
                                             className="space-y-3 border-t border-gray-100 pt-4"
                                         >
                                             <p className="text-sm font-semibold text-gray-700">
-                                                Agregar atributo personalizado
+                                                {editingAttributeId ? "Editar atributo" : "Agregar atributo personalizado"}
                                             </p>
                                             <InputFloatingComponent
                                                 label="Etiqueta"
@@ -594,6 +656,8 @@ export default function CategoryModal({ onCategoryAdded }) {
                                             <InputFloatingComponent
                                                 label="Clave (opcional)"
                                                 name="attributeKey"
+                                                required={false}
+                                                readOnly={Boolean(editingAttributeId)}
                                                 value={attrForm.attributeKey}
                                                 onChange={(e) =>
                                                     setAttrForm((prev) => ({
@@ -606,6 +670,7 @@ export default function CategoryModal({ onCategoryAdded }) {
                                             <div className="relative">
                                                 <select
                                                     id="attrDataType"
+                                                    disabled={Boolean(editingAttributeId)}
                                                     className="block px-3 pb-2 pt-4 w-full text-sm text-slate-800 bg-white rounded-md border border-slate-300 focus:outline-none focus:border-primary peer"
                                                     value={attrForm.dataType}
                                                     onChange={(e) =>
@@ -663,12 +728,21 @@ export default function CategoryModal({ onCategoryAdded }) {
                                                 </div>
                                             )}
 
+                                            {editingAttributeId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openAttributes(selectedCategory)}
+                                                    className="text-sm text-gray-600 hover:underline"
+                                                >
+                                                    Cancelar edición
+                                                </button>
+                                            )}
                                             <button
                                                 type="submit"
                                                 disabled={loading}
                                                 className="w-full px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
                                             >
-                                                {loading ? "Guardando…" : "Agregar atributo"}
+                                                {loading ? "Guardando…" : editingAttributeId ? "Guardar atributo" : "Agregar atributo"}
                                             </button>
                                         </form>
                                     </div>

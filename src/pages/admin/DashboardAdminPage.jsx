@@ -315,6 +315,7 @@ export default function DashboardAdminPage() {
                                                     {biz?.businessType === "veterinary" && "Veterinaria"}
                                                     {biz?.businessType === "hair_salon" && "Peluquería"}
                                                     {biz?.businessType === "clothing_store" && "Tienda"}
+                                                    {biz?.businessType === "hardware_store" && "Ferretería / tienda de repuestos"}
                                                     {biz?.businessType === "minimarket" && "Minimarket"}
                                                 </td>
                                                 <td className={TD}>
