@@ -49,10 +49,11 @@ export default function EmailCampaignSubNav() {
                     <Link
                         key={tab.id}
                         to={tab.path}
+                        aria-current={active ? "page" : undefined}
                         className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium no-underline border-b-2 -mb-px transition-colors ${
                             active
-                                ? "border-primary text-primary"
-                                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                                ? "border-emerald-700 text-emerald-800"
+                                : "border-transparent text-slate-700 hover:text-dark hover:border-slate-500"
                         }`}
                     >
                         <Icon className="text-xs" />

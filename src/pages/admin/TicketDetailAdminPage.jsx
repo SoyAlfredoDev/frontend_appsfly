@@ -286,7 +286,7 @@ export default function TicketDetailAdminPage() {
         return (
             <PageContainer className="!bg-transparent">
                 <div className="flex min-h-[60vh] items-center justify-center">
-                    <div className="inline-flex items-center gap-3 text-sm text-white/70">
+                    <div className="inline-flex items-center gap-3 text-sm text-slate-600">
                         <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
                         Cargando ticket…
                     </div>
@@ -298,7 +298,7 @@ export default function TicketDetailAdminPage() {
     if (error) {
         return (
             <PageContainer className="!bg-transparent">
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm text-red-200">
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm text-red-800">
                     {error}
                 </div>
             </PageContainer>
@@ -308,7 +308,7 @@ export default function TicketDetailAdminPage() {
     if (!ticket) {
         return (
             <PageContainer className="!bg-transparent">
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-6 py-4 text-sm text-amber-100">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-6 py-4 text-sm text-amber-900">
                     Ticket no encontrado.
                 </div>
             </PageContainer>

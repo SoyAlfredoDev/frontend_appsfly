@@ -168,7 +168,7 @@ function ContactAction({ href, icon: Icon, label, variant = "secondary" }) {
     if (!href) return null;
     const classes =
         variant === "whatsapp"
-            ? "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1ebe57] transition-colors no-underline"
+            ? "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-dark hover:bg-[#1ebe57] transition-colors no-underline"
             : "inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-dark hover:bg-slate-50 transition-colors no-underline";
 
     return (
@@ -311,7 +311,7 @@ export default function BusinessDetailAdminPage() {
         return (
             <PageContainer className="!bg-transparent">
                 <div className="flex min-h-[60vh] items-center justify-center">
-                    <div className="inline-flex items-center gap-3 text-sm text-white/70">
+                    <div className="inline-flex items-center gap-3 text-sm text-slate-600">
                         <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
                         Cargando ficha 360°…
                     </div>
@@ -323,7 +323,7 @@ export default function BusinessDetailAdminPage() {
     if (error || !business) {
         return (
             <PageContainer className="!bg-transparent">
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm text-red-200">
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-4 text-sm text-red-800">
                     {error ?? "Negocio no encontrado."}
                 </div>
                 <Link to="/admin/businesses" className="btn-ghost mt-4 inline-flex">
@@ -391,7 +391,7 @@ export default function BusinessDetailAdminPage() {
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,34%)]">
                     <div className="space-y-4 min-w-0">
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2" role="group" aria-label="Secciones de la empresa">
                             {PANEL_TABS.map((tab) => {
                                 const Icon = tab.icon;
                                 const selected = activePanel === tab.id;
@@ -401,13 +401,10 @@ export default function BusinessDetailAdminPage() {
                                         type="button"
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => setActivePanel(tab.id)}
-                                        className={
-                                            selected
-                                                ? "inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
-                                                : "inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/10 transition-colors"
-                                        }
+                                        aria-pressed={selected}
+                                        className="admin-filter-button"
                                     >
-                                        <Icon className="text-xs" />
+                                        <Icon aria-hidden="true" className="text-xs" />
                                         {tab.label}
                                     </motion.button>
                                 );

@@ -34,7 +34,6 @@ import {
 } from "../../../utils/adminEmailCampaignConstants.js";
 import { useToast } from "../../../context/ToastContext.jsx";
 import { useConfirm } from "../../../context/ConfirmationContext.jsx";
-import { PRIMARY_BTN } from "../../../utils/expenseUiPatterns.js";
 
 const SECONDARY_BTN =
     "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 no-underline";
@@ -166,13 +165,13 @@ export default function EmailCampaignViewAdminPage() {
                                 type="button"
                                 onClick={handleSendNow}
                                 disabled={executing}
-                                className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+                                className="inline-flex items-center gap-2 rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-60"
                             >
                                 {executing ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
                                 {executing ? "Enviando…" : "Enviar ahora"}
                             </button>
                         )}
-                        <Link to={`/admin/email-campaigns/${id}/settings`} className={PRIMARY_BTN}>
+                        <Link to={`/admin/email-campaigns/${id}/settings`} className="btn-primary">
                             <FaCog /> Configurar y enviar
                         </Link>
                     </div>

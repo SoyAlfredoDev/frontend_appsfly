@@ -23,7 +23,6 @@ import { executeEmailCampaignRequest } from "../../api/adminEmailCampaign.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
 import { useAdminNotifications } from "../../context/AdminNotificationsContext.jsx";
-import { PRIMARY_BTN } from "../../utils/expenseUiPatterns.js";
 
 function typeIcon(type) {
     switch (type) {
@@ -189,7 +188,7 @@ export default function NotificationsAdminPage() {
                 subtitle="Resumen de campañas automáticas y envíos del panel admin."
                 actions={
                     <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={handleMarkAllRead} className={PRIMARY_BTN}>
+                        <button type="button" onClick={handleMarkAllRead} className="btn-primary">
                             <FaCheckDouble /> Marcar todas leídas
                         </button>
                         <button
@@ -270,7 +269,7 @@ export default function NotificationsAdminPage() {
                                                 type="button"
                                                 onClick={() => handleSendCampaignNow(n)}
                                                 disabled={sendingCampaignId === n.campaignId}
-                                                className="text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 rounded-lg px-3 py-1.5 inline-flex items-center gap-1.5"
+                                                className="text-xs font-semibold text-white bg-amber-700 hover:bg-amber-800 disabled:opacity-60 rounded-lg px-3 py-1.5 inline-flex items-center gap-1.5"
                                             >
                                                 {sendingCampaignId === n.campaignId ? (
                                                     <FaSpinner className="animate-spin" />

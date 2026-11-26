@@ -32,7 +32,7 @@ import {
     SCHEDULE_MODE_STYLES,
     formatCampaignSender,
 } from "../../../utils/adminEmailCampaignConstants.js";
-import { PRIMARY_BTN, formatRecordCount } from "../../../utils/expenseUiPatterns.js";
+import { formatRecordCount } from "../../../utils/expenseUiPatterns.js";
 import { useToast } from "../../../context/ToastContext.jsx";
 import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 
@@ -140,7 +140,7 @@ function CampaignCard({ campaign, onSend, sendingId }) {
                         type="button"
                         onClick={() => onSend(campaign)}
                         disabled={Boolean(sendingId)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-amber-700 text-white hover:bg-amber-800 disabled:opacity-60 transition-colors"
                     >
                         {isSending ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
                         {isSending ? "Enviando…" : "Enviar ahora"}
@@ -148,7 +148,7 @@ function CampaignCard({ campaign, onSend, sendingId }) {
                 )}
                 <Link
                     to={`/admin/email-campaigns/${campaign.campaignId}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-primary/20 bg-white text-primary hover:bg-primary/5 transition-colors no-underline"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-emerald-700 bg-white text-emerald-800 hover:bg-primary/5 transition-colors no-underline"
                 >
                     <FaEye />
                     Ver campaña
@@ -283,7 +283,7 @@ export default function EmailCampaignsAdminPage() {
                 title="Campañas de email"
                 subtitle="Catálogo de correos de plataforma. Abre cada campaña para ver el mensaje completo."
                 actions={
-                    <Link to="/admin/email-campaigns/new" className={PRIMARY_BTN}>
+                    <Link to="/admin/email-campaigns/new" className="btn-primary">
                         <FaPlus /> Nueva campaña
                     </Link>
                 }
@@ -308,7 +308,7 @@ export default function EmailCampaignsAdminPage() {
                         type="button"
                         onClick={handleRunAllDue}
                         disabled={runningDue || Boolean(sendingId)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60 shrink-0"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-60 shrink-0"
                     >
                         {runningDue ? <FaSpinner className="animate-spin" /> : <FaPaperPlane />}
                         {runningDue ? "Enviando…" : "Enviar pendientes"}
@@ -356,7 +356,7 @@ export default function EmailCampaignsAdminPage() {
                     </p>
                     <Link
                         to="/admin/email-campaigns/new"
-                        className={`${PRIMARY_BTN} mt-4 inline-flex`}
+                        className="btn-primary mt-4"
                     >
                         <FaPlus /> Crear primera campaña
                     </Link>

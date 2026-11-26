@@ -29,7 +29,6 @@ import {
     KPI_ICON_SECONDARY,
     KPI_LABEL,
     KPI_VALUE,
-    PRIMARY_BTN,
 } from "../../utils/expenseUiPatterns.js";
 
 function billingLabel(months) {
@@ -332,7 +331,7 @@ export default function PlansAdminPage() {
                             <FaExclamationTriangle className="mt-0.5 shrink-0" />
                             {error}
                         </p>
-                        <button type="button" onClick={loadPlans} className={PRIMARY_BTN}>
+                        <button type="button" onClick={loadPlans} className="btn-primary">
                             Reintentar
                         </button>
                     </motion.div>

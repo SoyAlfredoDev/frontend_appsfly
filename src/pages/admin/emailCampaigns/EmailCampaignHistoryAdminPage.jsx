@@ -315,7 +315,7 @@ export default function EmailCampaignHistoryAdminPage() {
                                         <td className={TD}>
                                             <Link
                                                 to={`/admin/email-campaigns/${campaign.campaignId}/history`}
-                                                className="text-sm font-medium text-primary hover:text-primary/80 no-underline"
+                                                className="text-sm font-medium text-emerald-800 hover:text-emerald-900 no-underline"
                                             >
                                                 Ver resultados
                                             </Link>

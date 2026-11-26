@@ -39,7 +39,6 @@ import {
 import { useToast } from "../../../context/ToastContext.jsx";
 import { useConfirm } from "../../../context/ConfirmationContext.jsx";
 import {
-    PRIMARY_BTN,
 } from "../../../utils/expenseUiPatterns.js";
 
 const SECONDARY_BTN =
@@ -293,7 +292,7 @@ export default function EmailCampaignDetailAdminPage() {
                 {!isNew && (
                     <Link
                         to={`/admin/email-campaigns/${id}`}
-                        className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 no-underline"
+                        className="inline-flex items-center gap-2 text-sm text-emerald-800 hover:text-emerald-900 no-underline"
                     >
                         <FaEye /> Ver campaña
                     </Link>
@@ -328,7 +327,7 @@ export default function EmailCampaignDetailAdminPage() {
                                 type="button"
                                 onClick={() => handleExecute(false)}
                                 disabled={executing || !sendEligible}
-                                className={PRIMARY_BTN}
+                                className="btn-primary"
                             >
                                 <FaPaperPlane />
                                 {executing ? "Enviando…" : "Enviar campaña"}
@@ -601,7 +600,7 @@ export default function EmailCampaignDetailAdminPage() {
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className={PRIMARY_BTN}
+                                className="btn-primary"
                             >
                                 <FaSave />
                                 {saving ? "Guardando…" : isNew ? "Crear campaña" : "Guardar cambios"}

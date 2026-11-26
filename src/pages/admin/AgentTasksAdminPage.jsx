@@ -23,7 +23,6 @@ import {
 } from "../../api/agentTasks.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import { useConfirm } from "../../context/ConfirmationContext.jsx";
-import { PRIMARY_BTN } from "../../utils/expenseUiPatterns.js";
 
 const STATUS_STYLES = {
     PENDING: "bg-amber-50 text-amber-800 border-amber-200",
@@ -317,7 +316,7 @@ export default function AgentTasksAdminPage() {
                         </select>
                     </div>
 
-                    <button type="submit" disabled={submitting} className={`${PRIMARY_BTN} w-full justify-center`}>
+                    <button type="submit" disabled={submitting} className="btn-primary w-full">
                         {submitting ? "Guardando…" : "Agregar a la cola"}
                     </button>
 
@@ -343,7 +342,7 @@ export default function AgentTasksAdminPage() {
 
                 {!mobileAddOnly && (
                 <div className="lg:col-span-2 space-y-4">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Estado de las tareas">
                         {[
                             ["ALL", "Todas"],
                             ["PENDING", "Pendientes"],
@@ -355,11 +354,8 @@ export default function AgentTasksAdminPage() {
                                 key={value}
                                 type="button"
                                 onClick={() => setFilter(value)}
-                                className={
-                                    filter === value
-                                        ? "rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white"
-                                        : "rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                                }
+                                aria-pressed={filter === value}
+                                className="admin-filter-button"
                             >
                                 {label}
                             </button>

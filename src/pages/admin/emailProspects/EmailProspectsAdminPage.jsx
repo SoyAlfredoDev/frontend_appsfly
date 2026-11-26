@@ -45,7 +45,6 @@ import {
     TBODY,
     TD,
     TR_ROW,
-    PRIMARY_BTN,
     formatRecordCount,
 } from "../../../utils/expenseUiPatterns.js";
 import formatDate from "../../../utils/formatDate.js";
@@ -374,7 +373,7 @@ export default function EmailProspectsAdminPage() {
                             type="button"
                             onClick={handleSendOutreach}
                             disabled={sendingOutreach || loading}
-                            className={PRIMARY_BTN}
+                            className="btn-primary"
                         >
                             <FaPaperPlane />
                             {sendingOutreach ? "Enviando…" : "Enviar outreach ahora"}
@@ -425,7 +424,7 @@ export default function EmailProspectsAdminPage() {
                             onChange={(e) => setForm((f) => ({ ...f, companyName: e.target.value }))}
                             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                         />
-                        <button type="submit" disabled={busy} className={PRIMARY_BTN}>
+                        <button type="submit" disabled={busy} className="btn-primary">
                             {busy ? "Guardando…" : "Agregar"}
                         </button>
                         {formError && (
@@ -478,7 +477,7 @@ export default function EmailProspectsAdminPage() {
                         type="button"
                         onClick={() => handleImport()}
                         disabled={busy || !importText.trim()}
-                        className={PRIMARY_BTN}
+                        className="btn-primary"
                     >
                         Importar lista
                     </button>
@@ -653,7 +652,7 @@ export default function EmailProspectsAdminPage() {
                                                     {p.convertedUserId && (
                                                         <Link
                                                             to={`/admin/users`}
-                                                            className="text-primary hover:underline"
+                                                            className="text-emerald-800 hover:underline"
                                                         >
                                                             Ver usuarios
                                                         </Link>
@@ -679,7 +678,7 @@ export default function EmailProspectsAdminPage() {
                                                         type="button"
                                                         onClick={() => handleResubscribe(p)}
                                                         disabled={busy}
-                                                        className="text-xs font-medium text-primary hover:text-primary/80"
+                                                        className="text-xs font-medium text-emerald-800 hover:text-emerald-900"
                                                     >
                                                         <FaUndo className="inline mr-1" />
                                                         Reactivar

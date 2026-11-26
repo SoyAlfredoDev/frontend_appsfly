@@ -26,7 +26,6 @@ import {
     isAutomatedCampaign,
 } from "../../../utils/adminEmailCampaignConstants.js";
 import { useToast } from "../../../context/ToastContext.jsx";
-import { PRIMARY_BTN } from "../../../utils/expenseUiPatterns.js";
 
 const SECONDARY_BTN =
     "inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 no-underline";
@@ -107,7 +106,7 @@ export default function EmailCampaignHistoryDetailAdminPage() {
                 </Link>
                 <Link
                     to={`/admin/email-campaigns/${id}`}
-                    className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 no-underline"
+                    className="inline-flex items-center gap-2 text-sm text-emerald-800 hover:text-emerald-900 no-underline"
                 >
                     <FaEye /> Ver campaña
                 </Link>
@@ -117,7 +116,7 @@ export default function EmailCampaignHistoryDetailAdminPage() {
                 title={`Resultados — ${campaign.campaignName}`}
                 subtitle={`${audienceLabel(campaign.audienceType)} · ${scheduleDetailLabel(campaign)}`}
                 actions={
-                    <Link to={`/admin/email-campaigns/${id}/settings`} className={PRIMARY_BTN}>
+                    <Link to={`/admin/email-campaigns/${id}/settings`} className="btn-primary">
                         <FaCog /> Configurar y enviar
                     </Link>
                 }

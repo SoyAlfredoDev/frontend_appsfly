@@ -236,7 +236,7 @@ export default function SubscriptionsAdminPage() {
                     />
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Estado de suscripción">
                     {TAB_OPTIONS.map((tab) => {
                         const isSelected = activeTab === tab.id;
                         const count =
@@ -252,21 +252,12 @@ export default function SubscriptionsAdminPage() {
                                 type="button"
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={
-                                    isSelected
-                                        ? "inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm"
-                                        : "inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/10 transition-colors"
-                                }
+                                aria-pressed={isSelected}
+                                className="admin-filter-button"
                             >
-                                <FaCreditCard className="text-xs opacity-80" />
+                                <FaCreditCard aria-hidden="true" className="text-xs" />
                                 {tab.label}
-                                <span
-                                    className={
-                                        isSelected
-                                            ? "rounded-full bg-white/20 px-2 py-0.5 text-xs"
-                                            : "rounded-full bg-white/10 px-2 py-0.5 text-xs"
-                                    }
-                                >
+                                <span className="admin-filter-count">
                                     {loading ? "…" : count}
                                 </span>
                             </motion.button>
